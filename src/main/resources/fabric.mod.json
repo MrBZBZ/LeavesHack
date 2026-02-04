@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "antiantixray",
+  "version": "${version}",
+  "name": "LeavesHack",
+  "description": "dev：Leaves_awa",
+  "authors": [
+    "seasnail"
+  ],
+  "contact": {
+    "repo": "https://github.com/MeteorDevelopment/meteor-addon-template"
+  },
+  "icon": "assets/template/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "meteor": [
+      "com.example.addon.LeavesHack"
+    ]
+  },
+  "mixins": [
+    "addon-template.mixins.json"
+  ],
+  "custom": {
+    "meteor-client:color": "225,25,25"
+  },
+  "depends": {
+    "java": ">=21",
+    "minecraft": ["${mc_version}"],
+    "meteor-client": "*"
+  }
+}
