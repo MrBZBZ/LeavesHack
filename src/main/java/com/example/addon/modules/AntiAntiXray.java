@@ -1,12 +1,14 @@
 package com.example.addon.modules;
 
 import com.example.addon.LeavesHack;
+import com.example.addon.utils.math.Timer;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.pathing.BaritoneUtils;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import baritone.api.BaritoneAPI;
+import meteordevelopment.meteorclient.systems.modules.player.AutoClicker;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Blocks;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
@@ -30,6 +32,7 @@ public class AntiAntiXray extends Module {
     int blockCounts = 0;
     int progress = 0;
     private boolean render = false;
+    private Timer timer = new Timer();
     private ExecutorService executor = null;
     private BlockPos playerPos = null;
     private int leftIndex;
@@ -41,6 +44,14 @@ public class AntiAntiXray extends Module {
         .min(0)
         .sliderMax(50)
         .build()
+    );
+    private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
+            .name("delay")
+            .description("")
+            .defaultValue(0)
+            .min(0)
+            .sliderMax(100)
+            .build()
     );
     private final Setting<Integer> step = sgGeneral.add(new IntSetting.Builder()
         .name("Step")
@@ -93,6 +104,7 @@ public class AntiAntiXray extends Module {
     public void onActivate() {
         executor = Executors.newSingleThreadExecutor();
         playerPos = mc.player.getBlockPos();
+        timer.setMs(999999);
         render = false;
         breakList.clear();
         ironList.clear();
@@ -125,7 +137,8 @@ public class AntiAntiXray extends Module {
             });
         }
         renderBlock(event);
-        int r = range.get().intValue();
+        if (!timer.passedMs(delay.get())) return;
+        int r = range.get();
         int size = r * 2 + 1;
         if (progress * step.get() < 100) {
             long totalBlocks = (long)size * size * size;
@@ -145,7 +158,6 @@ public class AntiAntiXray extends Module {
         visitIndex(event, playerPos, leftIndex, size, r);
         blockCounts++;
         leftIndex = leftIndex + step.get().intValue();
-
         // ===== 右端（避免奇数时重复）=====
         if (leftIndex <= rightIndex) {
             visitIndex(event, playerPos, rightIndex, size, r);
