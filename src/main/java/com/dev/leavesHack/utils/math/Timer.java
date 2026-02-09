@@ -1,4 +1,4 @@
-package com.example.addon.utils.math;
+package com.dev.leavesHack.utils.math;
 
 public class Timer {
 

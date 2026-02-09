@@ -1,14 +1,13 @@
-package com.example.addon.modules;
+package com.dev.leavesHack.modules;
 
-import com.example.addon.LeavesHack;
-import com.example.addon.utils.math.Timer;
+import com.dev.leavesHack.LeavesHack;
+import com.dev.leavesHack.utils.math.Timer;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.pathing.BaritoneUtils;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import baritone.api.BaritoneAPI;
-import meteordevelopment.meteorclient.systems.modules.player.AutoClicker;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Blocks;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;

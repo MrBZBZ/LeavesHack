@@ -1,8 +1,11 @@
-package com.example.addon;
+package com.dev.leavesHack;
 
-import com.example.addon.commands.CommandExample;
-import com.example.addon.hud.HudExample;
-import com.example.addon.modules.AntiAntiXray;
+import com.dev.leavesHack.commands.CommandExample;
+import com.dev.leavesHack.hud.HudExample;
+import com.dev.leavesHack.modules.AntiAntiXray;
+import com.dev.leavesHack.modules.AutoArmorPlus;
+import com.dev.leavesHack.modules.AutoRefreshTrade;
+import com.dev.leavesHack.modules.FireworkElytraFly;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.GithubRepo;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
@@ -23,7 +26,10 @@ public class LeavesHack extends MeteorAddon {
         LOG.info("Initializing LeavesHack");
 
         // Modules
+        Modules.get().add(new AutoArmorPlus());
+        Modules.get().add(new FireworkElytraFly());
         Modules.get().add(new AntiAntiXray());
+        Modules.get().add(new AutoRefreshTrade());
 
         // Commands
         Commands.add(new CommandExample());
@@ -38,7 +44,7 @@ public class LeavesHack extends MeteorAddon {
     }
     @Override
     public String getPackage() {
-        return "com.example.addon";
+        return "com.dev.leavesHack";
     }
     @Override
     public GithubRepo getRepo() {

@@ -1,6 +1,6 @@
-package com.example.addon.hud;
+package com.dev.leavesHack.hud;
 
-import com.example.addon.LeavesHack;
+import com.dev.leavesHack.LeavesHack;
 import meteordevelopment.meteorclient.systems.hud.HudElement;
 import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;

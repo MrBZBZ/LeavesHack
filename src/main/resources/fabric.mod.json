@@ -7,6 +7,7 @@
   "authors": [
     "seasnail"
   ],
+  "accessWidener": "leavesHack.accesswidener",
   "contact": {
     "repo": "https://github.com/MeteorDevelopment/meteor-addon-template"
   },
@@ -14,11 +15,11 @@
   "environment": "client",
   "entrypoints": {
     "meteor": [
-      "com.example.addon.LeavesHack"
+      "com.dev.leavesHack.LeavesHack"
     ]
   },
   "mixins": [
-    "addon-template.mixins.json"
+    "leavesHack.mixins.json"
   ],
   "custom": {
     "meteor-client:color": "225,25,25"

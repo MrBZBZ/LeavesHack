@@ -1,8 +1,9 @@
 {
   "required": true,
-  "package": "com.example.addon.mixin",
+  "package": "com.dev.leavesHack.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "MixinClientPlayerEntity"
   ],
   "injectors": {
     "defaultRequire": 1

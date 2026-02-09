@@ -7,7 +7,9 @@ base {
     version = project.mod_version
     group = project.maven_group
 }
-
+loom {
+    accessWidenerPath = file("src/main/resources/leavesHack.accesswidener")
+}
 repositories {
     maven {
         name = "Meteor Dev Releases"
