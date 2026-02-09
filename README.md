@@ -10,15 +10,15 @@
 - 如果你觉得这个插件不错可以请我吃个肠粉，咕咕嘎嘎  
 <img src="114514.jpg" width="50%" height="50%">
 ---
-## 功能
+## 功能  
 截至目前更新的功能： 
-* AntiAntiXray 雷达扫描矿透
-* AutoRefreshTrade 自动刷新村民交易的附魔书
-* AutoArmorPlus 自动穿甲（主要为了和FireworkElytraFly联动自动穿鞘翅）
-* FireworkElytraFly 在鞘翅飞行时自动使用烟花
----
+* AntiAntiXray 雷达扫描矿透  
+* AutoRefreshTrade 自动刷新村民交易的附魔书  
+* AutoArmorPlus 自动穿甲（主要为了和FireworkElytraFly联动自动穿鞘翅）  
+* FireworkElytraFly 在鞘翅飞行时自动使用烟花  
+---  
 # 教程：
-## AntiAntiXray
+## AntiAntiXray  
 - **高效矿石扫描**  
   在可配置范围内扫描方块，步长配置为2时速度更快
 
