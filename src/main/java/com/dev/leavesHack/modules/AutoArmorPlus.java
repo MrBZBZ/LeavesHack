@@ -49,13 +49,13 @@ public class AutoArmorPlus extends Module {
     private final Setting<Boolean> ignoreBinding = sgGeneral.add(new BoolSetting.Builder()
             .name("IgnoreBinding")
             .description("")
-            .defaultValue(true)
+            .defaultValue(false)
             .build()
     );
     private final Setting<Boolean> snowBug = sgGeneral.add(new BoolSetting.Builder()
             .name("SnowBug")
             .description("")
-            .defaultValue(true)
+            .defaultValue(false)
             .build()
     );
     public AutoArmorPlus() {

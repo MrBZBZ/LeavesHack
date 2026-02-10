@@ -5,13 +5,12 @@ import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
-import meteordevelopment.meteorclient.settings.IntSetting;
-import meteordevelopment.meteorclient.settings.Setting;
-import meteordevelopment.meteorclient.settings.SettingGroup;
-import meteordevelopment.meteorclient.settings.StringSetting;
+import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
@@ -19,11 +18,14 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.item.*;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.screen.MerchantScreenHandler;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -33,7 +35,11 @@ import net.minecraft.util.math.*;
 import net.minecraft.village.TradeOffer;
 import net.minecraft.village.TradeOfferList;
 
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static meteordevelopment.meteorclient.utils.Utils.getEnchantments;
 
 public class AutoRefreshTrade extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
@@ -61,10 +67,17 @@ public class AutoRefreshTrade extends Module {
             .sliderMax(10000)
             .build()
     );
-    private final Setting<String> enchantment = sgGeneral.add(new StringSetting.Builder()
-            .name("enchantmentName")
+    private final Setting<Set<RegistryKey<Enchantment>>> enchantmentList = sgGeneral.add(new EnchantmentListSetting.Builder()
+            .name("EnchantmentsList")
             .description("")
-            .defaultValue("经验修补")
+            .build()
+    );
+    private final Setting<Integer> enchantmentLevel = sgGeneral.add(new IntSetting.Builder()
+            .name("Level")
+            .description("Enchantment level")
+            .defaultValue(3)
+            .min(0)
+            .sliderMax(5)
             .build()
     );
     public AutoRefreshTrade() {
@@ -147,9 +160,12 @@ public class AutoRefreshTrade extends Module {
                         int level = enchantments.getLevel(entry);
                         String name = Enchantment.getName(entry, level).getString();
                         mc.player.sendMessage(Text.of("[LeavesHack]本次结果 " + name));
-                        if (name.contains(enchantment.get())) {
-                            mc.player.sendMessage(Text.of("[LeavesHack]:已找到附魔"));
-                            find.set(true);
+                        for (RegistryKey<Enchantment> enchantmentKey : enchantmentList.get()){
+                            if (hasEnchantments(sellStack, enchantmentKey) && level >= enchantmentLevel.get()) {
+                                find.set(true);
+                                mc.player.sendMessage(Text.of("[LeavesHack]:已找到所需附魔"));
+                                return;
+                            }
                         }
                     });
                 }
@@ -210,5 +226,21 @@ public class AutoRefreshTrade extends Module {
             }
         }
         return (VillagerEntity)(target);
+    }
+    public static boolean hasEnchantments(ItemStack itemStack, RegistryKey<Enchantment>... enchantments) {
+        if (itemStack.isEmpty()) return false;
+        Object2IntMap<RegistryEntry<Enchantment>> itemEnchantments = new Object2IntArrayMap<>();
+        getEnchantments(itemStack, itemEnchantments);
+
+        for (RegistryKey<Enchantment> enchantment : enchantments) {
+            if (!hasEnchantment(itemEnchantments, enchantment)) return false;
+        }
+        return true;
+    }
+    private static boolean hasEnchantment(Object2IntMap<RegistryEntry<Enchantment>> itemEnchantments, RegistryKey<Enchantment> enchantmentKey) {
+        for (RegistryEntry<Enchantment> enchantment : itemEnchantments.keySet()) {
+            if (enchantment.matchesKey(enchantmentKey)) return true;
+        }
+        return false;
     }
 }
