@@ -1,4 +1,4 @@
-# LeavesHack V1.2.0
+# LeavesHack V1.2.3
 
 **Meteor 客户端插件**  
 致力于改善无政府服务器的生存体验
@@ -64,4 +64,5 @@
  * 注意如果你在刷精准采集这类1级附魔，和其他附魔一起刷时请将Level设置为1或更低，不然模块会因为精准采集的附魔等级不够而识别失败  
 <img src="screen2.png">  
 <img src="screen3.png">
+
 
