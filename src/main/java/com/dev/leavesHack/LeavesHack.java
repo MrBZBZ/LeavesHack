@@ -2,10 +2,7 @@ package com.dev.leavesHack;
 
 import com.dev.leavesHack.commands.CommandExample;
 import com.dev.leavesHack.hud.HudExample;
-import com.dev.leavesHack.modules.AntiAntiXray;
-import com.dev.leavesHack.modules.AutoArmorPlus;
-import com.dev.leavesHack.modules.AutoRefreshTrade;
-import com.dev.leavesHack.modules.FireworkElytraFly;
+import com.dev.leavesHack.modules.*;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.GithubRepo;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
@@ -26,6 +23,9 @@ public class LeavesHack extends MeteorAddon {
         LOG.info("Initializing LeavesHack");
 
         // Modules
+        Modules.get().add(new ModuleList());
+        Modules.get().add(new PacketMine());
+        Modules.get().add(new Aura());
         Modules.get().add(new AutoArmorPlus());
         Modules.get().add(new FireworkElytraFly());
         Modules.get().add(new AntiAntiXray());

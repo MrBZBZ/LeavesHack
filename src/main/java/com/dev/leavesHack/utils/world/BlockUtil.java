@@ -5,16 +5,18 @@ import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.EndCrystalEntity;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.*;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
@@ -24,6 +26,25 @@ import static meteordevelopment.meteorclient.MeteorClient.mc;
 public class BlockUtil {
     public static boolean canClick(BlockPos pos) {
         return mc.world.getBlockState(pos).isSolid() && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || mc.player.isSneaking());
+    }
+    public static boolean hasCrystal(BlockPos pos) {
+        for (Entity entity : getEndCrystals(new Box(pos))) {
+            if (!entity.isAlive() || !(entity instanceof EndCrystalEntity))
+                continue;
+            return true;
+        }
+        return false;
+    }
+    public static List<EndCrystalEntity> getEndCrystals(Box box) {
+        List<EndCrystalEntity> list = new ArrayList<>();
+        for (Entity entity : mc.world.getEntities()) {
+            if (entity instanceof EndCrystalEntity crystal) {
+                if (crystal.getBoundingBox().intersects(box)) {
+                    list.add(crystal);
+                }
+            }
+        }
+        return list;
     }
     public static Direction getPlaceSide(BlockPos pos, Predicate<Direction> directionPredicate) {
         if (pos == null) return null;
@@ -39,6 +60,35 @@ public class BlockUtil {
                     dis = vecDis;
                 }
             }
+        }
+        return side;
+    }
+    public static boolean canSee(BlockPos pos, Direction side) {
+        Vec3d testVec = pos.toCenterPos().add(side.getVector().getX() * 0.5, side.getVector().getY() * 0.5, side.getVector().getZ() * 0.5);
+        HitResult result = mc.world.raycast(new RaycastContext(getEyesPos(), testVec, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player));
+        return result == null || result.getType() == HitResult.Type.MISS;
+    }
+    public static Vec3d getEyesPos() {
+        return mc.player.getEyePos();
+    }
+    public static Direction getClickSide(BlockPos pos) {
+        Direction side = null;
+        double range = 100;
+        for (Direction i : Direction.values()) {
+            if (!canSee(pos, i)) continue;
+            if (MathHelper.sqrt((float) mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos())) > range)
+                continue;
+            side = i;
+            range = MathHelper.sqrt((float) mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos()));
+        }
+        if (side != null) return side;
+        side = Direction.UP;
+        for (Direction i : Direction.values()) {
+                if (!isGrimDirection(pos, i))continue;
+            if (MathHelper.sqrt((float) mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos())) > range)
+                continue;
+            side = i;
+            range = MathHelper.sqrt((float) mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos()));
         }
         return side;
     }

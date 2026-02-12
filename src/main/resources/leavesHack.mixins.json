@@ -1,14 +1,15 @@
 {
   "required": true,
-  "package": "com.dev.leavesHack.mixin",
+  "package": "com.dev.leavesHack.asm",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "MixinClientPlayerEntity"
+    "mixin.MixinClientPlayerEntity"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixins": [
-    "MineProcessMixin"
+    "accessors.IPlayerMoveC2SPacket",
+    "mixin.MineProcessMixin"
   ]
 }

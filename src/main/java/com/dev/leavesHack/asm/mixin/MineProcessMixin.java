@@ -1,4 +1,4 @@
-package com.dev.leavesHack.mixin;
+package com.dev.leavesHack.asm.mixin;
 
 import baritone.api.utils.BlockOptionalMetaLookup;
 import baritone.pathing.movement.CalculationContext;

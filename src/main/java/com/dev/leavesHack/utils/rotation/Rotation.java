@@ -2,6 +2,7 @@ package com.dev.leavesHack.utils.rotation;
 
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
@@ -21,6 +22,25 @@ public class Rotation {
     public static void snapAt(Vec3d directionVec) {
         float[] angle = getRotation(directionVec);
         snapAt(angle[0], angle[1]);
+    }
+    public static void snapAt(Box box) {
+        snapAt(getClosestPointToEye(mc.player.getEyePos(), box));
+    }
+    public static Vec3d getClosestPointToEye(Vec3d eyePos, Box box) {
+        double x = eyePos.x;
+        double y = eyePos.y;
+        double z = eyePos.z;
+
+        if (eyePos.x < box.minX) x = box.minX;
+        else if (eyePos.x > box.maxX) x = box.maxX;
+
+        if (eyePos.y < box.minY) y = box.minY;
+        else if (eyePos.y > box.maxY) y = box.maxY;
+
+        if (eyePos.z < box.minZ) z = box.minZ;
+        else if (eyePos.z > box.maxZ) z = box.maxZ;
+
+        return new Vec3d(x, y, z);
     }
     public static float[] getRotation(Vec3d eyesPos, Vec3d vec) {
         double diffX = vec.x - eyesPos.x;
