@@ -28,6 +28,7 @@ public class AntiAntiXray extends Module {
     private CopyOnWriteArrayList<BlockPos> goldList = new CopyOnWriteArrayList<>();
     private CopyOnWriteArrayList<BlockPos> diamondList = new CopyOnWriteArrayList<>();
     private CopyOnWriteArrayList<BlockPos> lapisList = new CopyOnWriteArrayList<>();
+    private CopyOnWriteArrayList<BlockPos> ancientDebrisList = new CopyOnWriteArrayList<>();
     int blockCounts = 0;
     int progress = 0;
     private boolean render = false;
@@ -96,6 +97,12 @@ public class AntiAntiXray extends Module {
         .defaultValue(true)
         .build()
     );
+    private final Setting<Boolean> ancientDebris = sgRender.add(new BoolSetting.Builder()
+            .name("AncientDebris")
+            .description("")
+            .defaultValue(true)
+            .build()
+    );
     public AntiAntiXray() {
         super(LeavesHack.CATEGORY, "AntiAntiXray", "dev Leaves_awa");
     }
@@ -105,6 +112,7 @@ public class AntiAntiXray extends Module {
         playerPos = mc.player.getBlockPos();
         timer.setMs(999999);
         render = false;
+        ancientDebrisList.clear();
         breakList.clear();
         ironList.clear();
         goldList.clear();
@@ -153,11 +161,9 @@ public class AntiAntiXray extends Module {
         if (leftIndex > rightIndex) {
             return;
         }
-        // ===== 左端 =====
         visitIndex(event, playerPos, leftIndex, size, r);
         blockCounts++;
         leftIndex = leftIndex + step.get().intValue();
-        // ===== 右端（避免奇数时重复）=====
         if (leftIndex <= rightIndex) {
             visitIndex(event, playerPos, rightIndex, size, r);
             blockCounts++;
@@ -221,6 +227,14 @@ public class AntiAntiXray extends Module {
                 breakList.remove(lastPos);
             }
         }
+        if (mc.world.getBlockState(lastPos).getBlock() == Blocks.ANCIENT_DEBRIS && !ancientDebrisList.contains(lastPos)) {
+            ancientDebrisList.add(lastPos);
+            if (ancientDebris.get() && !breakList.contains(lastPos)) {
+                breakList.add(lastPos);
+            } else if (!ancientDebris.get()){
+                breakList.remove(lastPos);
+            }
+        }
     }
     private void visitIndex(Render3DEvent event, BlockPos playerPos, int index, int size, int r) {
         if (playerPos == null) return;
@@ -281,6 +295,16 @@ public class AntiAntiXray extends Module {
                     return;
                 }
                 event.renderer.box(pos,new Color(0, 0, 255, 61),new Color(0, 0, 255, 61),ShapeMode.Both,0);
+            }
+        }
+        if (ancientDebris.get() && !ancientDebrisList.isEmpty()){
+            for (BlockPos pos : ancientDebrisList) {
+                if (mc.world.isAir(pos)) {
+                    ancientDebrisList.remove(pos);
+                    breakList.remove(pos);
+                    return;
+                }
+                event.renderer.box(pos,new Color(255, 0, 255, 61),new Color(255, 0, 255, 61),ShapeMode.Both,0);
             }
         }
     }
