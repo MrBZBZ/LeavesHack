@@ -13,24 +13,17 @@ import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.network.PendingUpdateManager;
 import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.item.AirBlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class PacketMine extends Module {
 
@@ -43,6 +36,12 @@ public class PacketMine extends Module {
     private final Setting<Boolean> silentSwitch = sgGeneral.add(
             new BoolSetting.Builder()
                     .name("SilentSwitch")
+                    .defaultValue(true)
+                    .build()
+    );
+    private final Setting<Boolean> instantMine = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("InstantMine")
                     .defaultValue(true)
                     .build()
     );
@@ -61,7 +60,7 @@ public class PacketMine extends Module {
     private final Setting<Integer> switchTime = sgGeneral.add(
             new IntSetting.Builder()
                     .name("SwitchTime")
-                    .defaultValue(250)
+                    .defaultValue(100)
                     .min(0)
                     .sliderMax(1000)
                     .build()
@@ -69,7 +68,7 @@ public class PacketMine extends Module {
     private final Setting<Integer> mineDelay = sgGeneral.add(
             new IntSetting.Builder()
                     .name("MineDelay")
-                    .defaultValue(50)
+                    .defaultValue(0)
                     .min(0)
                     .sliderMax(1000)
                     .build()
@@ -77,8 +76,8 @@ public class PacketMine extends Module {
     private final Setting<Double> mineDamage = sgGeneral.add(
             new DoubleSetting.Builder()
                     .name("Damage")
-                    .defaultValue(0.7)
-                    .sliderMax(1.0)
+                    .defaultValue(1.38)
+                    .sliderMax(2.0)
                     .build()
     );
 
@@ -125,11 +124,12 @@ public class PacketMine extends Module {
                     .defaultValue(new SettingColor(255, 255, 255, 255))
                     .build()
     );
-
-    private BlockPos targetPos;
-    private float progress;
+    private static boolean completed = false;
+    public static BlockPos lastPos;
+    public static BlockPos targetPos;
+    private static float progress;
     private long lastTime;
-    private boolean started;
+    private static boolean started;
     private double render = 1;
     private int oldSlot = -1;
     private Timer timer = new Timer();
@@ -155,13 +155,14 @@ public class PacketMine extends Module {
         event.cancel();
         if (targetPos == null || !targetPos.equals(event.blockPos)) {
             mineTimer.reset();
-            startPacketMine(event.blockPos);
+            mine(event.blockPos);
         }
     }
 
-    public void startPacketMine(BlockPos pos) {
-        if (mc.world == null || mc.player == null) return;
+    public static void mine(BlockPos pos) {
+        completed = false;
         targetPos = pos;
+        lastPos = targetPos;
         started = false;
         progress = 0;
     }
@@ -174,19 +175,32 @@ public class PacketMine extends Module {
             hasSwitch = false;
         }
         if (targetPos == null) return;
+        double max = getMineTicks(getTool(targetPos));
+        if (instantMine.get() && completed) {
+            renderAnimation(event, max, mineDamage.get());
+            if (!mc.world.isAir(targetPos) && !mc.world.getBlockState(targetPos).isReplaceable()) {
+                if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9,
+                            mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true));
+                    mc.player.onLanding();
+                }
+                sendStop();
+            }
+            return;
+        }
         double delta = (System.currentTimeMillis() - lastTime) / 1000d;
         lastTime = System.currentTimeMillis();
         if (!started) {
             sendStart();
             return;
         }
-        double max = getMineTicks(getTool(targetPos));
         Double damage = mineDamage.get();
         if (!checkGround.get() || mc.player.isOnGround()) {
             progress += delta * 20;
         } else if (checkGround.get() && !mc.player.isOnGround()){
             progress += delta * 4;
         }
+        progress += delta * 20;
         renderAnimation(event, delta, damage);
         if (progress >= max * damage) {
             if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
@@ -195,7 +209,8 @@ public class PacketMine extends Module {
                 mc.player.onLanding();
             }
             sendStop();
-            targetPos = null;
+            completed = true;
+            if (!instantMine.get()) targetPos = null;
         }
     }
 
@@ -311,7 +326,4 @@ public class PacketMine extends Module {
             mc.getNetworkHandler().sendPacket(packetCreator.predict(i));
         }
     }
-//    public static final List<Block> hard = Arrays.asList(
-//            Blocks.OBSIDIAN, Blocks.ENDER_CHEST, Blocks.NETHERITE_BLOCK, Blocks.CRYING_OBSIDIAN, Blocks.RESPAWN_ANCHOR, Blocks.ANCIENT_DEBRIS, Blocks.ANVIL
-//    );
 }

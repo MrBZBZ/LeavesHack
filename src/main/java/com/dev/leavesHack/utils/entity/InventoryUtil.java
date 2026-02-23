@@ -7,6 +7,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -95,6 +96,19 @@ public class InventoryUtil {
         for (int i = 0; i < 9; ++i) {
             Item item = getStackInSlot(i).getItem();
             if (Item.getRawId(item) != Item.getRawId(input)) continue;
+            return i;
+        }
+        return -1;
+    }
+    public static int findClass(Class clazz) {
+        for (int i = 0; i < 9; ++i) {
+            ItemStack stack = getStackInSlot(i);
+            if (stack == ItemStack.EMPTY) continue;
+            if (clazz.isInstance(stack.getItem())) {
+                return i;
+            }
+            if (!(stack.getItem() instanceof BlockItem) || !clazz.isInstance(((BlockItem) stack.getItem()).getBlock()))
+                continue;
             return i;
         }
         return -1;

@@ -23,6 +23,8 @@ public class LeavesHack extends MeteorAddon {
         LOG.info("Initializing LeavesHack");
 
         // Modules
+        Modules.get().add(new AutoPlaceSlab());
+        Modules.get().add(new NukerPlus());
         Modules.get().add(new ModuleList());
         Modules.get().add(new PacketMine());
         Modules.get().add(new Aura());

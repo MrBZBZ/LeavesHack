@@ -14,10 +14,12 @@
 截至目前更新的功能，基本上默认参数就能在3c使用： 
 * AntiAntiXray 雷达扫描矿透  
 * Aura 可在3c3u使用的不卡脚的杀戮
-* AutoRefreshTrade 自动刷新村民交易的附魔书  
-* AutoArmorPlus 自动穿甲（主要为了和FireworkElytraFly联动自动穿鞘翅）  
+* AutoArmorPlus 自动穿甲（主要为了和FireworkElytraFly联动自动穿鞘翅）
+* AutoPlaceSlab 自动放半砖
+* AutoRefreshTrade 自动刷新村民交易的附魔书
 * FireworkElytraFly 在鞘翅飞行时自动使用烟花  
-* PacketMine 绕过3c3u的发包挖掘（无双挖，秒挖）
+* NukerPlus 绕过3c3u的Nuker
+* PacketMine 绕过3c3u的发包挖掘（无双挖）
 # 教程：
 ## AntiAntiXray  
 - **高效矿石扫描**  

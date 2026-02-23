@@ -7,7 +7,9 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.utils.rotation.Rotation;
+import com.dev.leavesHack.utils.world.BlockPosX;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
+import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.pathing.PathManagers;
 import meteordevelopment.meteorclient.settings.*;
@@ -23,8 +25,10 @@ import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
+import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.world.TickRate;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -38,6 +42,7 @@ import net.minecraft.item.*;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -68,12 +73,12 @@ public class Aura extends Module {
             .defaultValue(RotationMode.Always)
             .build()
     );
-
+    //移动预判，我也不知道有没有用
     private final Setting<Double> selfPrediction = sgGeneral.add(new DoubleSetting.Builder()
             .name("self-prediction")
             .description("Adds a delay to your attacks to predict the entity's movement.")
-            .defaultValue(1.5)
-            .min(1.0)
+            .defaultValue(0.5)
+            .min(0.0)
             .sliderMax(5.0)
             .build()
     );
@@ -223,7 +228,7 @@ public class Aura extends Module {
     private final Setting<Integer> switchDelay = sgTiming.add(new IntSetting.Builder()
             .name("switch-delay")
             .description("How many ticks to wait before hitting an entity after switching hotbar slots.")
-            .defaultValue(0)
+            .defaultValue(100)
             .min(0)
             .sliderMax(10)
             .build()
@@ -234,6 +239,7 @@ public class Aura extends Module {
     private boolean wasPathing = false;
     public boolean attacking, swapped;
     public static int previousSlot;
+    private float yaw, pitch;
 
     public Aura() {
         super(LeavesHack.CATEGORY, "Aura", "KillAura for GrimAC");
@@ -305,17 +311,24 @@ public class Aura extends Module {
             return;
         }
         attacking = true;
-        Double predictX = (mc.player.getX() - mc.player.prevX);
-        Double predictZ = (mc.player.getZ() - mc.player.prevZ);
-        Double predictY = (mc.player.getY() - mc.player.prevY);
+        double predictX = mc.player.getEyePos().x + (mc.player.getX() - mc.player.prevX) * selfPrediction.get();
+        double predictZ = mc.player.getEyePos().z + (mc.player.getZ() - mc.player.prevZ) * selfPrediction.get();
+        double predictY = mc.player.getEyePos().y + (mc.player.getY() - mc.player.prevY) * selfPrediction.get();
+        Vec3d predictedPos = new Vec3d(predictX, predictY, predictZ);
         if (rotation.get() == RotationMode.Always) {
-            Rotation.snapAt(getAttackVec(primary));
+            Rotation.snapAt(getAttackVec(primary, predictedPos));
+            yaw = Rotation.getRotation(getAttackVec(primary, predictedPos))[0];
+            pitch = Rotation.getRotation(getAttackVec(primary, predictedPos))[1];
         }
         if (pauseOnCombat.get() && PathManagers.get().isPathing() && !wasPathing) {
             PathManagers.get().pause();
             wasPathing = true;
         }
-        if (delayCheck()) targets.forEach(this::attack);
+        if (delayCheck()) {
+            for (Entity target : targets){
+                attack(target, predictedPos);
+            }
+        }
         Rotation.snapBack();
     }
 
@@ -325,7 +338,25 @@ public class Aura extends Module {
             switchTimer = switchDelay.get();
         }
     }
-
+//    @EventHandler
+//    private void onRender(Render3DEvent event) {
+//        if (mc.world == null || mc.player == null) return;
+//        // 起点：玩家眼睛
+//        Vec3d start = mc.player.getEyePos();
+//
+//        float yawRad = (float) Math.toRadians(yaw);
+//        float pitchRad = (float) Math.toRadians(pitch);
+//
+//        // 方向向量
+//        Vec3d direction = new Vec3d(
+//                -MathHelper.sin(yawRad) * MathHelper.cos(pitchRad),
+//                -MathHelper.sin(pitchRad),
+//                MathHelper.cos(yawRad) * MathHelper.cos(pitchRad)
+//        );
+//
+//        Vec3d end = start.add(direction.multiply(999));
+//        event.renderer.line(start.x, start.y, start.z, end.x, end.y, end.z, Color.WHITE);
+//    }
     private void stopAttacking() {
         if (!attacking) return;
 
@@ -410,9 +441,11 @@ public class Aura extends Module {
         } else return mc.player.getAttackCooldownProgress(delay) >= 1;
     }
 
-    private void attack(Entity target) {
+    private void attack(Entity target, Vec3d predictedPos) {
         if (rotation.get() == RotationMode.OnHit) {
-            Rotation.snapAt(getAttackVec(target));
+            Rotation.snapAt(getAttackVec(target, predictedPos));
+            yaw = Rotation.getRotation(getAttackVec(target, predictedPos))[0];
+            pitch = Rotation.getRotation(getAttackVec(target, predictedPos))[1];
         }
         //感谢hf2k的修复
         mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
@@ -420,8 +453,8 @@ public class Aura extends Module {
         mc.player.swingHand(Hand.MAIN_HAND);
         hitTimer = 0;
     }
-    private Vec3d getAttackVec(Entity entity) {
-        return getClosestPointToBox(mc.player.getEyePos(), entity.getBoundingBox());
+    private Vec3d getAttackVec(Entity entity, Vec3d predictedPos) {
+        return getClosestPointToBox(predictedPos, entity.getBoundingBox());
     }
     public Vec3d getClosestPointToBox(Vec3d eyePos, Box boundingBox) {
         return getClosestPointToBox(eyePos, boundingBox.minX, boundingBox.minY, boundingBox.minZ, boundingBox.maxX, boundingBox.maxY, boundingBox.maxZ);
