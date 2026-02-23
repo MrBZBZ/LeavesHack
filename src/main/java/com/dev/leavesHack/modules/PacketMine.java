@@ -177,7 +177,9 @@ public class PacketMine extends Module {
         if (targetPos == null) return;
         double max = getMineTicks(getTool(targetPos));
         if (instantMine.get() && completed) {
-            renderAnimation(event, max, mineDamage.get());
+            Color side = getColor(sideStartColor.get(), sideEndColor.get(), 1);
+            Color line = getColor(lineStartColor.get(), lineEndColor.get(), 1);
+            event.renderer.box(new Box(targetPos), side, line, shapeMode.get(), 0);
             if (!mc.world.isAir(targetPos) && !mc.world.getBlockState(targetPos).isReplaceable()) {
                 if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
                     mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9,
@@ -200,7 +202,6 @@ public class PacketMine extends Module {
         } else if (checkGround.get() && !mc.player.isOnGround()){
             progress += delta * 4;
         }
-        progress += delta * 20;
         renderAnimation(event, delta, damage);
         if (progress >= max * damage) {
             if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
