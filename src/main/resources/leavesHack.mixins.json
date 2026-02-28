@@ -9,6 +9,7 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "accessors.ILivingEntity",
     "accessors.IPlayerMoveC2SPacket",
     "mixin.MineProcessMixin"
   ]

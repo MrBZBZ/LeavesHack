@@ -107,6 +107,10 @@ public class AntiAntiXray extends Module {
         super(LeavesHack.CATEGORY, "AntiAntiXray", "dev Leaves_awa");
     }
     @Override
+    public String getInfoString() {
+        return "§f[" + progress*step.get() + "%]";
+    }
+    @Override
     public void onActivate() {
         executor = Executors.newSingleThreadExecutor();
         playerPos = mc.player.getBlockPos();
@@ -133,7 +137,6 @@ public class AntiAntiXray extends Module {
     @EventHandler
     private void onRender3d(Render3DEvent event) {
         if (render && breakList.isEmpty()) {
-            mc.player.sendMessage(Text.of("[LeavesHack] " + "已结束"));
             if (autoMine.get()) BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
             toggle();
         }
@@ -151,10 +154,8 @@ public class AntiAntiXray extends Module {
             long totalBlocks = (long)size * size * size;
             double percentage = ((double)blockCounts / totalBlocks) * 100.0;
             progress = (int) Math.round(percentage);
-            mc.player.sendMessage(Text.of("[LeavesHack] " + "进度：" + progress*step.get() + "%"));
         }
         if (progress * step.get() == 100 && !render) {
-            mc.player.sendMessage(Text.of("[LeavesHack] " + "已完成"));
             if (autoMine.get()) BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().execute("mine minecraft:iron_ore");
             render = true;
         }

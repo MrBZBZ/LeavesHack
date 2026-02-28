@@ -5,10 +5,12 @@ import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.entity.player.StartBreakingBlockEvent;
+import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.utils.entity.EntityUtils;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
@@ -22,20 +24,56 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
 
 public class PacketMine extends Module {
-
+    public static PacketMine INSTANCE;
     public PacketMine() {
         super(LeavesHack.CATEGORY, "PacketMine+", "PacketMine for grim");
+        INSTANCE = this;
     }
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgRender = settings.createGroup("Render");
-
+    private final Setting<Boolean> usingPause = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("UsingPause")
+                    .defaultValue(true)
+                    .build()
+    );
+    private final Setting<Boolean> onlyMain = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("OnlyMain")
+                    .defaultValue(true)
+                    .visible(usingPause::get)
+                    .build()
+    );
     private final Setting<Boolean> silentSwitch = sgGeneral.add(
             new BoolSetting.Builder()
                     .name("SilentSwitch")
+                    .defaultValue(true)
+                    .build()
+    );
+    public final Setting<Integer> range = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("Range")
+                    .defaultValue(6)
+                    .min(0)
+                    .sliderMax(12)
+                    .build()
+    );
+    public final Setting<Integer> maxBreaks = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("TryBreakTime")
+                    .defaultValue(3)
+                    .min(0)
+                    .sliderMax(10)
+                    .build()
+    );
+    private final Setting<Boolean> farCancel = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("FarCancel")
                     .defaultValue(true)
                     .build()
     );
@@ -43,6 +81,14 @@ public class PacketMine extends Module {
             new BoolSetting.Builder()
                     .name("InstantMine")
                     .defaultValue(true)
+                    .build()
+    );
+    private final Setting<Integer> instantDelay = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("InstantDelay")
+                    .defaultValue(50)
+                    .min(0)
+                    .sliderMax(1000)
                     .build()
     );
     private final Setting<Boolean> checkGround = sgGeneral.add(
@@ -60,7 +106,7 @@ public class PacketMine extends Module {
     private final Setting<Integer> switchTime = sgGeneral.add(
             new IntSetting.Builder()
                     .name("SwitchTime")
-                    .defaultValue(100)
+                    .defaultValue(50)
                     .min(0)
                     .sliderMax(1000)
                     .build()
@@ -68,7 +114,7 @@ public class PacketMine extends Module {
     private final Setting<Integer> mineDelay = sgGeneral.add(
             new IntSetting.Builder()
                     .name("MineDelay")
-                    .defaultValue(0)
+                    .defaultValue(350)
                     .min(0)
                     .sliderMax(1000)
                     .build()
@@ -124,8 +170,10 @@ public class PacketMine extends Module {
                     .defaultValue(new SettingColor(255, 255, 255, 255))
                     .build()
     );
+    public static BlockPos slefClickPos = null;
+    public static int maxBreaksCount;
+    public static int publicProgress = 0;
     private static boolean completed = false;
-    public static BlockPos lastPos;
     public static BlockPos targetPos;
     private static float progress;
     private long lastTime;
@@ -134,12 +182,15 @@ public class PacketMine extends Module {
     private int oldSlot = -1;
     private Timer timer = new Timer();
     private Timer mineTimer = new Timer();
+    private Timer instantTimer = new Timer();
     private boolean hasSwitch = false;
 
     @Override
     public void onActivate() {
+        maxBreaksCount = 0;
         hasSwitch = false;
         mineTimer.setMs(999999);
+        instantTimer.setMs(999999);
         timer.setMs(999999);
         targetPos = null;
         started = false;
@@ -147,46 +198,73 @@ public class PacketMine extends Module {
         lastTime = System.currentTimeMillis();
         render = 1;
     }
+    @Override
+    public void onDeactivate() {
+        if (hasSwitch) {
+            InventoryUtil.switchToSlot(oldSlot);
+            hasSwitch = false;
+        }
+    }
 
     @EventHandler
     private void onStartBreakingBlock(StartBreakingBlockEvent event) {
-        if (!mineTimer.passedMs(mineDelay.get())) return;
         if (!BlockUtils.canBreak(event.blockPos)) return;
         event.cancel();
+        if (!mineTimer.passedMs(mineDelay.get())) return;
         if (targetPos == null || !targetPos.equals(event.blockPos)) {
             mineTimer.reset();
+            slefClickPos = event.blockPos;
             mine(event.blockPos);
         }
     }
 
     public static void mine(BlockPos pos) {
+        maxBreaksCount = 0;
         completed = false;
         targetPos = pos;
-        lastPos = targetPos;
         started = false;
         progress = 0;
     }
-
+    @Override
+    public String getInfoString() {
+        if (targetPos == null) return null;
+        double max = getMineTicks(getTool(targetPos));
+        if (progress >= max * mineDamage.get()) return "§f[100%]";
+        return "§f[" + publicProgress + "%]";
+    }
     @EventHandler
     private void onRender(Render3DEvent event) {
         if (mc.world == null || mc.player == null) return;
         if (timer.passedMs(switchTime.get()) && hasSwitch) {
-            InventoryUtil.switchToSlot(oldSlot);
-            hasSwitch = false;
+        InventoryUtil.switchToSlot(oldSlot);
+        hasSwitch = false;
         }
-        if (targetPos == null) return;
+        if (targetPos == null) {
+            publicProgress = 0;
+            return;
+        }
+        if (maxBreaksCount >= maxBreaks.get() * 10) {
+            maxBreaksCount = 0;
+            targetPos = null;
+            return;
+        }
+        if (farCancel.get() && Math.sqrt(mc.player.getEyePos().squaredDistanceTo(targetPos.toCenterPos())) > range.get()){
+            targetPos = null;
+            return;
+        }
         double max = getMineTicks(getTool(targetPos));
+        publicProgress = (int) (progress / (max * mineDamage.get()) * 100);
+        if (progress >= max * mineDamage.get() && completed) {
+            if (isAir(targetPos) || mc.world.getBlockState(targetPos).isReplaceable()) maxBreaksCount = 0;
+            if (!isAir(targetPos) && !mc.world.getBlockState(targetPos).isReplaceable() && !(usingPause.get() && checkPause(onlyMain.get()))) maxBreaksCount++;
+        }
         if (instantMine.get() && completed) {
             Color side = getColor(sideStartColor.get(), sideEndColor.get(), 1);
             Color line = getColor(lineStartColor.get(), lineEndColor.get(), 1);
             event.renderer.box(new Box(targetPos), side, line, shapeMode.get(), 0);
-            if (!mc.world.isAir(targetPos) && !mc.world.getBlockState(targetPos).isReplaceable()) {
-                if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
-                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9,
-                            mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true));
-                    mc.player.onLanding();
-                }
+            if (!mc.world.isAir(targetPos) && !mc.world.getBlockState(targetPos).isReplaceable() && instantTimer.passedMs(instantDelay.get())) {
                 sendStop();
+                instantTimer.reset();
             }
             return;
         }
@@ -204,12 +282,8 @@ public class PacketMine extends Module {
         }
         renderAnimation(event, delta, damage);
         if (progress >= max * damage) {
-            if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
-                mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9,
-                        mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true));
-                mc.player.onLanding();
-            }
             sendStop();
+            slefClickPos = null;
             completed = true;
             if (!instantMine.get()) targetPos = null;
         }
@@ -223,12 +297,20 @@ public class PacketMine extends Module {
     }
 
     private void sendStop() {
+        if (usingPause.get() && checkPause(onlyMain.get())) {
+            return;
+        }
         int bestSlot = getTool(targetPos);
         if (!hasSwitch) oldSlot = mc.player.getInventory().selectedSlot;
         if (silentSwitch.get() && bestSlot != -1) {
             InventoryUtil.switchToSlot(bestSlot);
             timer.reset();
             hasSwitch = true;
+        }
+        if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9,
+                    mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true));
+            mc.player.onLanding();
         }
         mc.player.swingHand(Hand.MAIN_HAND);
         sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, targetPos, BlockUtil.getClickSide(targetPos), id));
@@ -248,7 +330,7 @@ public class PacketMine extends Module {
         boolean canHarvest = stack.isSuitableFor(state);
         float speed = stack.getMiningSpeedMultiplier(state);
         int efficiency = InventoryUtil.getEnchantmentLevel(stack, Enchantments.EFFICIENCY);
-        if (efficiency > 0 && !stack.isEmpty()) {
+        if (efficiency > 0 && speed > 1.0f) {
             speed += efficiency * efficiency + 1;
         }
         if (mc.player.hasStatusEffect(StatusEffects.HASTE)) {
@@ -326,5 +408,8 @@ public class PacketMine extends Module {
             int i = pendingUpdateManager.getSequence();
             mc.getNetworkHandler().sendPacket(packetCreator.predict(i));
         }
+    }
+    public boolean checkPause(boolean onlyMain) {
+        return mc.options.useKey.isPressed() && (!onlyMain || mc.player.getActiveHand() == Hand.MAIN_HAND);
     }
 }

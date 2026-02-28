@@ -1,5 +1,6 @@
 package com.dev.leavesHack.utils.world;
 
+import com.dev.leavesHack.modules.AutoCity;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
@@ -30,6 +31,42 @@ import java.util.function.Predicate;
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class BlockUtil {
+    public static Direction getClickSideStrict(BlockPos pos) {
+        Direction side = null;
+        double minDistance = Double.MAX_VALUE;
+        for (Direction i : Direction.values()) {
+            if (!isGrimDirection(pos, i)) continue;
+            double disSq = mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos());
+            if (disSq > minDistance)
+                continue;
+            side = i;
+            minDistance = disSq;
+        }
+        return side;
+    }
+    public static Vec3d getClosestPointToBox(Vec3d pos, double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
+        double closestX = Math.max(minX, Math.min(pos.x, maxX));
+        double closestY = Math.max(minY, Math.min(pos.y, maxY));
+        double closestZ = Math.max(minZ, Math.min(pos.z, maxZ));
+
+        return new Vec3d(closestX, closestY, closestZ);
+    }
+
+    public static Vec3d getClosestPointToBox(Vec3d eyePos, Box boundingBox) {
+        return getClosestPointToBox(eyePos, boundingBox.minX, boundingBox.minY, boundingBox.minZ, boundingBox.maxX, boundingBox.maxY, boundingBox.maxZ);
+    }
+
+    public static Vec3d getClosestPoint(Entity entity) {
+        return getClosestPointToBox(mc.player.getEyePos(), entity.getBoundingBox());
+    }
+    public static boolean noEntityBlockCrystal(BlockPos pos, boolean ignoreCrystal, boolean ignoreItem) {
+        for (Entity entity : getEntities(new Box(pos))) {
+            if (!entity.isAlive() || ignoreItem && entity instanceof ItemEntity || ignoreCrystal && entity instanceof EndCrystalEntity && mc.player.getEyePos().distanceTo(getClosestPoint(entity)) <= AutoCity.INSTANCE.range.get())
+                continue;
+            return false;
+        }
+        return true;
+    }
     public static boolean canClick(BlockPos pos) {
         return mc.world.getBlockState(pos).isSolid() && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || mc.player.isSneaking());
     }

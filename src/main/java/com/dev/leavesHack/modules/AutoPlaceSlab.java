@@ -56,7 +56,7 @@ public class AutoPlaceSlab extends Module {
             if (counts >= blocksPer.get()) return;
             if (!(BlockUtil.getBlock(pos) instanceof SlabBlock) && !(BlockUtil.getBlock(pos.down()) instanceof SlabBlock) && (mc.world.isAir(pos) || mc.world.getBlockState(pos).isReplaceable()) && !mc.world.isAir(pos.down()) && !mc.world.getBlockState(pos.down()).isReplaceable() && !BlockUtil.hasPlayerEntity(pos) && !BlockUtil.hasEntity(pos,false)) {
                 Direction side = BlockUtil.getPlaceSide(pos, null);
-                if (side != null) {
+                if (side != null && side != Direction.UP) {
                     BlockUtil.placeBlock(pos, side, true);
                     Color color = new Color(255, 255, 255, 80);
                     event.renderer.box(pos,color,color, ShapeMode.Both,0);

@@ -50,6 +50,9 @@ public class Timer {
     public long getMs(long time) {
         return time / 1000000L;
     }
+    public long getMs() {
+        return System.currentTimeMillis() - time;
+    }
 
     public long convertToNS(long time) {
         return time * 1000000L;

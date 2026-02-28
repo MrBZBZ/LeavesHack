@@ -15,6 +15,7 @@ import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ElytraItem;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
@@ -24,6 +25,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 
 import static com.dev.leavesHack.utils.rotation.Rotation.sendPacket;
+import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class FireworkElytraFly extends Module {
     private Timer fireworkTimer = new Timer();
@@ -56,6 +58,22 @@ public class FireworkElytraFly extends Module {
     );
     public FireworkElytraFly() {
         super(LeavesHack.CATEGORY, "FireworkElytraFly", "Automatically use firework to fly");
+    }
+    @Override
+    public String getInfoString() {
+        int fireworks = 0;
+        if (inventorySwap.get()) {
+            for (int i = 0; i < 45; ++i) {
+                ItemStack stack = mc.player.getInventory().getStack(i);
+                if (stack.getItem() == Items.FIREWORK_ROCKET) fireworks = fireworks + stack.getCount();
+            }
+        } else {
+            for (int i = 0; i < 9; ++i) {
+                ItemStack stack = mc.player.getInventory().getStack(i);
+                if (stack.getItem() == Items.FIREWORK_ROCKET) fireworks = fireworks + stack.getCount();
+            }
+        }
+        return "§f[F:" + fireworks + "]";
     }
     @EventHandler
     public void onTick(TickEvent.Pre event){

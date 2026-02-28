@@ -75,7 +75,7 @@ public class ModuleList extends Module {
 
     private final Setting<SettingColor> tagColor = sgGeneral.add(new ColorSetting.Builder()
             .name("tag-color")
-            .defaultValue(new SettingColor(0, 150, 255))
+            .defaultValue(new SettingColor(255, 255, 255))
             .build()
     );
 
