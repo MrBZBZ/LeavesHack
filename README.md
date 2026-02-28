@@ -1,4 +1,4 @@
-# LeavesHack V1.2.5
+# LeavesHack V1.2.7
 
 **Meteor 客户端插件**  
 致力于改善无政府服务器的生存体验
