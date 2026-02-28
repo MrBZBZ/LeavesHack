@@ -15,6 +15,7 @@
 * AntiAntiXray 雷达扫描矿透  
 * Aura 可在3c3u使用的不卡脚的杀戮
 * AutoArmorPlus 自动穿甲（主要为了和FireworkElytraFly联动自动穿鞘翅）
+* AutoCity 自动挖脚（顺手的事，记住咱是生存端）
 * AutoPlaceSlab 自动放半砖
 * AutoRefreshTrade 自动刷新村民交易的附魔书
 * FireworkElytraFly 在鞘翅飞行时自动使用烟花  
