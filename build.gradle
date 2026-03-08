@@ -1,9 +1,9 @@
 plugins {
-    id "fabric-loom" version "1.7-SNAPSHOT"
+    id "fabric-loom" version "1.14-SNAPSHOT"
 }
 
 base {
-    archivesBaseName = project.archives_base_name
+    archivesName = properties["archives_base_name"] as String
     version = project.mod_version
     group = project.maven_group
 }
@@ -19,6 +19,10 @@ repositories {
         name = "Meteor Dev Snapshots"
         url = "https://maven.meteordev.org/snapshots"
     }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
 }
 
 dependencies {
@@ -30,6 +34,10 @@ dependencies {
     // Meteor
     modImplementation "meteordevelopment:meteor-client:${project.meteor_version}"
     modCompileOnly "meteordevelopment:baritone:${project.baritone_version}-SNAPSHOT"
+
+    // Litematica dependencies
+    modCompileOnly "maven.modrinth:malilib:0.21.10"
+    modCompileOnly "maven.modrinth:litematica:0.19.60"
 }
 
 tasks {
@@ -46,7 +54,7 @@ tasks {
 
     jar {
         from("LICENSE") {
-            rename { "${it}_${project.base.archivesBaseName}" }
+            rename { "${it}_${project.base.archivesName}" }
         }
     }
 

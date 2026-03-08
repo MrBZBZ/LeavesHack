@@ -1,4 +1,4 @@
-# LeavesHack V1.2.7
+# LeavesHack V1.3.0
 
 **Meteor 客户端插件**  
 致力于改善无政府服务器的生存体验
@@ -9,20 +9,28 @@
 - 理论上AntiAntiXray可以绕过其他服务器的假矿或其他反矿透插件，如果腐竹不给开挂，而且你使用这个插件导致被封号等等后果请自负
 - 这个插件随缘更新一些新的模块，我在玩什么就会更新什么-_-
 - 如果你觉得这个插件不错可以请我吃个肠粉，咕咕嘎嘎  
-<img src="114514.jpg" width="50%" height="50%">
-  
+  <div align="center">
+  <img src="114514.jpg" alt="神秘二维码" width="400">
+  </div>
 ## 功能
-截至目前更新的功能，基本上默认参数就能在3c使用： 
-* AntiAntiXray 雷达扫描矿透  
-* Aura 可在3c3u使用的不卡脚的杀戮
-* AutoArmorPlus 自动穿甲（主要为了和FireworkElytraFly联动自动穿鞘翅）
-* AutoCity 自动挖脚（顺手的事，记住咱是生存端）
-* AutoPlaceSlab 自动放半砖
-* AutoRefreshTrade 自动刷新村民交易的附魔书
-* FireworkElytraFly 在鞘翅飞行时自动使用烟花  
-* NukerPlus 绕过3c3u的Nuker
-* PacketMine 绕过3c3u的发包挖掘（无双挖）
-# 教程：
+截至目前更新的功能，基本上默认参数就能在3c使用：  
+| 模块 | 描述 | 注意事项 |  
+| :----: | --- | -------- |
+| AntiAntiXray | 雷达扫描矿透 | 不装Baritone开功能崩端 |
+|Aura | 可在3c3u使用的不卡脚的杀戮 | 无 |
+| AutoArmorPlus | 自动穿甲（主要为了和FireworkElytraFly联动自动穿鞘翅）| 无 |
+| AutoCity | 自动挖脚（顺手的事，记住咱是生存端）| 无 |
+|AutoPlaceSlab | 自动放半砖| 无 |
+| AutoRefreshTrade | 自动刷新村民交易的附魔书| 无 |
+| AutoTorch | 自动放火把(白天可用+无光区域渲染) | 无 |
+| FireworkElytraFly | 在鞘翅飞行时自动使用烟花 | 无 |
+| LegitNoFall | 自动落地水 | 95%的成功率，自动检测下界，不要在没有副手图腾的情况下信任这个模块
+| NukerPlus | 绕过3c3u的Nuker| 无 |
+| ModuleList | 重写模块列表渲染| 无 |
+| PacketMine | 绕过3c3u的发包挖掘（无双挖）| 无 |
+| Printer | 投影打印机 | 测试中，不装投影开功能崩端 |
+| ScaffoldPlus | 自动搭路(可自适应半砖) | 放下半砖的时候不稳定，斜着走的时候慢一点不然容易坠机 |
+# 部分教程：
 ## AntiAntiXray  
 - **高效矿石扫描**  
   在可配置范围内扫描方块，步长配置为2时速度更快

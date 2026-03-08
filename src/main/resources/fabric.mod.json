@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "leavesHack",
+  "id": "leaveshack",
   "version": "${version}",
   "name": "LeavesHack",
-  "description": "dev：Leaves_awa",
+  "description": "致力于改善无政府服务器生存体验的MeteorClient插件 dev：Leaves_awa",
   "authors": [
     "Leaves_awa"
   ],

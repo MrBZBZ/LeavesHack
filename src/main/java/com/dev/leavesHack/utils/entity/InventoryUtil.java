@@ -1,8 +1,12 @@
 package com.dev.leavesHack.utils.entity;
 
+import com.dev.leavesHack.utils.world.BlockUtil;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMaps;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.SlabBlock;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
@@ -85,6 +89,26 @@ public class InventoryUtil {
         }
         return -1;
     }
+    public static int findBlock() {
+        for (int i = 0; i < 9; ++i) {
+            ItemStack stack = getStackInSlot(i);
+            if (stack.getItem() instanceof BlockItem && !BlockUtil.shiftBlocks.contains(Block.getBlockFromItem(stack.getItem())) && ((BlockItem) stack.getItem()).getBlock() != Blocks.COBWEB)
+                return i;
+        }
+        return -1;
+    }
+    public static int findSlabBlock() {
+        for (int i = 0; i < 9; ++i) {
+            ItemStack stack = getStackInSlot(i);
+            if (stack.getItem() instanceof BlockItem blockItem) {
+                Block block = blockItem.getBlock();
+                if (block instanceof SlabBlock) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
     public static ItemStack getStackInSlot(int i) {
         return mc.player.getInventory().getStack(i);
     }
@@ -115,5 +139,28 @@ public class InventoryUtil {
     }
     public static void sendPacket(Packet<?> packet) {
         mc.getNetworkHandler().sendPacket(packet);
+    }
+
+    public static int findBlock(Block block) {
+        for (int i = 0; i < 9; ++i) {
+            ItemStack stack = getStackInSlot(i);
+            if (stack.getItem() instanceof BlockItem blockItem) {
+                if (blockItem.getBlock() == block) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+    public static int findBlockInventory(Block block) {
+        for (int i = 0; i < 45; ++i) {
+            ItemStack stack = getStackInSlot(i);
+            if (stack.getItem() instanceof BlockItem blockItem) {
+                if (blockItem.getBlock() == block) {
+                    return i < 9 ? i + 36 : i;
+                }
+            }
+        }
+        return -1;
     }
 }
