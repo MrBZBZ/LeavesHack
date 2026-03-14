@@ -11,6 +11,7 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.block.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;

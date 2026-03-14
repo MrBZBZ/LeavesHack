@@ -15,6 +15,7 @@ import net.minecraft.entity.decoration.EndCrystalEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.entity.projectile.thrown.ExperienceBottleEntity;
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -77,6 +78,9 @@ public class BlockUtil {
 
     public static boolean canPlace(BlockPos pos) {
         return canPlace(pos, null);
+    }
+    public static boolean canPlace(BlockPos pos, boolean ignoreSneak) {
+        return canPlace(pos, ignoreSneak);
     }
     public static boolean clientCanPlace(BlockPos pos, boolean ignoreCrystal) {
         if (!canReplace(pos)) return false;
@@ -328,6 +332,9 @@ public class BlockUtil {
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
         if (rotate) Rotation.snapBack();
+    }
+    public static boolean needSneak(Block in) {
+        return shiftBlocks.contains(in);
     }
     public static void clickSlabBlock(BlockPos pos, Direction side, Direction slabSide, boolean rotate) {
         double yOffset = 0.5;

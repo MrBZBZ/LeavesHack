@@ -50,7 +50,7 @@ public class Aura extends Module {
             .sliderMax(8)
             .build()
     );
-    public final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
+    public final Setting<Double> attackRange = sgGeneral.add(new DoubleSetting.Builder()
             .name("Range")
             .defaultValue(3.5)
             .min(0)
@@ -177,9 +177,8 @@ public class Aura extends Module {
 //            InventoryUtil.switchToSlot(previousSlot);
 //            swapped = false;
 //        }
-        target = getTarget(range.get());
+        target = getTarget(targetRange.get());
         if (target == null) {
-            target = getTarget(targetRange.get());
             return;
         }
         doAura();
@@ -202,10 +201,11 @@ public class Aura extends Module {
                 previousSlot  = mc.player.getInventory().selectedSlot;
                 swapped = true;
             }
-            InventoryUtil.switchToSlot(weaponResult.slot());
+            if (weaponResult.found()) {
+                InventoryUtil.switchToSlot(weaponResult.slot());
+            }
         }
         if (!itemInHand()) {
-            stopAttacking();
             return;
         }
         if (rotate.get()) {
@@ -229,9 +229,6 @@ public class Aura extends Module {
             case All -> mc.player.getMainHandStack().getItem() instanceof AxeItem || mc.player.getMainHandStack().getItem() instanceof SwordItem || mc.player.getMainHandStack().getItem() instanceof MaceItem || mc.player.getMainHandStack().getItem() instanceof TridentItem;
             default -> true;
         };
-    }
-    private void stopAttacking() {
-        target = null;
     }
 
     private boolean check() {
@@ -263,7 +260,7 @@ public class Aura extends Module {
             if (!mc.player.canSee(entity) && mc.player.distanceTo(entity) > wallRange.get()) {
                 continue;
             }
-            if (!CombatUtil.isValid(entity, range)) continue;
+            if (!CombatUtil.isValid(entity,attackRange.get())) continue;
             if (target == null) {
                 target = entity;
                 distance = mc.player.distanceTo(entity);
@@ -278,12 +275,6 @@ public class Aura extends Module {
     }
     private Vec3d getAttackVec(Entity entity) {
         return getClosestPointToBox(mc.player.getEyePos(), entity.getBoundingBox());
-    }
-    public static boolean isHoldingWeapon(PlayerEntity player) {
-        return player.getMainHandStack().getItem() instanceof SwordItem || player.getMainHandStack().getItem() instanceof AxeItem || player.getMainHandStack().getItem() instanceof MaceItem || player.getMainHandStack().getItem() instanceof TridentItem;
-    }
-    public float getAttackCooldownProgressPerTick() {
-        return (float) (1.0 / mc.player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_SPEED) * 20.0);
     }
     public enum Weapon {
         Sword,

@@ -10,12 +10,10 @@ import meteordevelopment.meteorclient.settings.IntSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.PickaxeItem;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -83,10 +81,10 @@ public class AutoCity extends Module {
     @EventHandler
     public void onTick(TickEvent.Pre event) {
         PlayerEntity player = CombatUtil.getClosestEnemy(targetRange.get());
-        if (preferSelfClick.get() && PacketMine.slefClickPos != null) return;
+        if (preferSelfClick.get() && PacketMine.selfClickPos != null) return;
         if (antiCrawl.get() && mc.player.isCrawling()) {
             if (canBreak(mc.player.getBlockPos().up()) && !mc.player.getBlockPos().up().equals(PacketMine.targetPos)) {
-                PacketMine.slefClickPos = mc.player.getBlockPos().up();
+                PacketMine.selfClickPos = mc.player.getBlockPos().up();
                 PacketMine.mine(mc.player.getBlockPos().up());
                 return;
             }

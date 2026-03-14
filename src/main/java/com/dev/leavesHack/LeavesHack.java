@@ -7,6 +7,7 @@ import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.GithubRepo;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
 import meteordevelopment.meteorclient.commands.Commands;
+import meteordevelopment.meteorclient.systems.Systems;
 import meteordevelopment.meteorclient.systems.hud.Hud;
 import meteordevelopment.meteorclient.systems.hud.HudGroup;
 import meteordevelopment.meteorclient.systems.modules.Category;
@@ -24,7 +25,7 @@ public class LeavesHack extends MeteorAddon {
         LOG.info("Initializing LeavesHack");
 
         // Modules
-//        add(new AutoLogin());
+        add(new AutoLogin());
         add(new Printer());
         add(new AutoTorch());
         add(new ScaffoldPlus());

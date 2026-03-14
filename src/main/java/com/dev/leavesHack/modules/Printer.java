@@ -2,6 +2,7 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
+import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import fi.dy.masa.litematica.world.SchematicWorldHandler;
@@ -13,8 +14,10 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.*;
+import net.minecraft.block.enums.SlabType;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
+import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.state.property.Properties;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
@@ -29,6 +32,7 @@ import java.util.List;
 
 public class Printer extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
+    private final SettingGroup sgShift = this.settings.createGroup("IgnoreSneak");
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
             .name("Rotate")
@@ -37,11 +41,11 @@ public class Printer extends Module {
             .build()
     );
     private final Setting<Integer> printingRange = sgGeneral.add(new IntSetting.Builder()
-            .name("Printing Range")
+            .name("PrintingRange")
             .description("How far to place blocks around the player.")
             .defaultValue(5)
             .min(1)
-            .max(6)
+            .sliderMax(6)
             .build()
     );
     private final Setting<Boolean> inventorySwap = sgGeneral.add(new BoolSetting.Builder()
@@ -49,7 +53,18 @@ public class Printer extends Module {
             .defaultValue(true)
             .build()
     );
-
+    private final Setting<Boolean> ignoreSneak = sgShift.add(new BoolSetting.Builder()
+            .name("IgnoreSneak")
+            .defaultValue(true)
+            .build()
+    );
+    private final Setting<Integer> shiftTime = sgShift.add(new IntSetting.Builder()
+            .name("ShiftTime")
+            .defaultValue(100)
+            .min(0)
+            .sliderMax(1000)
+            .build()
+    );
     // 渲染设置
     private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>()
             .name("Shape Mode")
@@ -75,29 +90,41 @@ public class Printer extends Module {
     public Printer() {
         super(LeavesHack.CATEGORY, "printer", "Places blocks based on a Litematica schematic.");
     }
-
+    boolean hasSneak = false;
+    private Timer shiftTimer = new Timer();
+    @Override
+    public void onActivate() {
+        hasSneak = false;
+        shiftTimer.setMs(99999);
+    }
+    @Override
+    public void onDeactivate() {
+        if (hasSneak) {
+            mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
+            hasSneak = false;
+        }
+    }
     @EventHandler
     private void onRender3D(Render3DEvent event) {
         if (mc.player == null || mc.world == null) return;
-
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null) return;
-
+        if (!shiftTimer.passedMs(shiftTime.get()) && hasSneak) return;
         List<BlockPos> sphere = BlockUtil.getSphere(printingRange.get());
         int placed = 0;
         for (BlockPos pos : sphere) {
             BlockState required = schematic.getBlockState(pos);
-            if (!required.isAir() && !required.isLiquid() && BlockUtil.canPlace(pos)) {
+            if (!required.isAir() && !required.isLiquid() && (mc.world.isAir(pos) || BlockUtil.canReplace(pos)) && !BlockUtil.hasEntity(pos, false)) {
                 if (placed >= 1) {
                     if (debug.get()) mc.player.sendMessage(Text.of("已超过最大数量，当前placed:" + placed));
                     return;
                 }
-                event.renderer.box(new Box(pos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
                 int slot = inventorySwap.get() ? InventoryUtil.findBlockInventory(required.getBlock()) : InventoryUtil.findBlock(required.getBlock());
                 if (slot == -1) continue;
                 int old = mc.player.getInventory().selectedSlot;
-                ArrayList<Direction> sides = BlockUtil.getPlaceSides(pos, null, true);
+                ArrayList<Direction> sides = BlockUtil.getPlaceSides(pos, null, ignoreSneak.get());
                 if (sides.isEmpty()) continue;
+                event.renderer.box(new Box(pos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
                 Direction target = sides.getFirst();
                 Direction facing = getBlockFacing(required);
                 if (facing != null && !isRedstoneComponent(required)) {
@@ -116,17 +143,37 @@ public class Printer extends Module {
                     }
                 }
                 if (required.getBlock() instanceof RedstoneWireBlock && (mc.world.isAir(pos.down()) || mc.world.getBlockState(pos.down()).isReplaceable())) continue;
+                if (BlockUtil.needSneak(BlockUtil.getBlock(pos.offset(target))) && !hasSneak) {
+                    mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY));
+                    hasSneak = true;
+                    shiftTimer.reset();
+                    return;
+                }
                 placed++;
                 doSwap(slot);
-                if (BlockUtil.shiftBlocks.contains(BlockUtil.getBlock(pos.offset(target)))) mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY));
                 if (rotate.get()) {
                     Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + target.getVector().getX() * 0.5, pos.getY() + 0.5 + target.getVector().getY() * 0.5, pos.getZ() + 0.5 + target.getVector().getZ() * 0.5);
                     Rotation.snapAt(directionVec);
                 }
                 if (facing != null && isRedstoneComponent(required)) blockFacing(facing.getOpposite());
-                BlockUtil.placeBlock(pos, target, false);
+                SlabType type = getSlabType(required);
+                if (type != null) {
+                    switch (type) {
+                        case SlabType.TOP -> {
+                            if (!(BlockUtil.getBlock(pos) instanceof SlabBlock)) BlockUtil.placeSlabBlock(pos, target, Direction.UP, false);
+                        }
+                        case SlabType.BOTTOM -> {
+                            if (!(BlockUtil.getBlock(pos) instanceof SlabBlock)) BlockUtil.placeSlabBlock(pos, target, Direction.DOWN, false);
+                        }
+                    }
+                } else {
+                    BlockUtil.placeBlock(pos, target, false);
+                }
+                if (BlockUtil.needSneak(BlockUtil.getBlock(pos.offset(target)))) {
+                    mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
+                    hasSneak = false;
+                }
                 Rotation.snapBack();
-                if (BlockUtil.shiftBlocks.contains(BlockUtil.getBlock(pos.offset(target)))) mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
                 event.renderer.box(new Box(pos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
                 if (inventorySwap.get()) {
                     doSwap(slot);
@@ -135,6 +182,12 @@ public class Printer extends Module {
                 }
             }
         }
+    }
+    public static SlabType getSlabType(BlockState state) {
+        if (state.getBlock() instanceof SlabBlock) {
+            return state.get(SlabBlock.TYPE);
+        }
+        return null;
     }
     public void blockFacing(Direction i){
         if (i == Direction.EAST) {
@@ -145,6 +198,10 @@ public class Printer extends Module {
             Rotation.snapAt(180.0f, 5.0f);
         } else if (i == Direction.SOUTH) {
             Rotation.snapAt(0.0f, 5.0f);
+        } else if (i == Direction.UP) {
+            Rotation.snapAt(5.0f, -90.0f);
+        } else if (i == Direction.DOWN) {
+            Rotation.snapAt(5.0f, 90.0f);
         }
     }
     public static boolean isRedstoneComponent(BlockState state) {
@@ -158,7 +215,8 @@ public class Printer extends Module {
                 || block instanceof TripwireHookBlock
                 || block instanceof DaylightDetectorBlock
                 || block instanceof PistonBlock
-                || block instanceof RedstoneLampBlock;
+                || block instanceof RedstoneLampBlock
+                || block instanceof FurnaceBlock;
     }
     public boolean checkState(BlockPos pos, BlockState targetState, Direction i) {
         Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + i.getVector().getX() * 0.5, pos.getY() + 0.5 + i.getVector().getY() * 0.5, pos.getZ() + 0.5 + i.getVector().getZ() * 0.5);

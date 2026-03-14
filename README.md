@@ -1,4 +1,4 @@
-# LeavesHack V1.3.0
+# LeavesHack V1.3.1
 
 **Meteor 客户端插件**  
 致力于改善无政府服务器的生存体验  
@@ -22,6 +22,7 @@
 |Aura | 可在3c3u使用的不卡脚的杀戮 | 无 |
 | AutoArmorPlus | 自动穿甲（主要为了和FireworkElytraFly联动自动穿鞘翅）| 无 |
 | AutoCity | 自动挖脚（顺手的事，记住咱是生存端）| 无 |
+| AutoLogin | 自动登录 | 无 |
 |AutoPlaceSlab | 自动放半砖| 无 |
 | AutoRefreshTrade | 自动刷新村民交易的附魔书| 无 |
 | AutoTorch | 自动放火把(白天可用+无光区域渲染) | 无 |

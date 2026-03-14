@@ -147,7 +147,7 @@ public class AntiAntiXray extends Module {
             });
         }
         renderBlock(event);
-        if (!timer.passedMs(delay.get())) return;
+        if (!timer.passedMs(delay.get()*10)) return;
         int r = range.get();
         int size = r * 2 + 1;
         if (progress * step.get() < 100) {

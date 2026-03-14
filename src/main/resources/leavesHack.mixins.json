@@ -11,6 +11,8 @@
   "mixins": [
     "accessors.ILivingEntity",
     "accessors.IPlayerMoveC2SPacket",
-    "mixin.MineProcessMixin"
+    "accessors.SystemsAccessor",
+    "mixin.MineProcessMixin",
+    "mixin.SystemsMixin"
   ]
 }

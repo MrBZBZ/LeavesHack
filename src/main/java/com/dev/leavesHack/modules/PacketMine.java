@@ -5,12 +5,10 @@ import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.entity.player.StartBreakingBlockEvent;
-import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.utils.entity.EntityUtils;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
@@ -24,7 +22,6 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
 
@@ -106,7 +103,7 @@ public class PacketMine extends Module {
     private final Setting<Integer> switchTime = sgGeneral.add(
             new IntSetting.Builder()
                     .name("SwitchTime")
-                    .defaultValue(50)
+                    .defaultValue(100)
                     .min(0)
                     .sliderMax(1000)
                     .build()
@@ -170,7 +167,7 @@ public class PacketMine extends Module {
                     .defaultValue(new SettingColor(255, 255, 255, 255))
                     .build()
     );
-    public static BlockPos slefClickPos = null;
+    public static BlockPos selfClickPos = null;
     public static int maxBreaksCount;
     public static int publicProgress = 0;
     private static boolean completed = false;
@@ -213,7 +210,7 @@ public class PacketMine extends Module {
         if (!mineTimer.passedMs(mineDelay.get())) return;
         if (targetPos == null || !targetPos.equals(event.blockPos)) {
             mineTimer.reset();
-            slefClickPos = event.blockPos;
+            selfClickPos = event.blockPos;
             mine(event.blockPos);
         }
     }
@@ -283,7 +280,7 @@ public class PacketMine extends Module {
         renderAnimation(event, delta, damage);
         if (progress >= max * damage) {
             sendStop();
-            slefClickPos = null;
+            selfClickPos = null;
             completed = true;
             if (!instantMine.get()) targetPos = null;
         }

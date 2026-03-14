@@ -6,6 +6,7 @@ import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
+import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.IntSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
@@ -15,9 +16,12 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.TorchBlock;
 import net.minecraft.text.Text;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.LightType;
+import net.minecraft.world.RaycastContext;
 
 public class AutoTorch extends Module {
     public static AutoTorch INSTANCE;
@@ -45,6 +49,11 @@ public class AutoTorch extends Module {
             .sliderMax(6)
             .build()
     );
+    private final Setting<Boolean> throughWall = sgGeneral.add(new BoolSetting.Builder()
+            .name("ThroughWall")
+            .defaultValue(false)
+            .build()
+    );
     private final Setting<Integer> checkLightLevel = sgGeneral.add(new IntSetting.Builder()
             .name("CheckLightLevel")
             .defaultValue(7)
@@ -54,6 +63,7 @@ public class AutoTorch extends Module {
     );
     public AutoTorch() {
         super(LeavesHack.CATEGORY, "AutoTorch", "Automatically place torch");
+        INSTANCE = this;
     }
     @EventHandler
     private void onRender3d(Render3DEvent event) {
@@ -79,6 +89,7 @@ public class AutoTorch extends Module {
         int counts = 0;
         for (BlockPos pos : BlockUtil.getSphere(range.get())) {
             if (counts >= 1) break;
+            if (throughWall.get() && behindWall(pos)) continue;
             if (!(BlockUtil.getBlock(pos) instanceof TorchBlock) && !(BlockUtil.getBlock(pos.down()) instanceof TorchBlock) && (mc.world.isAir(pos) || mc.world.getBlockState(pos).isReplaceable()) && !mc.world.isAir(pos.down()) && !mc.world.getBlockState(pos.down()).isReplaceable() && !BlockUtil.hasPlayerEntity(pos) && !BlockUtil.hasEntity(pos,false)) {
                 if (mc.world.getLightLevel(LightType.BLOCK, pos)  > checkLightLevel.get()) continue;
                 Direction side = BlockUtil.getPlaceSide(pos, null);
@@ -93,5 +104,10 @@ public class AutoTorch extends Module {
             }
         }
         placeTimer.reset();
+    }
+    public boolean behindWall(BlockPos pos) {
+        Vec3d testVec = new Vec3d(pos.getX() + 0.5, pos.getY() + 2 * 0.85, pos.getZ() + 0.5);
+        HitResult result = mc.world.raycast(new RaycastContext(mc.player.getEyePos(), testVec, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player));
+        return result != null && result.getType() != HitResult.Type.MISS;
     }
 }
