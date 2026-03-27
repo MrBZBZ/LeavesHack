@@ -1,5 +1,6 @@
 package com.dev.leavesHack.utils.rotation;
 
+import com.dev.leavesHack.modules.GlobalSetting;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.util.math.Box;
@@ -11,9 +12,14 @@ public class Rotation {
     public static float rotationYaw = 0;
     public static float rotationPitch = 0;
     public static void snapAt(float yaw, float pitch) {
-        sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround()));
+        if (GlobalSetting.INSTANCE.grimRotation.get()) {
+            sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround()));
+        } else {
+            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, mc.player.isOnGround()));
+        }
     }
     public static void snapBack() {
+        if (!GlobalSetting.INSTANCE.snapBack.get()) return;
         sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), rotationYaw, rotationPitch, mc.player.isOnGround()));
     }
     public static void sendPacket(Packet<?> packet) {

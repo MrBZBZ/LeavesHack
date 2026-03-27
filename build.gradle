@@ -38,17 +38,22 @@ dependencies {
     // Litematica dependencies
     modCompileOnly "maven.modrinth:malilib:0.21.10"
     modCompileOnly "maven.modrinth:litematica:0.19.60"
+
+//    modImplementation files("lib/e.jar")
+//    // IDE 补全
+//    implementation files("lib/e.jar")
+
 }
 
 tasks {
     processResources {
-        def propertyMap = [
-            "version"   : project.version,
-            "mc_version": project.minecraft_version,
-        ]
-
+        inputs.property "version", project.version
+        inputs.property "mc_version", project.minecraft_version
         filesMatching("fabric.mod.json") {
-            expand(propertyMap)
+            expand(
+                    version: project.version,
+                    mc_version: project.minecraft_version
+            )
         }
     }
 

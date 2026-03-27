@@ -1,14 +1,9 @@
 package com.dev.leavesHack;
 
-import com.dev.leavesHack.commands.CommandExample;
-import com.dev.leavesHack.hud.HudExample;
 import com.dev.leavesHack.modules.*;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.GithubRepo;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
-import meteordevelopment.meteorclient.commands.Commands;
-import meteordevelopment.meteorclient.systems.Systems;
-import meteordevelopment.meteorclient.systems.hud.Hud;
 import meteordevelopment.meteorclient.systems.hud.HudGroup;
 import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -25,13 +20,15 @@ public class LeavesHack extends MeteorAddon {
         LOG.info("Initializing LeavesHack");
 
         // Modules
+        add(new GlobalSetting());
+        add(new AutoTree());
         add(new AutoLogin());
         add(new Printer());
         add(new AutoTorch());
         add(new ScaffoldPlus());
         add(new LegitNoFall());
         add(new AutoCity());
-        add(new AutoPlaceSlab());
+        add(new AutoPlaceBlock());
         add(new NukerPlus());
         add(new ModuleList());
         add(new PacketMine());
@@ -41,11 +38,12 @@ public class LeavesHack extends MeteorAddon {
         add(new AntiAntiXray());
         add(new AutoRefreshTrade());
 
+//这两模板还用不上后面用得到再研究
         // Commands
-        Commands.add(new CommandExample());
+//        Commands.add(new CommandExample());
 
         // HUD
-        Hud.get().register(HudExample.INFO);
+//        Hud.get().register(HudExample.INFO);
     }
     private void add(Module module){
         Modules.get().add(module);

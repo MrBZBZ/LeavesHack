@@ -158,10 +158,11 @@ public class AutoRefreshTrade extends Module {
                     ItemEnchantmentsComponent enchantments = EnchantmentHelper.getEnchantments(sellStack);
                     enchantments.getEnchantments().forEach(entry -> {
                         int level = enchantments.getLevel(entry);
+                        int maxLevel = entry.value().getMaxLevel();
                         String name = Enchantment.getName(entry, level).getString();
                         mc.player.sendMessage(Text.of("[LeavesHack]本次结果 " + name));
                         for (RegistryKey<Enchantment> enchantmentKey : enchantmentList.get()){
-                            if (hasEnchantments(sellStack, enchantmentKey) && level >= enchantmentLevel.get()) {
+                            if (hasEnchantments(sellStack, enchantmentKey) && (level >= enchantmentLevel.get() || level == maxLevel)) {
                                 find.set(true);
                                 mc.player.sendMessage(Text.of("[LeavesHack]:已找到所需附魔"));
                                 return;

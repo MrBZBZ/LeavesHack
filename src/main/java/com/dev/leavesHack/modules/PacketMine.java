@@ -4,6 +4,7 @@ import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import com.dev.leavesHack.utils.entity.InventoryUtil.SwitchMode;
 import meteordevelopment.meteorclient.events.entity.player.StartBreakingBlockEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
@@ -46,11 +47,10 @@ public class PacketMine extends Module {
                     .visible(usingPause::get)
                     .build()
     );
-    private final Setting<Boolean> silentSwitch = sgGeneral.add(
-            new BoolSetting.Builder()
-                    .name("SilentSwitch")
-                    .defaultValue(true)
-                    .build()
+    private final Setting<SwitchMode> autoSwitch = sgGeneral.add(new EnumSetting.Builder<SwitchMode>()
+            .name("AutoSwitch")
+            .defaultValue(SwitchMode.Silent)
+            .build()
     );
     public final Setting<Integer> range = sgGeneral.add(
             new IntSetting.Builder()
@@ -232,9 +232,9 @@ public class PacketMine extends Module {
     @EventHandler
     private void onRender(Render3DEvent event) {
         if (mc.world == null || mc.player == null) return;
-        if (timer.passedMs(switchTime.get()) && hasSwitch) {
-        InventoryUtil.switchToSlot(oldSlot);
-        hasSwitch = false;
+        if (timer.passedMs(switchTime.get()) && hasSwitch && autoSwitch.get() == SwitchMode.Delay) {
+            InventoryUtil.switchToSlot(oldSlot);
+            hasSwitch = false;
         }
         if (targetPos == null) {
             publicProgress = 0;
@@ -299,7 +299,7 @@ public class PacketMine extends Module {
         }
         int bestSlot = getTool(targetPos);
         if (!hasSwitch) oldSlot = mc.player.getInventory().selectedSlot;
-        if (silentSwitch.get() && bestSlot != -1) {
+        if (autoSwitch.get() != SwitchMode.None && bestSlot != -1) {
             InventoryUtil.switchToSlot(bestSlot);
             timer.reset();
             hasSwitch = true;
@@ -311,6 +311,10 @@ public class PacketMine extends Module {
         }
         mc.player.swingHand(Hand.MAIN_HAND);
         sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, targetPos, BlockUtil.getClickSide(targetPos), id));
+        if (autoSwitch.get() == SwitchMode.Silent && hasSwitch) {
+            InventoryUtil.switchToSlot(oldSlot);
+            hasSwitch = false;
+        }
     }
     private boolean isAir(BlockPos breakPos) {
         return mc.world.isAir(breakPos) || BlockUtil.getBlock(breakPos) == Blocks.FIRE && BlockUtil.hasCrystal(breakPos);

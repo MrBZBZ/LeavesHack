@@ -1,5 +1,7 @@
 package com.dev.leavesHack.utils.entity;
 
+import com.dev.leavesHack.modules.Aura;
+import com.dev.leavesHack.modules.PacketMine;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -115,6 +117,12 @@ public class InventoryUtil {
     public static void switchToSlot(int slot) {
         mc.player.getInventory().selectedSlot = slot;
         sendPacket(new UpdateSelectedSlotC2SPacket(slot));
+    }
+
+    public enum SwitchMode {
+        Delay,
+        Silent,
+        None
     }
     public static int findItem(Item input) {
         for (int i = 0; i < 9; ++i) {

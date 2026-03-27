@@ -104,7 +104,7 @@ public class AntiAntiXray extends Module {
             .build()
     );
     public AntiAntiXray() {
-        super(LeavesHack.CATEGORY, "AntiAntiXray", "dev Leaves_awa");
+        super(LeavesHack.CATEGORY, "AntiAntiXray", "雷达矿透");
     }
     @Override
     public String getInfoString() {

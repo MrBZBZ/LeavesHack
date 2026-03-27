@@ -13,9 +13,7 @@ import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.SlabBlock;
 import net.minecraft.block.TorchBlock;
-import net.minecraft.text.Text;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -47,6 +45,11 @@ public class AutoTorch extends Module {
             .defaultValue(5)
             .min(0)
             .sliderMax(6)
+            .build()
+    );
+    private final Setting<Boolean> onlyRender = sgGeneral.add(new BoolSetting.Builder()
+            .name("OnlyRender")
+            .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> throughWall = sgGeneral.add(new BoolSetting.Builder()
@@ -82,6 +85,7 @@ public class AutoTorch extends Module {
                 );
             }
         }
+        if (onlyRender.get()) return;
         if (!placeTimer.passedMs(delay.get())) return;
         int oldSlot = mc.player.getInventory().selectedSlot;
         int slot = InventoryUtil.findClass(TorchBlock.class);

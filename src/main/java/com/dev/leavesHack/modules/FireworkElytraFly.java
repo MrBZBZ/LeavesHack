@@ -13,19 +13,16 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.network.PendingUpdateManager;
 import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ElytraItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
-import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 
 import static com.dev.leavesHack.utils.rotation.Rotation.sendPacket;
-import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class FireworkElytraFly extends Module {
     private Timer fireworkTimer = new Timer();
@@ -40,8 +37,8 @@ public class FireworkElytraFly extends Module {
     private final Setting<Double> checkSpeed = sgGeneral.add(new DoubleSetting.Builder()
             .name("CheckSpeed")
             .description("")
-            .defaultValue(80)
-            .sliderMax(100)
+            .defaultValue(90)
+            .sliderMax(120)
             .build()
     );
     private final Setting<Boolean> inventorySwap = sgGeneral.add(new BoolSetting.Builder()

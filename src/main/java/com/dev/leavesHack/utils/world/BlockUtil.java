@@ -1,6 +1,7 @@
 package com.dev.leavesHack.utils.world;
 
 import com.dev.leavesHack.modules.AutoCity;
+import com.dev.leavesHack.modules.GlobalSetting;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
@@ -16,6 +17,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.entity.projectile.thrown.ExperienceBottleEntity;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -330,7 +332,11 @@ public class BlockUtil {
         if (rotate) Rotation.snapAt(directionVec);
         mc.player.swingHand(Hand.MAIN_HAND);
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
-        mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
+        if (GlobalSetting.INSTANCE.packetPlace.get()){
+            mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
+        } else {
+            mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
+        }
         if (rotate) Rotation.snapBack();
     }
     public static boolean needSneak(Block in) {
@@ -344,7 +350,11 @@ public class BlockUtil {
         if (rotate) Rotation.snapAt(directionVec);
         mc.player.swingHand(Hand.MAIN_HAND);
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
-        mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
+        if (GlobalSetting.INSTANCE.packetPlace.get()){
+            mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
+        } else {
+            mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
+        }
         if (rotate) Rotation.snapBack();
     }
 }

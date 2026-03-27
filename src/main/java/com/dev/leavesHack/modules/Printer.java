@@ -1,6 +1,7 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
+import com.dev.leavesHack.events.MoveEvent;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
@@ -13,11 +14,11 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
+import meteordevelopment.orbit.EventPriority;
 import net.minecraft.block.*;
 import net.minecraft.block.enums.SlabType;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
-import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.state.property.Properties;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
@@ -34,6 +35,7 @@ public class Printer extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final SettingGroup sgShift = this.settings.createGroup("IgnoreSneak");
     private final SettingGroup sgRender = settings.createGroup("Render");
+    private final SettingGroup sgWhitelist = settings.createGroup("Whitelist");
     private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
             .name("Rotate")
             .description("Rotate towards blocks when placing.")
@@ -43,13 +45,18 @@ public class Printer extends Module {
     private final Setting<Integer> printingRange = sgGeneral.add(new IntSetting.Builder()
             .name("PrintingRange")
             .description("How far to place blocks around the player.")
-            .defaultValue(5)
+            .defaultValue(4)
             .min(1)
             .sliderMax(6)
             .build()
     );
     private final Setting<Boolean> inventorySwap = sgGeneral.add(new BoolSetting.Builder()
             .name("InventorySwap")
+            .defaultValue(true)
+            .build()
+    );
+    private final Setting<Boolean> safeWalk = sgGeneral.add(new BoolSetting.Builder()
+            .name("SafeWalk")
             .defaultValue(true)
             .build()
     );
@@ -65,19 +72,46 @@ public class Printer extends Module {
             .sliderMax(1000)
             .build()
     );
-    // 渲染设置
+    private final Setting<Integer> sneakSpeed = sgShift.add(new IntSetting.Builder()
+            .name("SneakSpeed")
+            .description("目前来看站着不动是最好的选择")
+            .defaultValue(0)
+            .min(0)
+            .sliderMax(20)
+            .build()
+    );
+    private final Setting<ListMode> listMode = sgWhitelist.add(new EnumSetting.Builder<ListMode>()
+            .name("ListMode")
+            .description("Selection mode.")
+            .defaultValue(ListMode.Blacklist)
+            .build()
+    );
+
+    private final Setting<List<Block>> blacklist = sgWhitelist.add(new BlockListSetting.Builder()
+            .name("BlackList")
+            .description("黑名单")
+            .visible(() -> listMode.get() == ListMode.Blacklist)
+            .build()
+    );
+
+    private final Setting<List<Block>> whitelist = sgWhitelist.add(new BlockListSetting.Builder()
+            .name("WhiteList")
+            .description("白名单")
+            .visible(() -> listMode.get() == ListMode.Whitelist)
+            .build()
+    );
     private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>()
-            .name("Shape Mode")
+            .name("ShapeMode")
             .defaultValue(ShapeMode.Both)
             .build()
     );
     private final Setting<SettingColor> lineColor = sgRender.add(new ColorSetting.Builder()
-            .name("Line Color")
+            .name("LineColor")
             .defaultValue(new SettingColor(255, 255, 255, 255))
             .build()
     );
     private final Setting<SettingColor> sideColor = sgRender.add(new ColorSetting.Builder()
-            .name("Side Color")
+            .name("SideColor")
             .defaultValue(new SettingColor(255, 255, 255, 50))
             .build()
     );
@@ -109,11 +143,15 @@ public class Printer extends Module {
         if (mc.player == null || mc.world == null) return;
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null) return;
-        if (!shiftTimer.passedMs(shiftTime.get()) && hasSneak) return;
+        if (!shiftTimer.passedMs(shiftTime.get()) && hasSneak && ignoreSneak.get()) {
+            return;
+        }
         List<BlockPos> sphere = BlockUtil.getSphere(printingRange.get());
         int placed = 0;
         for (BlockPos pos : sphere) {
             BlockState required = schematic.getBlockState(pos);
+            if (listMode.get() == ListMode.Blacklist && blacklist.get().contains(required.getBlock())) continue;
+            if (listMode.get() == ListMode.Whitelist && !whitelist.get().contains(required.getBlock())) continue;
             if (!required.isAir() && !required.isLiquid() && (mc.world.isAir(pos) || BlockUtil.canReplace(pos)) && !BlockUtil.hasEntity(pos, false)) {
                 if (placed >= 1) {
                     if (debug.get()) mc.player.sendMessage(Text.of("已超过最大数量，当前placed:" + placed));
@@ -146,6 +184,7 @@ public class Printer extends Module {
                 if (BlockUtil.needSneak(BlockUtil.getBlock(pos.offset(target))) && !hasSneak) {
                     mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY));
                     hasSneak = true;
+                    mc.player.setSneaking(true);
                     shiftTimer.reset();
                     return;
                 }
@@ -155,7 +194,13 @@ public class Printer extends Module {
                     Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + target.getVector().getX() * 0.5, pos.getY() + 0.5 + target.getVector().getY() * 0.5, pos.getZ() + 0.5 + target.getVector().getZ() * 0.5);
                     Rotation.snapAt(directionVec);
                 }
-                if (facing != null && isRedstoneComponent(required)) blockFacing(facing.getOpposite());
+                if (facing != null && isRedstoneComponent(required)) {
+                    if ((required.getBlock() instanceof ObserverBlock)) {
+                        blockFacing(facing);
+                    } else {
+                        blockFacing(facing.getOpposite());
+                    }
+                }
                 SlabType type = getSlabType(required);
                 if (type != null) {
                     switch (type) {
@@ -169,8 +214,9 @@ public class Printer extends Module {
                 } else {
                     BlockUtil.placeBlock(pos, target, false);
                 }
-                if (BlockUtil.needSneak(BlockUtil.getBlock(pos.offset(target)))) {
+                if (hasSneak && ignoreSneak.get()) {
                     mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
+                    mc.player.setSneaking(false);
                     hasSneak = false;
                 }
                 Rotation.snapBack();
@@ -182,6 +228,82 @@ public class Printer extends Module {
                 }
             }
         }
+    }
+    @EventHandler(priority = EventPriority.LOW)
+    public void onMove1(MoveEvent event) {
+        if (safeWalk.get()) {
+            double x = event.getX();
+            double y = event.getY();
+            double z = event.getZ();
+            if (mc.player.isOnGround()) {
+                double increment = 0.05;
+                while (x != 0.0 && this.isOffsetBBEmpty(x, -1.0, 0.0)) {
+                    if (x < increment && x >= -increment) {
+                        x = 0.0;
+                        continue;
+                    }
+                    if (x > 0.0) {
+                        x -= increment;
+                        continue;
+                    }
+                    x += increment;
+                }
+                while (z != 0.0 && this.isOffsetBBEmpty(0.0, -1.0, z)) {
+                    if (z < increment && z >= -increment) {
+                        z = 0.0;
+                        continue;
+                    }
+                    if (z > 0.0) {
+                        z -= increment;
+                        continue;
+                    }
+                    z += increment;
+                }
+                while (x != 0.0 && z != 0.0 && this.isOffsetBBEmpty(x, -1.0, z)) {
+                    x = x < increment && x >= -increment ? 0.0 : (x > 0.0 ? x - increment : x + increment);
+                    if (z < increment && z >= -increment) {
+                        z = 0.0;
+                        continue;
+                    }
+                    if (z > 0.0) {
+                        z -= increment;
+                        continue;
+                    }
+                    z += increment;
+                }
+            }
+            event.setX(x);
+            event.setY(y);
+            event.setZ(z);
+        }
+    }
+
+    public boolean isOffsetBBEmpty(double offsetX, double offsetY, double offsetZ) {
+        return !mc.world.canCollide(mc.player, mc.player.getBoundingBox().offset(offsetX, offsetY, offsetZ));
+    }
+    @EventHandler
+    public void onMove2(MoveEvent event) {
+        if (shiftTimer.passedMs(shiftTime.get() * 2) && ignoreSneak.get() && hasSneak) {
+            mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
+            hasSneak = false;
+            return;
+        }
+        if (!hasSneak) return;
+        double speed = sneakSpeed.get();
+        double moveSpeed = 0.2873 / 100 * speed;
+        double n = mc.player.input.movementForward;
+        double n2 = mc.player.input.movementSideways;
+        double n3 = mc.player.getYaw();
+        if (n == 0.0 && n2 == 0.0) {
+            event.setX(0.0);
+            event.setZ(0.0);
+            return;
+        } else if (n != 0.0 && n2 != 0.0) {
+            n *= Math.sin(0.7853981633974483);
+            n2 *= Math.cos(0.7853981633974483);
+        }
+        event.setX((n * moveSpeed * -Math.sin(Math.toRadians(n3)) + n2 * moveSpeed * Math.cos(Math.toRadians(n3))));
+        event.setZ((n * moveSpeed * Math.cos(Math.toRadians(n3)) - n2 * moveSpeed * -Math.sin(Math.toRadians(n3))));
     }
     public static SlabType getSlabType(BlockState state) {
         if (state.getBlock() instanceof SlabBlock) {
@@ -279,5 +401,9 @@ public class Printer extends Module {
         } else {
             InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
         }
+    }
+    public enum ListMode {
+        Whitelist,
+        Blacklist
     }
 }

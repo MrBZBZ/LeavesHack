@@ -4,6 +4,7 @@ import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.modules.autoLogin.AutoLoginAccount;
 import com.dev.leavesHack.modules.autoLogin.AutoLoginAccounts;
 import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.ServerConnectBeginEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.gui.GuiTheme;
@@ -12,9 +13,12 @@ import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WMinus;
+import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.settings.Settings;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
+import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
+import net.minecraft.text.Text;
 
 import java.util.List;
 
@@ -32,6 +36,31 @@ public class AutoLogin extends Module {
         MeteorClient.EVENT_BUS.subscribe(new StaticListener());
         INSTANCE = this;
     }
+    private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
+    public final Setting<Boolean> autoSave = sgGeneral.add(new BoolSetting.Builder()
+            .name("AutoSave")
+            .description("登录信息自动保存")
+            .defaultValue(true)
+            .build()
+    );
+    public final Setting<String> loginCommand = sgGeneral.add(new StringSetting.Builder()
+            .name("LoginCommand")
+            .description("Login Command 登录的指令")
+            .defaultValue("l")
+            .build()
+    );
+    public final Setting<String> registerCommand = sgGeneral.add(new StringSetting.Builder()
+            .name("RegCommand")
+            .description("Register Command 注册的指令")
+            .defaultValue("reg")
+            .build()
+    );
+    public final Setting<String> cpCommand = sgGeneral.add(new StringSetting.Builder()
+            .name("CpCommand")
+            .description("Change Password Command 改密码的指令")
+            .defaultValue("cp")
+            .build()
+    );
     private class StaticListener {
         @EventHandler
         private void onGameJoined(ServerConnectBeginEvent event) {
@@ -46,9 +75,34 @@ public class AutoLogin extends Module {
         }
     }
     @EventHandler
+    public void onMessageSend(PacketEvent.Send event) {
+        if (event.packet instanceof CommandExecutionC2SPacket packet && autoSave.get()) {
+            String message = packet.command();
+            String[] args = message.split(" ");
+            if (args.length < 2) return;
+            if (args[0].equals(loginCommand.get()) || args[0].equals(registerCommand.get()) || args[0].equals(cpCommand.get())) {
+                String password = args[0].equals(cpCommand.get()) ? args[2] : args[1];
+                String username = mc.getSession().getUsername();
+                String server = lastIp;
+                for (AutoLoginAccount account : accounts()) {
+                    if (account.username.get().equals(username)
+                            && account.serverIp.get().equals(server)) {
+                        account.password.set(password);
+                        return;
+                    }
+                }
+                AutoLoginAccount account = new AutoLoginAccount();
+                account.username.set(username);
+                account.serverIp.set(server);
+                account.password.set(password);
+                AutoLoginAccounts.get().add(account);
+            }
+        }
+    }
+    @EventHandler
     private void onTick(TickEvent.Pre event) {
         if (check) {
-            mc.getNetworkHandler().sendCommand("login " + pw);
+            mc.getNetworkHandler().sendCommand(loginCommand.get() + " " + pw);
             check = false;
         }
     }

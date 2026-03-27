@@ -1,7 +1,6 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
-import com.dev.leavesHack.asm.accessors.ILivingEntity;
 import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
@@ -10,20 +9,16 @@ import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.systems.modules.combat.KillAura;
 import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
-import meteordevelopment.meteorclient.utils.world.TickRate;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.Tameable;
-import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.EndermanEntity;
 import net.minecraft.entity.mob.ZombifiedPiglinEntity;
 import net.minecraft.entity.passive.WolfEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.*;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
@@ -39,7 +34,7 @@ import static com.dev.leavesHack.utils.world.BlockUtil.getClosestPointToBox;
 public class Aura extends Module {
     public static Aura INSTANCE;
     public Aura() {
-        super(LeavesHack.CATEGORY, "Aura", "");
+        super(LeavesHack.CATEGORY, "Aura", "KillAura for 3C3U");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
@@ -63,19 +58,11 @@ public class Aura extends Module {
             .defaultValue(Weapon.Sword)
             .build()
     );
-    private final Setting<Boolean> autoSwitch = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<SwitchMode> autoSwitch = sgGeneral.add(new EnumSetting.Builder<SwitchMode>()
             .name("AutoSwitch")
-            .description("Switches to your selected weapon when attacking the target.")
-            .defaultValue(false)
+            .defaultValue(SwitchMode.Silent)
             .build()
     );
-//感觉没用
-//    private final Setting<Boolean> swapBack = sgGeneral.add(new BoolSetting.Builder()
-//            .name("SwitchBack")
-//            .defaultValue(false)
-//            .visible(autoSwitch::get)
-//            .build()
-//    );
     private final Setting<Boolean> reset = sgGeneral.add(new BoolSetting.Builder()
             .name("Reset")
             .defaultValue(true)
@@ -141,8 +128,6 @@ public class Aura extends Module {
     );
     private final Timer tick = new Timer();
     public static Entity target;
-    public boolean swapped;
-    public static int previousSlot;
     @Override
     public void onActivate() {
         tick.setMs(9999999);
@@ -173,10 +158,6 @@ public class Aura extends Module {
     @EventHandler
     public void onTick(TickEvent.Pre event) {
         if (mc.player ==  null || mc.world == null) return;
-//        if (swapBack.get() && swapped) {
-//            InventoryUtil.switchToSlot(previousSlot);
-//            swapped = false;
-//        }
         target = getTarget(targetRange.get());
         if (target == null) {
             return;
@@ -187,7 +168,9 @@ public class Aura extends Module {
         if (!check()) {
             return;
         }
-        if (autoSwitch.get() && !itemInHand()) {
+        boolean found = false;
+        int previousSlot = -1;
+        if (autoSwitch.get() != SwitchMode.None && !itemInHand()) {
             Predicate<ItemStack> predicate = switch (weapon.get()) {
                 case Axe -> stack -> stack.getItem() instanceof AxeItem;
                 case Sword -> stack -> stack.getItem() instanceof SwordItem;
@@ -197,15 +180,16 @@ public class Aura extends Module {
                 default -> o -> true;
             };
             FindItemResult weaponResult = InvUtils.findInHotbar(predicate);
-            if (!swapped) {
-                previousSlot  = mc.player.getInventory().selectedSlot;
-                swapped = true;
-            }
+            previousSlot  = mc.player.getInventory().selectedSlot;
             if (weaponResult.found()) {
                 InventoryUtil.switchToSlot(weaponResult.slot());
+                found = true;
             }
         }
-        if (!itemInHand()) {
+        if (!itemInHand() && autoSwitch.get() != SwitchMode.Silent) {
+            return;
+        }
+        if (autoSwitch.get() == SwitchMode.Silent && !found && !itemInHand()) {
             return;
         }
         if (rotate.get()) {
@@ -218,6 +202,9 @@ public class Aura extends Module {
         tick.reset();
         if (rotate.get()) {
             Rotation.snapBack();
+        }
+        if (autoSwitch.get() == SwitchMode.Silent && previousSlot != -1) {
+            InventoryUtil.switchToSlot(previousSlot);
         }
     }
     private boolean itemInHand() {
@@ -283,5 +270,10 @@ public class Aura extends Module {
         Trident,
         All,
         Any
+    }
+    public enum SwitchMode {
+        Normal,
+        Silent,
+        None
     }
 }
