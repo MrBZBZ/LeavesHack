@@ -97,6 +97,7 @@ public class AutoArmorPlus extends Module {
                 }
                 FireworkElytraFly fireworkElytraFly = Modules.get().get(FireworkElytraFly.class);
                 if (autoElytra.get() && fireworkElytraFly.isActive() && e.getKey() == EquipmentSlot.CHEST) {
+                    if (FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.GrimDurability) continue;
                     if (!mc.player.getInventory().getStack(38).isEmpty() && mc.player.getInventory().getStack(38).getItem() instanceof ElytraItem && ElytraItem.isUsable(mc.player.getInventory().getStack(38))) {
                         continue;
                     }

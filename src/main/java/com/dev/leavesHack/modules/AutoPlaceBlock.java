@@ -21,7 +21,7 @@ import java.util.ArrayList;
 public class AutoPlaceBlock extends Module {
     private final Timer placeTimer = new Timer();
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
-    private final SettingGroup sgDirection = this.settings.getGroup("Direction");
+    private final SettingGroup sgDirection = this.settings.createGroup("Direction");
     private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
             .name("Delay")
             .description("MS")
