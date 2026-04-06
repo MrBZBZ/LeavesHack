@@ -108,7 +108,7 @@ public class ModuleList extends Module {
                         (int) textRenderer.getWidth(b.title, useShadow),
                         (int) textRenderer.getWidth(a.title, useShadow)
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         double drawY = y.get();
 

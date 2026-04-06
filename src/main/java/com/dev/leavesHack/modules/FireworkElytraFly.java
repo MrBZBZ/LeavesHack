@@ -11,12 +11,14 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.network.PendingUpdateManager;
 import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.projectile.FireworkRocketEntity;
-import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ElytraItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -161,6 +163,7 @@ public class FireworkElytraFly extends Module {
     }
     @EventHandler
     public void onTick(TickEvent.Pre event){
+        if (mc.currentScreen != null && mc.currentScreen instanceof HandledScreen<?> && !(mc.currentScreen instanceof InventoryScreen || mc.currentScreen instanceof CreativeInventoryScreen)) return;
         packetDelayInt++;
         boolean hasFirework = false;
         if (checkFirework.get()) {
