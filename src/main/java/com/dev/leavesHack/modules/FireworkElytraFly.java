@@ -25,12 +25,17 @@ import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
+
+import java.util.TimerTask;
 
 import static com.dev.leavesHack.utils.rotation.Rotation.*;
 
 public class FireworkElytraFly extends Module {
+    public float yaw = rotationYaw;
+    public float pitch = rotationPitch;
     public boolean isUsingFirework = false;
     private final Timer fireworkTimer = new Timer();
     private final Timer swapTimer = new Timer();
@@ -77,6 +82,13 @@ public class FireworkElytraFly extends Module {
             .defaultValue(true)
             .build()
     );
+    public final Setting<Integer> releaseDelay = sgGeneral.add(new IntSetting.Builder()
+            .name("ReleaseDelay")
+            .description("")
+            .defaultValue(100)
+            .sliderMax(1000)
+            .build()
+    );
     private final Setting<Double> delay = sgGeneral.add(new DoubleSetting.Builder()
             .name("FireWorkDelay")
             .description("")
@@ -96,11 +108,23 @@ public class FireworkElytraFly extends Module {
             .defaultValue(true)
             .build()
     );
-//    private final Setting<Boolean> deBug = sgGeneral.add(new BoolSetting.Builder()
-//            .name("DeBug")
-//            .defaultValue(true)
-//            .build()
-//    );
+    public final Setting<Boolean> control = sgGeneral.add(new BoolSetting.Builder()
+            .name("Control")
+            .description("")
+            .defaultValue(true)
+            .build()
+    );
+    private final Setting<Double> fallSpeed = sgGeneral.add(new DoubleSetting.Builder()
+            .name("FallSpeed")
+            .defaultValue(0.02)
+            .sliderRange(0.0, 3.0)
+            .build()
+    );
+    private final Setting<Boolean> deBug = sgGeneral.add(new BoolSetting.Builder()
+            .name("DeBug")
+            .defaultValue(false)
+            .build()
+    );
     public static FireworkElytraFly INSTANCE;
     public FireworkElytraFly() {
         super(LeavesHack.CATEGORY, "FireworkElytraFly", "烟花鞘翅飞行");
@@ -115,21 +139,32 @@ public class FireworkElytraFly extends Module {
     @Override
     public void onDeactivate() {
         if (releaseSneak.get()) {
-            mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
+            mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY));
+            long delay = releaseDelay.get();
+            java.util.Timer timer = new java.util.Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    mc.execute(() -> {
+                        mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
+                    });
+                }
+            }, delay);
         }
     }
     @EventHandler
     public void onTravel(TravelEvent event) {
         if (!isFallFlying) return;
         if (mode.get() == Mode.Legit) return;
+        if (!control.get()) return;
         if (mc.currentScreen instanceof ChatScreen) {
-            setY(0);
+            setY(fallSpeed.get());
             return;
         }
         if (!wantToMove()) {
+            setY(fallSpeed.get());
             setX(0);
             setZ(0);
-            setY(0);
         }
     }
     private void setY(double f) {
@@ -163,8 +198,12 @@ public class FireworkElytraFly extends Module {
     }
     @EventHandler
     public void onTick(TickEvent.Pre event){
+        if (mc.currentScreen != null && deBug.get()) info("screen" + mc.currentScreen.getTitle() + " " + mc.currentScreen.getClass().getSimpleName() + " " + mc.currentScreen.getClass().getSuperclass().getSimpleName() + " " + mc.currentScreen.getTitle());
         if (mc.currentScreen != null && mc.currentScreen instanceof HandledScreen<?> && !(mc.currentScreen instanceof InventoryScreen || mc.currentScreen instanceof CreativeInventoryScreen)) return;
         packetDelayInt++;
+        yaw = getSprintYaw(mc.player.getYaw());
+        pitch = getPitch(mc.player.getPitch());
+        if (mode.get() == Mode.GrimDurability) mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround()));
         boolean hasFirework = false;
         if (checkFirework.get()) {
             for (Entity entity : mc.world.getEntities()) {
@@ -177,7 +216,6 @@ public class FireworkElytraFly extends Module {
         }
         isUsingFirework = hasFirework;
         int elytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA);
-//        int armor = findChestplate();
         boolean wearingElytra = mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem() == Items.ELYTRA && ElytraItem.isUsable(mc.player.getEquippedStack(EquipmentSlot.CHEST));
         if (mc.player.isOnGround()) {
             mc.player.stopFallFlying();
@@ -250,19 +288,6 @@ public class FireworkElytraFly extends Module {
             fireworkTimer.reset();
         }
     }
-//    public int findChestplate() {
-//        for (int slot = 0; slot < 45; slot++) {
-//            ItemStack stack = mc.player.getInventory().getStack(slot);
-//            if (stack.isEmpty()) continue;
-//            if (!(stack.getItem() instanceof ArmorItem armorItem)) {
-//                continue;
-//            }
-//            if (armorItem.getType() == ArmorItem.Type.CHESTPLATE) {
-//                return slot < 9 ? slot + 36 : slot;
-//            }
-//        }
-//        return -1;
-//    }
     public void sendSequencedPacket(SequencedPacketCreator packetCreator) {
         if (mc.getNetworkHandler() == null || mc.world == null) return;
         try (PendingUpdateManager pendingUpdateManager = mc.world.getPendingUpdateManager().incrementSequence()) {
@@ -285,5 +310,49 @@ public class FireworkElytraFly extends Module {
     public boolean isMoving() {
         if (mc.player == null || mc.player.input == null) return false;
         return mc.player.input.movementForward != 0.0 || mc.player.input.movementSideways != 0.0;
+    }
+    public float getSprintYaw(float yaw) {
+        if (mc.options.forwardKey.isPressed() && !mc.options.backKey.isPressed()) {
+            if (mc.options.leftKey.isPressed() && !mc.options.rightKey.isPressed()) {
+                yaw -= 45f;
+            } else if (mc.options.rightKey.isPressed() && !mc.options.leftKey.isPressed()) {
+                yaw += 45f;
+            }
+        } else if (mc.options.backKey.isPressed() && !mc.options.forwardKey.isPressed()) {
+            yaw += 180f;
+            if (mc.options.leftKey.isPressed() && !mc.options.rightKey.isPressed()) {
+                yaw += 45f;
+            } else if (mc.options.rightKey.isPressed() && !mc.options.leftKey.isPressed()) {
+                yaw -= 45f;
+            }
+        } else if (mc.options.leftKey.isPressed() && !mc.options.rightKey.isPressed()) {
+            yaw -= 90f;
+        } else if (mc.options.rightKey.isPressed() && !mc.options.leftKey.isPressed()) {
+            yaw += 90f;
+        }
+        return yaw;
+    }
+    private float getPitch(float pitch) {
+        if (!(mc.currentScreen instanceof ChatScreen)) {
+            if (mc.options.sneakKey.isPressed() && mc.options.jumpKey.isPressed()) {
+                pitch = -3;
+            } else if (mc.options.jumpKey.isPressed()) {
+                if (isMoving()) {
+                    pitch = -45;
+                } else {
+                    pitch = -90;
+                }
+            } else if (mc.options.sneakKey.isPressed()) {
+                if (isMoving()) {
+                    pitch = 45;
+                } else {
+                    pitch = 90;
+                }
+            }
+            if (isMoving() && !mc.options.sneakKey.isPressed() && !mc.options.jumpKey.isPressed()) {
+                pitch = -1.9f;
+            }
+        }
+        return pitch;
     }
 }

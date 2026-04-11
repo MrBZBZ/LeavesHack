@@ -67,7 +67,7 @@ public class Printer extends Module {
     );
     private final Setting<Integer> shiftTime = sgShift.add(new IntSetting.Builder()
             .name("ShiftTime")
-            .defaultValue(0)
+            .defaultValue(100)
             .min(0)
             .sliderMax(1000)
             .build()

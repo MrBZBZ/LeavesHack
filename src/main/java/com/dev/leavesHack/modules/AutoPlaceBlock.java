@@ -78,6 +78,7 @@ public class AutoPlaceBlock extends Module {
                 if (!side.isEmpty()) {
                     for (Direction dir : side) {
                         if (checkDirection(dir)) {
+                            if (BlockUtil.getBlock(pos.offset(dir)) == selectBlock.get()) continue;
                             if (block instanceof SlabBlock && dir.getAxis().isHorizontal()) {
                                 switch (slabDirection.get()){
                                     case UP -> BlockUtil.placeSlabBlock(pos, dir, Direction.UP, true);

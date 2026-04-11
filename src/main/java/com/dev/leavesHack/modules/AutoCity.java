@@ -2,6 +2,7 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.utils.combat.CombatUtil;
+import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.world.BlockPosX;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.world.TickEvent;
@@ -14,6 +15,7 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.PickaxeItem;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -41,6 +43,11 @@ public class AutoCity extends Module {
             .defaultValue(6)
             .min(0)
             .sliderMax(8)
+            .build()
+    );
+    private final Setting<Boolean> doubleBreak = sgGeneral.add(new BoolSetting.Builder()
+            .name("DoubleBreak")
+            .defaultValue(false)
             .build()
     );
     private final Setting<Boolean> antiCrawl = sgGeneral.add(new BoolSetting.Builder()
@@ -85,7 +92,7 @@ public class AutoCity extends Module {
         if (antiCrawl.get() && mc.player.isCrawling()) {
             if (canBreak(mc.player.getBlockPos().up()) && !mc.player.getBlockPos().up().equals(PacketMine.targetPos)) {
                 PacketMine.selfClickPos = mc.player.getBlockPos().up();
-                PacketMine.mine(mc.player.getBlockPos().up());
+                PacketMine.INSTANCE.mine(mc.player.getBlockPos().up());
                 return;
             }
         }
@@ -97,16 +104,35 @@ public class AutoCity extends Module {
         BlockPos pos = player.getBlockPos();
         double[] yOffset = new double[]{-0.8, 0.3, 2.3, 1.1};
         double[] xzOffset = new double[]{0.3, -0.3};
-        for (PlayerEntity entity : CombatUtil.getEnemies(targetRange.get())) {
-            for (double y : yOffset) {
-                for (double x : xzOffset) {
-                    for (double z : xzOffset) {
-                        BlockPos offsetPos = new BlockPosX(entity.getX() + x, entity.getY() + y, entity.getZ() + z);
-                        if (canBreak(offsetPos) && offsetPos.equals(PacketMine.targetPos)) {
-                            return;
+        if (!doubleBreak.get()) {
+            for (PlayerEntity entity : CombatUtil.getEnemies(targetRange.get())) {
+                for (double y : yOffset) {
+                    for (double x : xzOffset) {
+                        for (double z : xzOffset) {
+                            BlockPos offsetPos = new BlockPosX(entity.getX() + x, entity.getY() + y, entity.getZ() + z);
+                            if (isObsidian(offsetPos) && BlockUtil.getClickSideStrict(offsetPos) != null && offsetPos.equals(PacketMine.targetPos)) {
+                                return;
+                            }
                         }
                     }
                 }
+            }
+        } else {
+            int count = 0;
+            for (PlayerEntity entity : CombatUtil.getEnemies(targetRange.get())) {
+                for (double y : yOffset) {
+                    for (double x : xzOffset) {
+                        for (double z : xzOffset) {
+                            BlockPos offsetPos = new BlockPosX(entity.getX() + x, entity.getY() + y, entity.getZ() + z);
+                            if (isObsidian(offsetPos) && BlockUtil.getClickSideStrict(offsetPos) != null && (offsetPos.equals(PacketMine.targetPos) || offsetPos.equals(PacketMine.secondPos))) {
+                                count++;
+                            }
+                        }
+                    }
+                }
+            }
+            if (count == 2) {
+                return;
             }
         }
         List<Float> yList = new ArrayList<>();
@@ -126,7 +152,7 @@ public class AutoCity extends Module {
             for (double offset : xzOffset) {
                 BlockPos offsetPos = new BlockPosX(player.getX() + offset, player.getY() + y, player.getZ() + offset);
                 if (canBreak(offsetPos)) {
-                    PacketMine.mine(offsetPos);
+                    PacketMine.INSTANCE.mine(offsetPos);
                     return;
                 }
             }
@@ -136,7 +162,7 @@ public class AutoCity extends Module {
                 for (double offset2 : xzOffset) {
                     BlockPos offsetPos = new BlockPosX(player.getX() + offset2, player.getY() + y, player.getZ() + offset);
                     if (canBreak(offsetPos)) {
-                        PacketMine.mine(offsetPos);
+                        PacketMine.INSTANCE.mine(offsetPos);
                         return;
                     }
                 }
@@ -149,7 +175,8 @@ public class AutoCity extends Module {
                     continue;
                 }
                 if ((mc.world.isAir(pos.offset(i)) || pos.offset(i).equals(PacketMine.targetPos)) && canPlaceCrystal(pos.offset(i), false)) {
-                    return;
+                    if (!doubleBreak.get()) return;
+                    if (PacketMine.targetPos != null && PacketMine.completed) return;
                 }
             }
             ArrayList<BlockPos> list = new ArrayList<>();
@@ -215,6 +242,6 @@ public class AutoCity extends Module {
     }
 
     private boolean canBreak(BlockPos pos) {
-        return isObsidian(pos) && (BlockUtil.getClickSideStrict(pos) != null || (pos.equals(PacketMine.targetPos)));
+        return isObsidian(pos) && BlockUtil.getClickSideStrict(pos) != null && !pos.equals(PacketMine.targetPos) && !pos.equals(PacketMine.secondPos) && (((PacketMine.targetPos == null || PacketMine.secondPos == null) && doubleBreak.get()) || (PacketMine.targetPos == null));
     }
 }

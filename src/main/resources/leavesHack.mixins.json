@@ -15,6 +15,7 @@
     "accessors.IVec3d",
     "accessors.SystemsAccessor",
     "mixin.MineProcessMixin",
+    "mixin.MixinFireworkRocketEntity",
     "mixin.MixinLivingEntity",
     "mixin.MixinPlayerEntity",
     "mixin.SystemsMixin"

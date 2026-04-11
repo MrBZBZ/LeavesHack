@@ -467,7 +467,7 @@ public class NukerPlus extends Module {
             }
             mc.player.swingHand(Hand.MAIN_HAND);
             mc.interactionManager.attackBlock(pos, BlockUtil.getClickSide(pos));
-            PacketMine.mine(pos);
+            PacketMine.INSTANCE.mine(pos);
         } else {
             BlockUtils.breakBlock(pos, swingHand.get());
         }

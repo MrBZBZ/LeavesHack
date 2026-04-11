@@ -23,8 +23,11 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
+
+import static com.dev.leavesHack.utils.entity.InventoryUtil.sendPacket;
 
 public class PacketMine extends Module {
     public static PacketMine INSTANCE;
@@ -43,11 +46,11 @@ public class PacketMine extends Module {
     private final Setting<Boolean> onlyMain = sgGeneral.add(
             new BoolSetting.Builder()
                     .name("OnlyMain")
-                    .defaultValue(true)
+                    .defaultValue(false)
                     .visible(usingPause::get)
                     .build()
     );
-    private final Setting<SwitchMode> autoSwitch = sgGeneral.add(new EnumSetting.Builder<SwitchMode>()
+    public final Setting<SwitchMode> autoSwitch = sgGeneral.add(new EnumSetting.Builder<SwitchMode>()
             .name("AutoSwitch")
             .defaultValue(SwitchMode.Silent)
             .build()
@@ -74,6 +77,12 @@ public class PacketMine extends Module {
                     .defaultValue(true)
                     .build()
     );
+    private final Setting<Boolean> swing = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("SwingHand")
+                    .defaultValue(true)
+                    .build()
+    );
     private final Setting<Boolean> instantMine = sgGeneral.add(
             new BoolSetting.Builder()
                     .name("InstantMine")
@@ -88,6 +97,12 @@ public class PacketMine extends Module {
                     .sliderMax(1000)
                     .build()
     );
+    private final Setting<Boolean> doubleBreak = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("DoubleBreak")
+                    .defaultValue(false)
+                    .build()
+    );
     private final Setting<Boolean> checkGround = sgGeneral.add(
             new BoolSetting.Builder()
                     .name("CheckGround")
@@ -97,7 +112,15 @@ public class PacketMine extends Module {
     private final Setting<Boolean> bypassGround = sgGeneral.add(
             new BoolSetting.Builder()
                     .name("BypassGround")
-                    .defaultValue(true)
+                    .defaultValue(false)
+                    .build()
+    );
+    private final Setting<Integer> switchDamage = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("SwitchDamage")
+                    .defaultValue(95)
+                    .min(0)
+                    .sliderMax(100)
                     .build()
     );
     private final Setting<Integer> switchTime = sgGeneral.add(
@@ -119,7 +142,7 @@ public class PacketMine extends Module {
     private final Setting<Double> mineDamage = sgGeneral.add(
             new DoubleSetting.Builder()
                     .name("Damage")
-                    .defaultValue(1.38)
+                    .defaultValue(1.1)
                     .sliderMax(2.0)
                     .build()
     );
@@ -135,64 +158,102 @@ public class PacketMine extends Module {
 
     private final Setting<ShapeMode> shapeMode = sgRender.add(
             new EnumSetting.Builder<ShapeMode>()
-                    .name("Shape Mode")
+                    .name("ShapeMode")
                     .defaultValue(ShapeMode.Both)
                     .build()
     );
 
     private final Setting<SettingColor> sideStartColor = sgRender.add(
             new ColorSetting.Builder()
-                    .name("Side Start")
+                    .name("SideStart")
                     .defaultValue(new SettingColor(255, 255, 255, 0))
                     .build()
     );
 
     private final Setting<SettingColor> sideEndColor = sgRender.add(
             new ColorSetting.Builder()
-                    .name("Side End")
+                    .name("SideEnd")
                     .defaultValue(new SettingColor(255, 255, 255, 50))
                     .build()
     );
 
     private final Setting<SettingColor> lineStartColor = sgRender.add(
             new ColorSetting.Builder()
-                    .name("Line Start")
+                    .name("LineStart")
                     .defaultValue(new SettingColor(255, 255, 255, 0))
                     .build()
     );
 
     private final Setting<SettingColor> lineEndColor = sgRender.add(
             new ColorSetting.Builder()
-                    .name("Line End")
+                    .name("LineEnd")
+                    .defaultValue(new SettingColor(255, 255, 255, 255))
+                    .build()
+    );
+    private final Setting<SettingColor> secondSideStartColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SecondSideStart")
+                    .defaultValue(new SettingColor(255, 255, 255, 0))
+                    .build()
+    );
+
+    private final Setting<SettingColor> secondSideEndColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SecondSideEnd")
+                    .defaultValue(new SettingColor(255, 255, 255, 50))
+                    .build()
+    );
+
+    private final Setting<SettingColor> secondLineStartColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SecondLineStart")
+                    .defaultValue(new SettingColor(255, 255, 255, 0))
+                    .build()
+    );
+
+    private final Setting<SettingColor> secondLineEndColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SecondLineEnd")
                     .defaultValue(new SettingColor(255, 255, 255, 255))
                     .build()
     );
     public static BlockPos selfClickPos = null;
     public static int maxBreaksCount;
-    public static int publicProgress = 0;
-    private static boolean completed = false;
-    public static BlockPos targetPos;
-    private static float progress;
-    private long lastTime;
-    private static boolean started;
-    private double render = 1;
+    public static int publicProgress = 0, secondPublicProgress = 0;
+    public static boolean completed = false;
+    public static BlockPos targetPos,secondPos;
+    private static float progress,secondProgress;
+    private long lastTime,secondLastTime;
+    private static boolean started, secondStarted;
+    private double render = 1, secondRender = 1;
     private int oldSlot = -1;
-    private Timer timer = new Timer();
-    private Timer mineTimer = new Timer();
-    private Timer instantTimer = new Timer();
-    private boolean hasSwitch = false;
+    private final Timer bypassTimer = new Timer();
+    private final Timer timer = new Timer();
+    private final Timer secondTimer = new Timer();
+    private final Timer mineTimer = new Timer();
+    private final Timer instantTimer = new Timer();
+    private boolean hasSwitch = false, secondHasSwitch = false;
 
     @Override
     public void onActivate() {
         maxBreaksCount = 0;
         hasSwitch = false;
+        secondHasSwitch = false;
+        bypassTimer.setMs(999999);
         mineTimer.setMs(999999);
         instantTimer.setMs(999999);
         timer.setMs(999999);
+        secondTimer.setMs(999999);
         targetPos = null;
+        secondPos = null;
         started = false;
+        secondStarted = false;
+        publicProgress = 0;
+        secondPublicProgress = 0;
         progress = 0;
+        secondProgress = 0;
         lastTime = System.currentTimeMillis();
+        secondLastTime = System.currentTimeMillis();
         render = 1;
     }
     @Override
@@ -201,6 +262,10 @@ public class PacketMine extends Module {
             InventoryUtil.switchToSlot(oldSlot);
             hasSwitch = false;
         }
+        if (secondHasSwitch) {
+            InventoryUtil.switchToSlot(oldSlot);
+            secondHasSwitch = false;
+        }
     }
 
     @EventHandler
@@ -208,19 +273,48 @@ public class PacketMine extends Module {
         if (!BlockUtils.canBreak(event.blockPos)) return;
         event.cancel();
         if (!mineTimer.passedMs(mineDelay.get())) return;
-        if (targetPos == null || !targetPos.equals(event.blockPos)) {
-            mineTimer.reset();
-            selfClickPos = event.blockPos;
-            mine(event.blockPos);
-        }
+        mineTimer.reset();
+        selfClickPos = event.blockPos;
+        mine(event.blockPos);
     }
 
-    public static void mine(BlockPos pos) {
+    public void mine(BlockPos pos) {
         maxBreaksCount = 0;
-        completed = false;
-        targetPos = pos;
-        started = false;
-        progress = 0;
+        if (doubleBreak.get()) {
+            if (targetPos != null && secondPos == null && !targetPos.equals(pos)) {
+                if (completed) {
+                    targetPos = pos;
+                    secondStarted = false;
+                    secondProgress = 0;
+                    secondPublicProgress = 0;
+                    publicProgress = 0;
+                    started = false;
+                    progress = 0;
+                    completed = false;
+                } else {
+                    secondPos = targetPos;
+                    targetPos = pos;
+                    secondStarted = false;
+                    secondProgress = 0;
+                    secondPublicProgress = 0;
+                    started = false;
+                }
+            } else if (targetPos == null || !targetPos.equals(pos)){
+                publicProgress = 0;
+                targetPos = pos;
+                started = false;
+                progress = 0;
+                completed = false;
+            }
+        } else {
+            if (!pos.equals(targetPos)) {
+                publicProgress = 0;
+                targetPos = pos;
+                started = false;
+                progress = 0;
+                completed = false;
+            }
+        }
     }
     @Override
     public String getInfoString() {
@@ -232,17 +326,53 @@ public class PacketMine extends Module {
     @EventHandler
     private void onRender(Render3DEvent event) {
         if (mc.world == null || mc.player == null) return;
-        if (timer.passedMs(switchTime.get()) && hasSwitch && autoSwitch.get() == SwitchMode.Delay) {
-            InventoryUtil.switchToSlot(oldSlot);
-            hasSwitch = false;
+        if (publicProgress >= 100 && hasSwitch) {
+            selfClickPos = null;
+            if (!instantMine.get()) targetPos = null;
         }
-        if (targetPos == null) {
-            publicProgress = 0;
-            return;
+        if (secondPublicProgress >= 100 && hasSwitch) {
+            selfClickPos = null;
+            secondPos = null;
+        }
+        if (timer.passedMs(switchTime.get()) && hasSwitch && autoSwitch.get() != SwitchMode.None) {
+            if (autoSwitch.get() == SwitchMode.Delay) InventoryUtil.switchToSlot(oldSlot);
+            if (autoSwitch.get() == SwitchMode.Silent) sendPacket(new UpdateSelectedSlotC2SPacket(oldSlot));
+            hasSwitch = false;
         }
         if (maxBreaksCount >= maxBreaks.get() * 10) {
             maxBreaksCount = 0;
             targetPos = null;
+            return;
+        }
+        if (secondPos != null && doubleBreak.get()) {
+            if (farCancel.get() && Math.sqrt(mc.player.getEyePos().squaredDistanceTo(secondPos.toCenterPos())) > range.get()){
+                secondPos = null;
+                return;
+            }
+            double secondMax = getMineTicks(getTool(secondPos));
+            double secondDelta = (System.currentTimeMillis() - secondLastTime) / 1000d;
+            secondPublicProgress = (int) (secondProgress / (secondMax * mineDamage.get()) * 100);
+            secondLastTime = System.currentTimeMillis();
+            if (!secondStarted) {
+                sendStart(secondPos);
+                return;
+            }
+            Double secondDamage = mineDamage.get();
+            if (!checkGround.get() || mc.player.isOnGround()) {
+                secondProgress += secondDelta * 20;
+            } else if (checkGround.get() && !mc.player.isOnGround()){
+                secondProgress += secondDelta * 4;
+            }
+            renderSecondAnimation(event, secondDelta, secondDamage);
+            if (secondProgress >= secondMax * secondDamage) {
+                sendStopSecond();
+//                selfClickPos = null;
+//                secondCompleted = true;
+//                secondPos = null;
+            }
+        }
+        if (targetPos == null) {
+            publicProgress = 0;
             return;
         }
         if (farCancel.get() && Math.sqrt(mc.player.getEyePos().squaredDistanceTo(targetPos.toCenterPos())) > range.get()){
@@ -251,6 +381,20 @@ public class PacketMine extends Module {
         }
         double max = getMineTicks(getTool(targetPos));
         publicProgress = (int) (progress / (max * mineDamage.get()) * 100);
+        if (doubleBreak.get()) {
+            if (!usingPause.get() || !checkPause(onlyMain.get())) {
+                if ((secondPublicProgress >= switchDamage.get() || publicProgress >= switchDamage.get())&& !hasSwitch && secondPos != null) {
+                    int bestSlot = getTool(secondPos);
+                    if (!hasSwitch) oldSlot = mc.player.getInventory().selectedSlot;
+                    if (autoSwitch.get() != SwitchMode.None && bestSlot != -1) {
+                        if (autoSwitch.get() == SwitchMode.Delay) InventoryUtil.switchToSlot(bestSlot);
+                        if (autoSwitch.get() == SwitchMode.Silent) sendPacket(new UpdateSelectedSlotC2SPacket(bestSlot));
+                        timer.reset();
+                        hasSwitch = true;
+                    }
+                }
+            }
+        }
         if (progress >= max * mineDamage.get() && completed) {
             if (isAir(targetPos) || mc.world.getBlockState(targetPos).isReplaceable()) maxBreaksCount = 0;
             if (!isAir(targetPos) && !mc.world.getBlockState(targetPos).isReplaceable() && !(usingPause.get() && checkPause(onlyMain.get()))) maxBreaksCount++;
@@ -268,7 +412,7 @@ public class PacketMine extends Module {
         double delta = (System.currentTimeMillis() - lastTime) / 1000d;
         lastTime = System.currentTimeMillis();
         if (!started) {
-            sendStart();
+            sendStart(targetPos);
             return;
         }
         Double damage = mineDamage.get();
@@ -280,41 +424,57 @@ public class PacketMine extends Module {
         renderAnimation(event, delta, damage);
         if (progress >= max * damage) {
             sendStop();
-            selfClickPos = null;
             completed = true;
-            if (!instantMine.get()) targetPos = null;
+            if (!instantMine.get() && secondPos == null) targetPos = null;
         }
     }
 
-    private void sendStart() {
-        sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, targetPos, BlockUtil.getClickSide(targetPos), id));
+    private void sendStart(BlockPos pos) {
+        if (doubleBreak.get()) {
+            sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, pos, BlockUtil.getClickSide(pos)));
+            sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, pos, BlockUtil.getClickSide(pos)));
+            sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, pos, BlockUtil.getClickSide(pos)));
+        } else {
+            sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, pos, BlockUtil.getClickSide(targetPos), id));
+        }
         mc.player.swingHand(Hand.MAIN_HAND);
-        started = true;
-        progress = 0;
+        if (pos.equals(targetPos)) {
+            started = true;
+            progress = 0;
+        } else {
+            secondStarted = true;
+            secondProgress = 0;
+        }
     }
 
     private void sendStop() {
         if (usingPause.get() && checkPause(onlyMain.get())) {
             return;
         }
-        int bestSlot = getTool(targetPos);
-        if (!hasSwitch) oldSlot = mc.player.getInventory().selectedSlot;
-        if (autoSwitch.get() != SwitchMode.None && bestSlot != -1) {
-            InventoryUtil.switchToSlot(bestSlot);
-            timer.reset();
-            hasSwitch = true;
+        if (!doubleBreak.get() || secondPos == null) {
+            int bestSlot = getTool(targetPos);
+            if (!hasSwitch) oldSlot = mc.player.getInventory().selectedSlot;
+            if (autoSwitch.get() != SwitchMode.None && bestSlot != -1) {
+                if (autoSwitch.get() == SwitchMode.Delay) InventoryUtil.switchToSlot(bestSlot);
+                if (autoSwitch.get() == SwitchMode.Silent) sendPacket(new UpdateSelectedSlotC2SPacket(bestSlot));
+                timer.reset();
+                hasSwitch = true;
+            }
         }
-        if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
-            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9,
-                    mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true));
+        if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos) && !mc.player.isOnGround()){
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9, mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true));
             mc.player.onLanding();
         }
-        mc.player.swingHand(Hand.MAIN_HAND);
+        if (swing.get()) mc.player.swingHand(Hand.MAIN_HAND);
         sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, targetPos, BlockUtil.getClickSide(targetPos), id));
-        if (autoSwitch.get() == SwitchMode.Silent && hasSwitch) {
-            InventoryUtil.switchToSlot(oldSlot);
-            hasSwitch = false;
+    }
+    private void sendStopSecond() {
+        if (bypassGround.get() && !mc.player.isFallFlying() && secondPos != null && !isAir(secondPos) && !mc.player.isOnGround()){
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9, mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true));
+            mc.player.onLanding();
         }
+        if (swing.get()) mc.player.swingHand(Hand.MAIN_HAND);
+        //sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, secondPos, BlockUtil.getClickSide(secondPos), id));
     }
     private boolean isAir(BlockPos breakPos) {
         return mc.world.isAir(breakPos) || BlockUtil.getBlock(breakPos) == Blocks.FIRE && BlockUtil.hasCrystal(breakPos);
@@ -358,7 +518,6 @@ public class PacketMine extends Module {
         double p = 1 - MathHelper.clamp(progress / (max * damage), 0, 1);
         p = Math.pow(p, animationExp.get());
         p = 1 - p;
-
         double size = p / 2;
         Box box = new Box(
                 targetPos.getX() + 0.5 - size,
@@ -371,6 +530,28 @@ public class PacketMine extends Module {
 
         Color side = getColor(sideStartColor.get(), sideEndColor.get(), p);
         Color line = getColor(lineStartColor.get(), lineEndColor.get(), p);
+
+        event.renderer.box(box, side, line, shapeMode.get(), 0);
+    }
+    private void renderSecondAnimation(Render3DEvent event, double delta, double damage) {
+        secondRender = MathHelper.clamp(secondRender + delta * 2, -2, 2);
+        double max = getMineTicks(getTool(secondPos));
+        double p = 1 - MathHelper.clamp(secondProgress / (max * damage), 0, 1);
+        p = Math.pow(p, animationExp.get());
+        p = 1 - p;
+
+        double size = p / 2;
+        Box box = new Box(
+                secondPos.getX() + 0.5 - size,
+                secondPos.getY() + 0.5 - size,
+                secondPos.getZ() + 0.5 - size,
+                secondPos.getX() + 0.5 + size,
+                secondPos.getY() + 0.5 + size,
+                secondPos.getZ() + 0.5 + size
+        );
+
+        Color side = getColor(secondSideStartColor.get(), secondSideEndColor.get(), p);
+        Color line = getColor(secondLineStartColor.get(), secondLineEndColor.get(), p);
 
         event.renderer.box(box, side, line, shapeMode.get(), 0);
     }
