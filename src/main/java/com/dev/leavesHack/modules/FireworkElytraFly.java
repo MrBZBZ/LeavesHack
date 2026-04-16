@@ -19,6 +19,7 @@ import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.projectile.FireworkRocketEntity;
+import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ElytraItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -52,6 +53,12 @@ public class FireworkElytraFly extends Module {
             .defaultValue(FireWorkMode.Delay)
             .build()
     );
+    public final Setting<Boolean> onGroundDisable = sgGeneral.add(new BoolSetting.Builder()
+            .name("OnGroundDisable")
+            .description("")
+            .defaultValue(true)
+            .build()
+    );
     private final Setting<Double> packetDealy = sgGeneral.add(new DoubleSetting.Builder()
             .name("PacketDelay")
             .defaultValue(3)
@@ -82,6 +89,12 @@ public class FireworkElytraFly extends Module {
             .defaultValue(true)
             .build()
     );
+    public final Setting<Boolean> pressSneak = sgGeneral.add(new BoolSetting.Builder()
+            .name("PressSneak")
+            .description("")
+            .defaultValue(true)
+            .build()
+    );
     public final Setting<Integer> releaseDelay = sgGeneral.add(new IntSetting.Builder()
             .name("ReleaseDelay")
             .description("")
@@ -92,7 +105,7 @@ public class FireworkElytraFly extends Module {
     private final Setting<Double> delay = sgGeneral.add(new DoubleSetting.Builder()
             .name("FireWorkDelay")
             .description("")
-            .defaultValue(700)
+            .defaultValue(1000)
             .visible(() -> fireWorkMode.get() == FireWorkMode.Delay)
             .sliderMax(3000)
             .build()
@@ -138,8 +151,10 @@ public class FireworkElytraFly extends Module {
     }
     @Override
     public void onDeactivate() {
-        if (releaseSneak.get()) {
+        if (pressSneak.get()) {
             mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY));
+        }
+        if (releaseSneak.get()) {
             long delay = releaseDelay.get();
             java.util.Timer timer = new java.util.Timer();
             timer.schedule(new TimerTask() {
@@ -162,9 +177,11 @@ public class FireworkElytraFly extends Module {
             return;
         }
         if (!wantToMove()) {
-            setY(fallSpeed.get());
             setX(0);
             setZ(0);
+        }
+        if (!((mc.options.sneakKey.isPressed() && !mc.options.jumpKey.isPressed()) || (mc.options.jumpKey.isPressed() && !mc.options.sneakKey.isPressed()))){
+            setY(fallSpeed.get());
         }
     }
     private void setY(double f) {
@@ -203,6 +220,7 @@ public class FireworkElytraFly extends Module {
         packetDelayInt++;
         yaw = getSprintYaw(mc.player.getYaw());
         pitch = getPitch(mc.player.getPitch());
+        if (deBug.get()) info("Yaw: " + yaw + " Pitch: " + pitch);
         if (mode.get() == Mode.GrimDurability) mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround()));
         boolean hasFirework = false;
         if (checkFirework.get()) {
@@ -216,9 +234,11 @@ public class FireworkElytraFly extends Module {
         }
         isUsingFirework = hasFirework;
         int elytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA);
+//        int armor = findChestplate();
         boolean wearingElytra = mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem() == Items.ELYTRA && ElytraItem.isUsable(mc.player.getEquippedStack(EquipmentSlot.CHEST));
         if (mc.player.isOnGround()) {
             mc.player.stopFallFlying();
+            if (onGroundDisable.get()) toggle();
         }
         if (wearingElytra && !isFallFlying && !mc.player.isOnGround()) {
             sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));

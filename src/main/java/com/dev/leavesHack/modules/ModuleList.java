@@ -11,7 +11,6 @@ import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ModuleList extends Module {
 

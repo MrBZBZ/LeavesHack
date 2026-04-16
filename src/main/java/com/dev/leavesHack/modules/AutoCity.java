@@ -3,8 +3,10 @@ package com.dev.leavesHack.modules;
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
+import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockPosX;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.IntSetting;
@@ -16,6 +18,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.PickaxeItem;
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -47,7 +50,12 @@ public class AutoCity extends Module {
     );
     private final Setting<Boolean> doubleBreak = sgGeneral.add(new BoolSetting.Builder()
             .name("DoubleBreak")
-            .defaultValue(false)
+            .defaultValue(true)
+            .build()
+    );
+    public final Setting<Boolean> delay = sgGeneral.add(new BoolSetting.Builder()
+            .name("CityDelay")
+            .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> antiCrawl = sgGeneral.add(new BoolSetting.Builder()
@@ -85,12 +93,22 @@ public class AutoCity extends Module {
             .defaultValue(true)
             .build()
     );
+    private final Timer cityTimer = new Timer();
+    @EventHandler
+    public void onPacketSend(PacketEvent.Send event) {
+        if (event.packet instanceof PlayerActionC2SPacket packet) {
+            if (packet.getAction() == PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK) {
+                cityTimer.reset();
+            }
+        }
+    }
     @EventHandler
     public void onTick(TickEvent.Pre event) {
         PlayerEntity player = CombatUtil.getClosestEnemy(targetRange.get());
         if (preferSelfClick.get() && PacketMine.selfClickPos != null) return;
+        if (delay.get() && !cityTimer.passedMs(PacketMine.INSTANCE.mineDelay.get())) return;
         if (antiCrawl.get() && mc.player.isCrawling()) {
-            if (canBreak(mc.player.getBlockPos().up()) && !mc.player.getBlockPos().up().equals(PacketMine.targetPos)) {
+            if (canBreak(mc.player.getBlockPos().up()) && !mc.player.getBlockPos().up().equals(PacketMine.targetPos) && !mc.player.getBlockPos().up().equals(PacketMine.secondPos)) {
                 PacketMine.selfClickPos = mc.player.getBlockPos().up();
                 PacketMine.INSTANCE.mine(mc.player.getBlockPos().up());
                 return;
