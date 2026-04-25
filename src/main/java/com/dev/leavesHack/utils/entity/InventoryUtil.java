@@ -1,7 +1,6 @@
 package com.dev.leavesHack.utils.entity;
 
-import com.dev.leavesHack.modules.Aura;
-import com.dev.leavesHack.modules.PacketMine;
+import com.dev.leavesHack.modules.GlobalSetting;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -18,7 +17,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.c2s.play.PickFromInventoryC2SPacket;
+import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -118,8 +117,7 @@ public class InventoryUtil {
         mc.player.getInventory().selectedSlot = slot;
         sendPacket(new UpdateSelectedSlotC2SPacket(slot));
     }
-
-    public enum SwitchMode {
+    public enum MineSwitchMode {
         Delay,
         Silent,
         None
@@ -142,6 +140,19 @@ public class InventoryUtil {
             if (!(stack.getItem() instanceof BlockItem) || !clazz.isInstance(((BlockItem) stack.getItem()).getBlock()))
                 continue;
             return i;
+        }
+        return -1;
+    }
+    public static int findClassInventory(Class clazz) {
+        for (int i = 0; i < 45; ++i) {
+            ItemStack stack = getStackInSlot(i);
+            if (stack == ItemStack.EMPTY) continue;
+            if (clazz.isInstance(stack.getItem())) {
+                return i < 9 ? i + 36 : i;
+            }
+            if (!(stack.getItem() instanceof BlockItem) || !clazz.isInstance(((BlockItem) stack.getItem()).getBlock()))
+                continue;
+            return i < 9 ? i + 36 : i;
         }
         return -1;
     }

@@ -40,7 +40,7 @@ public class FireworkElytraFly extends Module {
     public boolean isUsingFirework = false;
     private final Timer fireworkTimer = new Timer();
     private final Timer swapTimer = new Timer();
-    public boolean isFallFlying = false;
+    public boolean isFallFlying = false,slot = false;
     public int packetDelayInt = 0;
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     public final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
@@ -51,12 +51,6 @@ public class FireworkElytraFly extends Module {
     public final Setting<FireWorkMode> fireWorkMode = sgGeneral.add(new EnumSetting.Builder<FireWorkMode>()
             .name("FireWorkMode")
             .defaultValue(FireWorkMode.Delay)
-            .build()
-    );
-    public final Setting<Boolean> onGroundDisable = sgGeneral.add(new BoolSetting.Builder()
-            .name("OnGroundDisable")
-            .description("")
-            .defaultValue(true)
             .build()
     );
     private final Setting<Double> packetDealy = sgGeneral.add(new DoubleSetting.Builder()
@@ -105,7 +99,7 @@ public class FireworkElytraFly extends Module {
     private final Setting<Double> delay = sgGeneral.add(new DoubleSetting.Builder()
             .name("FireWorkDelay")
             .description("")
-            .defaultValue(1000)
+            .defaultValue(700)
             .visible(() -> fireWorkMode.get() == FireWorkMode.Delay)
             .sliderMax(3000)
             .build()
@@ -179,8 +173,6 @@ public class FireworkElytraFly extends Module {
         if (!wantToMove()) {
             setX(0);
             setZ(0);
-        }
-        if (!((mc.options.sneakKey.isPressed() && !mc.options.jumpKey.isPressed()) || (mc.options.jumpKey.isPressed() && !mc.options.sneakKey.isPressed()))){
             setY(fallSpeed.get());
         }
     }
@@ -236,16 +228,20 @@ public class FireworkElytraFly extends Module {
         int elytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA);
 //        int armor = findChestplate();
         boolean wearingElytra = mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem() == Items.ELYTRA && ElytraItem.isUsable(mc.player.getEquippedStack(EquipmentSlot.CHEST));
-        if (mc.player.isOnGround()) {
-            mc.player.stopFallFlying();
-            if (onGroundDisable.get()) toggle();
-        }
         if (wearingElytra && !isFallFlying && !mc.player.isOnGround()) {
             sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
             mc.player.startFallFlying();
         }
         if (wearingElytra && !mc.player.isOnGround() && unbreaking.get() && swapTimer.passedMs(fakeDelay.get())) {
             mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
+            if (slot) {
+                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 1, 0, SlotActionType.PICKUP, mc.player);
+                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 1, 0, SlotActionType.PICKUP, mc.player);
+            } else {
+                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 2, 0, SlotActionType.PICKUP, mc.player);
+                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 2, 0, SlotActionType.PICKUP, mc.player);
+            }
+            slot = !slot;
             mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
             mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
             mc.player.startFallFlying();

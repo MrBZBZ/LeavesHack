@@ -20,6 +20,10 @@ public class LeavesHack extends MeteorAddon {
         LOG.info("Initializing LeavesHack");
 
         // Modules
+        add(new PlaceRender());
+        add(new AutoCrystal());
+        add(new AutoAnchor());
+        add(new PistonCrystal());
         add(new GlobalSetting());
         add(new AutoTree());
         add(new AutoLogin());

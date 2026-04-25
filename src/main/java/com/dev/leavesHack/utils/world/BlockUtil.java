@@ -2,6 +2,7 @@ package com.dev.leavesHack.utils.world;
 
 import com.dev.leavesHack.modules.AutoCity;
 import com.dev.leavesHack.modules.GlobalSetting;
+import com.dev.leavesHack.utils.entity.EntityUtil;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
@@ -11,12 +12,10 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ExperienceOrbEntity;
 import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.decoration.EndCrystalEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.entity.projectile.thrown.ExperienceBottleEntity;
-import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -30,11 +29,13 @@ import net.minecraft.world.World;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class BlockUtil {
+    public static CopyOnWriteArrayList<BlockPos> placeList = new CopyOnWriteArrayList<>();
     public static Direction getClickSideStrict(BlockPos pos) {
         Direction side = null;
         double minDistance = Double.MAX_VALUE;
@@ -81,9 +82,12 @@ public class BlockUtil {
     public static boolean canPlace(BlockPos pos) {
         return canPlace(pos, null);
     }
-    public static boolean canPlace(BlockPos pos, boolean ignoreSneak) {
-        return canPlace(pos, ignoreSneak);
+    public static boolean canPlaceTrapdoor(BlockPos pos, boolean ignorePlayer) {
+        return canPlaceTrapdoor(pos, null, ignorePlayer);
     }
+//    public static boolean canPlace(BlockPos pos, boolean ignoreSneak) {
+//        return canPlace(pos, ignoreSneak);
+//    }
     public static boolean clientCanPlace(BlockPos pos, boolean ignoreCrystal) {
         if (!canReplace(pos)) return false;
         return !hasEntity(pos, ignoreCrystal);
@@ -97,9 +101,22 @@ public class BlockUtil {
         if (!canReplace(pos)) return false;
         return !hasEntity(pos, false);
     }
+    public static boolean canPlaceTrapdoor(BlockPos pos, Predicate<Direction> directionPredicate, boolean ignorePlayer) {
+        if (getPlaceSide(pos, directionPredicate) == null) return false;
+        if (!canReplace(pos)) return false;
+        return !hasEntity(pos, false, ignorePlayer);
+    }
     public static boolean hasEntity(BlockPos pos, boolean ignoreCrystal) {
         for (Entity entity : getEntities(new Box(pos))) {
             if (!entity.isAlive() || entity instanceof ItemEntity || entity instanceof ExperienceOrbEntity || entity instanceof ExperienceBottleEntity || entity instanceof ArrowEntity || ignoreCrystal && entity instanceof EndCrystalEntity)
+                continue;
+            return true;
+        }
+        return false;
+    }
+    public static boolean hasEntity(BlockPos pos, boolean ignoreCrystal, boolean ignorePlayer) {
+        for (Entity entity : getEntities(new Box(pos))) {
+            if (!entity.isAlive() || entity instanceof ItemEntity || entity instanceof ExperienceOrbEntity || entity instanceof ExperienceBottleEntity || entity instanceof ArrowEntity || ignoreCrystal && entity instanceof EndCrystalEntity || ignorePlayer && entity instanceof PlayerEntity)
                 continue;
             return true;
         }
@@ -115,7 +132,7 @@ public class BlockUtil {
         }
         return list;
     }
-    public static ArrayList<BlockPos> getSphere(float range) {
+    public static ArrayList<BlockPos> getSphere(double range) {
         return getSphere(range, mc.player.getEyePos());
     }
 //    public static List<BlockPos> getSphere(int range) {
@@ -131,7 +148,7 @@ public class BlockUtil {
 //        }
 //        return list;
 //    }
-    public static ArrayList<BlockPos> getSphere(float range, Vec3d pos) {
+    public static ArrayList<BlockPos> getSphere(double range, Vec3d pos) {
         ArrayList<BlockPos> list = new ArrayList<>();
         for (double x = pos.getX() - range; x < pos.getX() + range; ++x) {
             for (double z = pos.getZ() - range; z < pos.getZ() + range; ++z) {
@@ -320,9 +337,11 @@ public class BlockUtil {
     );
     public static void placeBlock(BlockPos pos, Direction side, boolean rotate) {
         clickBlock(pos.offset(side), side.getOpposite(), rotate);
+        placeList.add(pos);
     }
     public static void placeSlabBlock(BlockPos pos, Direction side, Direction slabSide, boolean rotate) {
         clickSlabBlock(pos.offset(side), side.getOpposite(), slabSide, rotate);
+        placeList.add(pos);
     }
     public static Block getBlock(BlockPos pos) {
         return mc.world.getBlockState(pos).getBlock();
@@ -330,7 +349,7 @@ public class BlockUtil {
     public static void clickBlock(BlockPos pos, Direction side, boolean rotate) {
         Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
         if (rotate) Rotation.snapAt(directionVec);
-        mc.player.swingHand(Hand.MAIN_HAND);
+        EntityUtil.placeSwingHand();
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         if (GlobalSetting.INSTANCE.packetPlace.get()){
             mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
@@ -356,5 +375,23 @@ public class BlockUtil {
             mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
         }
         if (rotate) Rotation.snapBack();
+    }
+    public static boolean canPlaceCrystal(BlockPos pos) {
+        if (!mc.world.isAir(pos)) return false;
+        BlockPos obsPos = pos.down();
+        BlockPos boost = obsPos.up();
+        return (getBlock(obsPos) == Blocks.BEDROCK || getBlock(obsPos) == Blocks.OBSIDIAN)
+                && getClickSideStrict(obsPos) != null
+                && (mc.world.isAir(boost))
+                && !hasEntityBlockCrystal(boost, false)
+                && !hasEntityBlockCrystal(boost.up(), false);
+    }
+    public static boolean hasEntityBlockCrystal(BlockPos pos, boolean ignoreCrystal) {
+        for (Entity entity : getEntities(new Box(pos))) {
+            if (!entity.isAlive() || ignoreCrystal && entity instanceof EndCrystalEntity)
+                continue;
+            return true;
+        }
+        return false;
     }
 }

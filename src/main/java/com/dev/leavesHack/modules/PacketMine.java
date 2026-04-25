@@ -1,12 +1,13 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
+import com.dev.leavesHack.events.RenderLeaves3DEvent;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
+import com.dev.leavesHack.utils.render.Render3DUtil;
 import com.dev.leavesHack.utils.world.BlockUtil;
-import com.dev.leavesHack.utils.entity.InventoryUtil.SwitchMode;
+import com.dev.leavesHack.utils.entity.InventoryUtil.MineSwitchMode;
 import meteordevelopment.meteorclient.events.entity.player.StartBreakingBlockEvent;
-import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
@@ -53,9 +54,9 @@ public class PacketMine extends Module {
                     .visible(usingPause::get)
                     .build()
     );
-    public final Setting<SwitchMode> autoSwitch = sgGeneral.add(new EnumSetting.Builder<SwitchMode>()
+    public final Setting<MineSwitchMode> autoSwitch = sgGeneral.add(new EnumSetting.Builder<MineSwitchMode>()
             .name("AutoSwitch")
-            .defaultValue(SwitchMode.Silent)
+            .defaultValue(MineSwitchMode.Silent)
             .build()
     );
     public final Setting<Integer> range = sgGeneral.add(
@@ -109,13 +110,13 @@ public class PacketMine extends Module {
     private final Setting<Boolean> doubleBreak = sgGeneral.add(
             new BoolSetting.Builder()
                     .name("DoubleBreak")
-                    .defaultValue(true)
+                    .defaultValue(false)
                     .build()
     );
     private final Setting<Boolean> checkGround = sgGeneral.add(
             new BoolSetting.Builder()
                     .name("CheckGround")
-                    .defaultValue(false)
+                    .defaultValue(true)
                     .build()
     );
     private final Setting<Boolean> bypassGround = sgGeneral.add(
@@ -135,7 +136,7 @@ public class PacketMine extends Module {
     private final Setting<Integer> switchTime = sgGeneral.add(
             new IntSetting.Builder()
                     .name("SwitchTime")
-                    .defaultValue(150)
+                    .defaultValue(100)
                     .min(0)
                     .sliderMax(1000)
                     .build()
@@ -171,14 +172,30 @@ public class PacketMine extends Module {
                     .sliderRange(0, 10)
                     .build()
     );
-
+    private final Setting<Boolean> renderProgress = sgRender.add(new BoolSetting.Builder()
+            .name("RenderProgress")
+            .description("渲染进度")
+            .defaultValue(true)
+            .build()
+    );
+    private final Setting<SettingColor> targetColor = sgRender.add(new ColorSetting.Builder()
+            .name("TargetColor")
+            .description("主挖文本颜色")
+            .defaultValue(new SettingColor(255, 255, 255, 255))
+            .build()
+    );
+    private final Setting<SettingColor> secondColor = sgRender.add(new ColorSetting.Builder()
+            .name("SecondColor")
+            .description("副挖文本颜色")
+            .defaultValue(new SettingColor(255, 255, 255, 255))
+            .build()
+    );
     private final Setting<ShapeMode> shapeMode = sgRender.add(
             new EnumSetting.Builder<ShapeMode>()
                     .name("ShapeMode")
                     .defaultValue(ShapeMode.Both)
                     .build()
     );
-
     private final Setting<SettingColor> sideStartColor = sgRender.add(
             new ColorSetting.Builder()
                     .name("SideStart")
@@ -349,6 +366,16 @@ public class PacketMine extends Module {
         return "§f[" + publicProgress + "%]";
     }
     @EventHandler
+    private void onMyRender(RenderLeaves3DEvent event) {
+        if (!renderProgress.get()) return;
+        if (targetPos != null) {
+            Render3DUtil.renderText3D(completed ? "Done" : publicProgress + "%", targetPos.toCenterPos(), targetColor.get().getPacked());
+        }
+        if (secondPos != null) {
+            Render3DUtil.renderText3D(secondPublicProgress + "%", secondPos.toCenterPos(), secondColor.get().getPacked());
+        }
+    }
+    @EventHandler
     private void onRender(Render3DEvent event) {
         if (mc.world == null || mc.player == null) return;
         if (publicProgress >= 100) {
@@ -359,9 +386,9 @@ public class PacketMine extends Module {
             selfClickPos = null;
             secondPos = null;
         }
-        if (timer.passedMs(switchTime.get()) && hasSwitch && autoSwitch.get() != SwitchMode.None) {
-            if (autoSwitch.get() == SwitchMode.Delay) InventoryUtil.switchToSlot(oldSlot);
-            if (autoSwitch.get() == SwitchMode.Silent) sendPacket(new UpdateSelectedSlotC2SPacket(oldSlot));
+        if (timer.passedMs(switchTime.get()) && hasSwitch && autoSwitch.get() != MineSwitchMode.None) {
+            if (autoSwitch.get() == MineSwitchMode.Delay) InventoryUtil.switchToSlot(oldSlot);
+            if (autoSwitch.get() == MineSwitchMode.Silent) sendPacket(new UpdateSelectedSlotC2SPacket(oldSlot));
             hasSwitch = false;
         }
         if (maxBreaksCount >= maxBreaks.get() * 10) {
@@ -401,9 +428,9 @@ public class PacketMine extends Module {
                 if ((secondPublicProgress >= switchDamage.get() || publicProgress >= switchDamage.get())&& !hasSwitch && secondPos != null) {
                     int bestSlot = getTool(secondPos);
                     if (!hasSwitch) oldSlot = mc.player.getInventory().selectedSlot;
-                    if (autoSwitch.get() != SwitchMode.None && bestSlot != -1) {
-                        if (autoSwitch.get() == SwitchMode.Delay) InventoryUtil.switchToSlot(bestSlot);
-                        if (autoSwitch.get() == SwitchMode.Silent) sendPacket(new UpdateSelectedSlotC2SPacket(bestSlot));
+                    if (autoSwitch.get() != MineSwitchMode.None && bestSlot != -1) {
+                        if (autoSwitch.get() == MineSwitchMode.Delay) InventoryUtil.switchToSlot(bestSlot);
+                        if (autoSwitch.get() == MineSwitchMode.Silent) sendPacket(new UpdateSelectedSlotC2SPacket(bestSlot));
                         timer.reset();
                         hasSwitch = true;
                     }
@@ -471,6 +498,7 @@ public class PacketMine extends Module {
                             sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, mc.player.getBlockPos().up(7891), Direction.DOWN, id));
                         }
                     });
+                    timer.cancel();
                 }
             }, delay);
         } else {
@@ -508,9 +536,9 @@ public class PacketMine extends Module {
         if (!doubleBreak.get() || secondPos == null) {
             int bestSlot = getTool(targetPos);
             if (!hasSwitch) oldSlot = mc.player.getInventory().selectedSlot;
-            if (autoSwitch.get() != SwitchMode.None && bestSlot != -1) {
-                if (autoSwitch.get() == SwitchMode.Delay) InventoryUtil.switchToSlot(bestSlot);
-                if (autoSwitch.get() == SwitchMode.Silent) sendPacket(new UpdateSelectedSlotC2SPacket(bestSlot));
+            if (autoSwitch.get() != MineSwitchMode.None && bestSlot != -1) {
+                if (autoSwitch.get() == MineSwitchMode.Delay) InventoryUtil.switchToSlot(bestSlot);
+                if (autoSwitch.get() == MineSwitchMode.Silent) sendPacket(new UpdateSelectedSlotC2SPacket(bestSlot));
                 timer.reset();
                 hasSwitch = true;
             }
@@ -616,7 +644,6 @@ public class PacketMine extends Module {
 
         Color side = getColor(sideStartColor.get(), sideEndColor.get(), p);
         Color line = getColor(lineStartColor.get(), lineEndColor.get(), p);
-
         event.renderer.box(box, side, line, shapeMode.get(), 0);
     }
     private void renderSecondAnimation(Render3DEvent event, double delta, double damage) {

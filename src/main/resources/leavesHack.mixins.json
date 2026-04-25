@@ -3,7 +3,9 @@
   "package": "com.dev.leavesHack.asm",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "accessors.ITextRenderer",
     "mixin.MixinClientPlayerEntity",
+    "mixin.MixinGameRenderer",
     "mixin.MixinPlayerEntityRenderer"
   ],
   "injectors": {
