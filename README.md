@@ -1,4 +1,4 @@
-# LeavesHack V1.3.1
+# LeavesHack V1.8.0
 
 **Meteor 客户端插件**  
 致力于改善无政府服务器的生存体验  
@@ -21,18 +21,21 @@ bilibili: https://space.bilibili.com/1932462042
 |:-----------------:|---------------------------------------|-------------------------------------|  
 |   AntiAntiXray    | 雷达扫描矿透                                | 不装 Baritone 开功能崩端                   |  
 |       Aura        | 可在 3c3u 使用的不卡脚的杀戮                     | 无                                   |  
+|    AutoAnchor     | 自动重生锚                                 | 无                                   |
 |   AutoArmorPlus   | 自动穿甲（主要为了和 FireworkElytraFly 联动自动穿鞘翅） | 无                                   |  
 |     AutoCity      | 自动挖脚（顺手的事，记住咱是生存端）                    | 无                                   |  
+|    AutoCrystal    | 自动水晶                                  | 无                                   |
 |     AutoLogin     | 自动登录                                  | 无                                   |  
 |  AutoPlaceBlock   | 自定义范围方块放置                             | 无                                   |  
 | AutoRefreshTrade  | 自动刷新村民交易的附魔书                          | 无                                   |  
 |     AutoTorch     | 自动放火把 (白天可用 + 无光区域渲染)                 | 无                                   |  
 |     AutoTree      | 自动种树                                  | 左键选择目标方块，手持树苗时工作                    |  
-| FireworkElytraFly | 在鞘翅飞行时自动使用烟花                          | 无                                   |  
+| FireworkElytraFly | 在鞘翅飞行时自动使用烟花 (含甲飞)                    | 无                                   |  
 |    LegitNoFall    | 自动落地水                                 | 95% 的成功率，自动检测下界，不要在没有副手图腾的情况下信任这个模块 |  
 |     NukerPlus     | 绕过 3c3u 的 Nuker                       | 无                                   |  
 |    ModuleList     | 重写模块列表渲染                              | 无                                   |  
-|    PacketMine     | 绕过 3c3u 的发包挖掘（无双挖）                    | 无                                   |  
+|    PacketMine     | 绕过 3c3u 的发包挖掘（可双挖）                    | 无                                   |  
+|   PistonCrystal   | 活塞水晶                                  | 无                                   |
 |      Printer      | 投影打印机                                 | 测试中，不装投影开功能崩端                       |  
 |   ScaffoldPlus    | 自动搭路 (可自适应半砖)                         | 放下半砖的时候不稳定，斜着走的时候慢一点不然容易坠机          |
 
