@@ -11,7 +11,7 @@
   "contact": {
     "repo": "https://github.com/MeteorDevelopment/meteor-addon-template"
   },
-  "icon": "assets/template/icon.png",
+  "icon": "assets/leaves/icon.png",
   "environment": "client",
   "entrypoints": {
     "meteor": [

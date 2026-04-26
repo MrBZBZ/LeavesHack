@@ -1,18 +1,31 @@
-# LeavesHack V1.8.0
+<h3 align="center">
+  <img src="./src/main/resources/assets/leaves/icon.png" width="100" alt="Logo" style="border-radius: 15px;"/><br/>
+  LeavesHack-Addon for <a href="https://meteorclient.com">Meteor Client</a>
+</h3>
 
-**Meteor 客户端插件**  
-致力于改善无政府服务器的生存体验  
+<p align="center">
+    <a href="https://github.com/MrBZBZ/LeavesHack/stargazers"><img src="https://img.shields.io/github/stars/MrBZBZ/LeavesHack?colorA=363a4f&colorB=b7bdf8&style=for-the-badge" alt=""></a>
+    <a href="https://github.com/MrBZBZ/LeavesHack/issues"><img src="https://img.shields.io/github/issues/MrBZBZ/LeavesHack?colorA=363a4f&colorB=f5a97f&style=for-the-badge" alt=""></a>
+    <a href="https://github.com/MrBZBZ/LeavesHack/contributors"><img src="https://img.shields.io/github/contributors/MrBZBZ/LeavesHack?colorA=363a4f&colorB=a6da95&style=for-the-badge" alt=""></a>
+  <a href="https://github.com/MrBZBZ/LeavesHack/releases"><img src="https://img.shields.io/github/downloads/MrBZBZ/LeavesHack/total?style=for-the-badge&labelColor=363a4f&color=f5c2e7" alt=""></a>
+</p>
+
+<p align="center">
+  <i>致力于改善无政府服务器的生存体验</i><br/>
+  <i>适用Grim反作弊</i>
+</p>
+
 bilibili: https://space.bilibili.com/1932462042  
 神秘群聊欢迎吹水：1076456572  
-点击链接加入群聊【LeavesHack-user-group】：https://qm.qq.com/q/YwajlOYRGw  
+点击链接加入群聊【LeavesHack-user-group】：https://qm.qq.com/q/YwajlOYRGw
 ## 注意事项
 - 这个东西是我玩3c3u写的，开源只是顺手，我想写什么就写什么，readme的更新有一定滞后性，我尽量把每个模块的教程写上
 - 懒得升级了，什么时候2b2t的客户端从1.21.1升到更高版本再升级
 - Meteor本身不支持中文渲染，可以通过下载现代化UI和模组菜单，打开现代化UI的文本引擎再关闭Meteor的CustomFont解决
 - 理论上AntiAntiXray可以绕过其他服务器的假矿或其他反矿透插件，如果腐竹不给开挂，而且你使用这个插件导致被封号等等后果请自负
-- 如果你觉得这个插件不错可以请我吃个肠粉，咕咕嘎嘎  
+- 如果你觉得这个插件不错可以请我吃个肠粉，咕咕嘎嘎
   <div align="center">
-  <img src="114514.jpg" alt="神秘二维码" width="400">
+  <img src="114514.jpg" style="border-radius: 15px;" alt="神秘二维码" width="400">
   </div>
 ## 功能
 截至目前更新的功能，基本上默认参数就能在3c使用：  
