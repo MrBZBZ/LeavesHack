@@ -20,6 +20,7 @@
     "mixin.MixinFireworkRocketEntity",
     "mixin.MixinLivingEntity",
     "mixin.MixinPlayerEntity",
+    "mixin.MixinWorld",
     "mixin.SystemsMixin"
   ]
 }

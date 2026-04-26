@@ -35,13 +35,6 @@ import java.util.TimerTask;
 import static com.dev.leavesHack.utils.rotation.Rotation.*;
 
 public class FireworkElytraFly extends Module {
-    public float yaw = rotationYaw;
-    public float pitch = rotationPitch;
-    public boolean isUsingFirework = false;
-    private final Timer fireworkTimer = new Timer();
-    private final Timer swapTimer = new Timer();
-    public boolean isFallFlying = false,slot = false;
-    public int packetDelayInt = 0;
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     public final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
             .name("Mode")
@@ -51,6 +44,12 @@ public class FireworkElytraFly extends Module {
     public final Setting<FireWorkMode> fireWorkMode = sgGeneral.add(new EnumSetting.Builder<FireWorkMode>()
             .name("FireWorkMode")
             .defaultValue(FireWorkMode.Delay)
+            .build()
+    );
+    public final Setting<Boolean> phaseDisable = sgGeneral.add(new BoolSetting.Builder()
+            .name("PhaseDisable")
+            .description("")
+            .defaultValue(true)
             .build()
     );
     private final Setting<Double> packetDealy = sgGeneral.add(new DoubleSetting.Builder()
@@ -99,7 +98,7 @@ public class FireworkElytraFly extends Module {
     private final Setting<Double> delay = sgGeneral.add(new DoubleSetting.Builder()
             .name("FireWorkDelay")
             .description("")
-            .defaultValue(700)
+            .defaultValue(1000)
             .visible(() -> fireWorkMode.get() == FireWorkMode.Delay)
             .sliderMax(3000)
             .build()
@@ -137,6 +136,13 @@ public class FireworkElytraFly extends Module {
         super(LeavesHack.CATEGORY, "FireworkElytraFly", "烟花鞘翅飞行");
         INSTANCE = this;
     }
+    public float yaw = rotationYaw;
+    public float pitch = rotationPitch;
+    public boolean isUsingFirework = false;
+    private final Timer fireworkTimer = new Timer();
+    private final Timer swapTimer = new Timer();
+    public boolean isFallFlying = false;
+    public int packetDelayInt = 0;
     @Override
     public void onActivate() {
         fireworkTimer.setMs(99999);
@@ -209,6 +215,10 @@ public class FireworkElytraFly extends Module {
     public void onTick(TickEvent.Pre event){
         if (mc.currentScreen != null && deBug.get()) info("screen" + mc.currentScreen.getTitle() + " " + mc.currentScreen.getClass().getSimpleName() + " " + mc.currentScreen.getClass().getSuperclass().getSimpleName() + " " + mc.currentScreen.getTitle());
         if (mc.currentScreen != null && mc.currentScreen instanceof HandledScreen<?> && !(mc.currentScreen instanceof InventoryScreen || mc.currentScreen instanceof CreativeInventoryScreen)) return;
+        if (phaseDisable.get() && isPhased()) {
+            toggle();
+            return;
+        }
         packetDelayInt++;
         yaw = getSprintYaw(mc.player.getYaw());
         pitch = getPitch(mc.player.getPitch());
@@ -234,14 +244,6 @@ public class FireworkElytraFly extends Module {
         }
         if (wearingElytra && !mc.player.isOnGround() && unbreaking.get() && swapTimer.passedMs(fakeDelay.get())) {
             mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
-            if (slot) {
-                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 1, 0, SlotActionType.PICKUP, mc.player);
-                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 1, 0, SlotActionType.PICKUP, mc.player);
-            } else {
-                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 2, 0, SlotActionType.PICKUP, mc.player);
-                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 2, 0, SlotActionType.PICKUP, mc.player);
-            }
-            slot = !slot;
             mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
             mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
             mc.player.startFallFlying();
@@ -370,5 +372,8 @@ public class FireworkElytraFly extends Module {
             }
         }
         return pitch;
+    }
+    public boolean isPhased() {
+        return mc.world.canCollide(mc.player,mc.player.getBoundingBox());
     }
 }

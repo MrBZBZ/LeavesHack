@@ -1,9 +1,11 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
+import com.dev.leavesHack.events.RenderLeaves3DEvent;
 import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
+import com.dev.leavesHack.utils.render.Render3DUtil;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
@@ -34,98 +36,122 @@ public class AutoAnchor extends Module {
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<Double> targetRange = sgGeneral.add(new DoubleSetting.Builder()
             .name("TargetRange")
-            .defaultValue(6.0)
-            .sliderRange(1, 6)
+            .description("目标距离")
+            .defaultValue(12.0)
+            .sliderRange(1, 20)
             .build()
     );
     private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
             .name("range")
+            .description("操作距离")
             .defaultValue(4.5)
             .sliderRange(1, 6)
             .build()
     );
     private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
             .name("delay-ms")
+            .description("放置延迟")
             .defaultValue(50)
             .sliderRange(0, 500)
             .build()
     );
     private final Setting<Double> minDamage = sgGeneral.add(new DoubleSetting.Builder()
             .name("MinDamage")
+            .description("最小伤害")
             .defaultValue(4.0)
             .sliderRange(1, 36)
             .build()
     );
     private final Setting<Double> maxSelfDmg = sgGeneral.add(new DoubleSetting.Builder()
             .name("MaxSelfDmg")
+            .description("最大自伤")
             .defaultValue(12)
             .sliderRange(1, 36)
             .build()
     );
-    private final Setting<Boolean> usingPause = sgGeneral.add(
-            new BoolSetting.Builder()
-                    .name("UsingPause")
-                    .defaultValue(true)
-                    .build()
+    private final Setting<Boolean> usingPause = sgGeneral.add(new BoolSetting.Builder()
+            .name("UsingPause")
+            .description("使用暂停")
+            .defaultValue(true)
+            .build()
     );
-    private final Setting<Boolean> onlyMain = sgGeneral.add(
-            new BoolSetting.Builder()
-                    .name("OnlyMain")
-                    .defaultValue(true)
-                    .visible(usingPause::get)
-                    .build()
+    private final Setting<Boolean> onlyMain = sgGeneral.add(new BoolSetting.Builder()
+            .name("OnlyMain")
+            .description("仅主手")
+            .defaultValue(true)
+            .visible(usingPause::get)
+            .build()
     );
     private final Setting<Boolean> preferHead = sgGeneral.add(new BoolSetting.Builder()
             .name("PreferHead")
+            .description("优先炸头")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> placeHelper = sgGeneral.add(new BoolSetting.Builder()
             .name("PlaceHelper")
+            .description("放置辅助方块")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> noSuicide = sgGeneral.add(new BoolSetting.Builder()
             .name("NoSuicide")
+            .description("防自杀")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
             .name("rotate")
+            .description("转头")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> inventory = sgGeneral.add(new BoolSetting.Builder()
             .name("InventorySwap")
+            .description("静默背包物品切换")
             .defaultValue(true)
             .build()
     );
-    private final Setting<ShapeMode> shapeMode = sgRender.add(
-            new EnumSetting.Builder<ShapeMode>()
-                    .name("Shape Mode")
-                    .defaultValue(ShapeMode.Both)
-                    .build()
+    private final Setting<Boolean> renderDmg = sgRender.add(new BoolSetting.Builder()
+            .name("RenderDmg")
+            .description("渲染伤害")
+            .defaultValue(true)
+            .build()
     );
-    private final Setting<SettingColor> lineColor = sgRender.add(
-            new ColorSetting.Builder()
-                    .name("Line")
-                    .defaultValue(new SettingColor(255, 255, 255, 255))
-                    .build()
+    private final Setting<SettingColor> dmgColor = sgRender.add(new ColorSetting.Builder()
+            .name("DamageColor")
+            .description("伤害文本颜色")
+            .defaultValue(new SettingColor(255, 255, 255, 255))
+            .build()
     );
-    private final Setting<SettingColor> sideColor = sgRender.add(
-            new ColorSetting.Builder()
-                    .name("Side")
-                    .defaultValue(new SettingColor(255, 255, 255, 10))
-                    .build()
+    private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>()
+            .name("Shape Mode")
+            .description("方块渲染模式")
+            .defaultValue(ShapeMode.Both)
+            .build()
+    );
+    private final Setting<SettingColor> lineColor = sgRender.add(new ColorSetting.Builder()
+            .name("Line")
+            .description("方块边框颜色")
+            .defaultValue(new SettingColor(255, 255, 255, 255))
+            .build()
+    );
+    private final Setting<SettingColor> sideColor = sgRender.add(new ColorSetting.Builder()
+            .name("Side")
+            .description("方块填充颜色")
+            .defaultValue(new SettingColor(255, 255, 255, 10))
+            .build()
     );
     private final Setting<Double> renderSpeed = sgGeneral.add(new DoubleSetting.Builder()
             .name("RenderSpeed")
+            .description("方块渲染速度")
             .defaultValue(0.1)
             .sliderRange(0, 1)
             .build()
     );
     public PlayerEntity target;
     public BlockPos currentPos;
+    public int dmg;
     public final Timer placeTimer = new Timer();
     public PosEntry renderPosEntry = new PosEntry();
     @Override
@@ -139,6 +165,12 @@ public class AutoAnchor extends Module {
     }
     public String getInfoString() {
         return target == null ? null : "§f[" + target.getName().getString() + "]";
+    }
+    @EventHandler
+    private void onMyRender3D(RenderLeaves3DEvent event) {
+        if (renderDmg.get() && currentPos != null) {
+            Render3DUtil.renderText3D(dmg + "f", currentPos.toCenterPos(), dmgColor.get().getPacked());
+        }
     }
     @EventHandler
     public void onRender3D(Render3DEvent event) {
@@ -174,6 +206,7 @@ public class AutoAnchor extends Module {
         int anchor = inventory.get() ? InventoryUtil.findItemInventorySlot(Items.RESPAWN_ANCHOR) : InventoryUtil.findItem(Items.RESPAWN_ANCHOR);
         int glow = inventory.get() ? InventoryUtil.findItemInventorySlot(Items.GLOWSTONE) : InventoryUtil.findItem(Items.GLOWSTONE);
         if (anchor == -1 || glow == -1) {
+            currentPos = null;
             return;
         }
         updatePos(target);
@@ -210,7 +243,7 @@ public class AutoAnchor extends Module {
                 if (side2 != null) {
                     doSwap(glow);
                     BlockUtil.clickBlock(currentPos, side2, rotate.get());
-                    mc.world.playSound(null, mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.AMBIENT, 10.0f, 1.0f);
+                    mc.world.playSound(null, mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.AMBIENT, 5.0f, 1.0f);
                     if (inventory.get()) {
                         doSwap(glow);
                     } else {
@@ -226,7 +259,7 @@ public class AutoAnchor extends Module {
         if (preferHead.get()) {
             BlockPos head = target.getBlockPos().up(2);
             if (DamageUtils.anchorDamage(target, head.toCenterPos()) > minDamage.get()) {
-                if (BlockUtil.canPlace(head)) {
+                if (BlockUtil.canPlace(head) || BlockUtil.getBlock(head) instanceof RespawnAnchorBlock) {
                     currentPos = head;
                     return;
                 } else {
@@ -253,6 +286,7 @@ public class AutoAnchor extends Module {
         }
         if (bestPos != null) {
             currentPos = bestPos;
+            dmg = (int) bestDmg;
         }
     }
     private void placeHelper(BlockPos pos){

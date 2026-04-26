@@ -220,6 +220,10 @@ public class AutoCrystal extends Module {
         return target == null ? null : "§f[" + target.getName().getString() + "]";
     }
     @Override
+    public void onDeactivate() {
+        crystalPos = null;
+    }
+    @Override
     public void onActivate() {
         breakTimer.setMs(9999999);
         breakTimer.setMs(9999999);
@@ -274,7 +278,7 @@ public class AutoCrystal extends Module {
             crystalPos = null;
             lastBestPos = null;
         }
-        if (crystalPos != null && BlockUtil.getBlock(crystalPos.down()) != Blocks.OBSIDIAN && BlockUtil.getBlock(crystalPos.down()) != Blocks.BEDROCK) {
+        if (crystalPos != null && ((BlockUtil.getBlock(crystalPos.down()) != Blocks.OBSIDIAN && BlockUtil.getBlock(crystalPos.down()) != Blocks.BEDROCK) || !mc.world.isAir(crystalPos))) {
             crystalPos = null;
             lastBestPos = null;
         }
@@ -289,7 +293,10 @@ public class AutoCrystal extends Module {
                 ? InventoryUtil.findItemInventorySlot(Items.END_CRYSTAL)
                 : InventoryUtil.findItem(Items.END_CRYSTAL);
 
-        if (crystalSlot == -1) return;
+        if (crystalSlot == -1) {
+            crystalPos = null;
+            return;
+        }
         if (breakTimer.passedMs(breakDelay.get())) {
             breakCrystal();
             breakTimer.reset();
@@ -313,8 +320,8 @@ public class AutoCrystal extends Module {
         BlockPos best = null;
         ArrayList<BlockPos> placeList = new ArrayList<>();
         for (BlockPos pos : BlockUtil.getSphere(placeRange.get())) {
-            if (autoBase.get() && !BlockUtil.canPlaceCrystal(pos) && BlockUtil.canPlace(pos.down()) && mc.world.isAir(pos) && baseTimer.passedMs(baseDelay.get())) placeList.add(pos);
-            if (BlockUtil.canPlaceCrystal(pos) || (BlockUtil.hasCrystal(pos) && mc.world.isAir(pos))) placeList.add(pos);
+            if (autoBase.get() && !BlockUtil.canPlaceCrystal(pos) && BlockUtil.canPlace(pos.down())  && !BlockUtil.hasEntity(pos, true) && mc.world.isAir(pos) && pos.getY() <= target.getY() &&baseTimer.passedMs(baseDelay.get())) placeList.add(pos);
+            if (BlockUtil.canPlaceCrystal(pos) || (BlockUtil.hasCrystalPlace(pos) && mc.world.isAir(pos))) placeList.add(pos);
         }
         if (placeList.isEmpty()) return;
         for (BlockPos pos : placeList) {
@@ -359,38 +366,36 @@ public class AutoCrystal extends Module {
         crystalPos = best;
         dmg = (int) bestDamage;
     }
-
     private PlayerEntity predictTarget(PlayerEntity target) {
-        if (predict.get() > 0) {
-            double prevX = target.prevX;
-            double prevY = target.prevY;
-            double prevZ = target.prevZ;
-            double predictX = target.getX() + (target.getX() - prevX) * predict.get();
-            double predictY = target.getY() + (target.getY() - prevY) * predict.get();
-            double predictZ = target.getZ() + (target.getZ() - prevZ) * predict.get();
-            BlockPos predictPos = new BlockPosX(predictX, predictY, predictZ);
-            PlayerEntity predicTarget = new PlayerEntity(mc.world, predictPos, target.getYaw(), new GameProfile(UUID.fromString("66123666-1234-5432-6666-667563866600"), "PredictEntity339")) {
-                @Override
-                public boolean isSpectator() {return false;}
-                @Override
-                public boolean isCreative() {return false;}
-                @Override
-                public boolean isOnGround() {return target.isOnGround();}
-            };
-            predicTarget.setHealth(target.getHealth());
-            predicTarget.prevX = target.prevX;
-            predicTarget.prevZ = target.prevZ;
-            predicTarget.prevY = target.prevY;
-            predicTarget.setOnGround(target.isOnGround());
-            predicTarget.getInventory().clone(target.getInventory());
-            predicTarget.setPose(target.getPose());
-            for (StatusEffectInstance se : new ArrayList<>(target.getStatusEffects())) {
-                predicTarget.addStatusEffect(se);
-            }
-            return predicTarget;
-        } else {
-            return target;
+        if (predict.get() <= 0) return target;
+        int ticks = predict.get();
+        double dx = target.getX() - target.prevX;
+        double dy = target.getY() - target.prevY;
+        double dz = target.getZ() - target.prevZ;
+        double predictX = target.getX() + dx * ticks;
+        double predictY = target.getY() + dy * ticks;
+        double predictZ = target.getZ() + dz * ticks;
+        PlayerEntity fake = new PlayerEntity(
+                mc.world,
+                target.getBlockPos(),
+                target.getYaw(),
+                new GameProfile(UUID.randomUUID(), "Predict")
+        ) {
+            @Override public boolean isSpectator() { return false; }
+            @Override public boolean isCreative() { return false; }
+        };
+        fake.refreshPositionAndAngles(predictX, predictY, predictZ, target.getYaw(), target.getPitch());
+        fake.setPose(target.getPose());
+        fake.setOnGround(target.isOnGround());
+        fake.setVelocity(target.getVelocity());
+        fake.getAttributes().setFrom(target.getAttributes());
+        fake.setHealth(target.getHealth());
+        for (StatusEffectInstance se : target.getStatusEffects()) {
+            fake.addStatusEffect(new StatusEffectInstance(se));
         }
+        fake.getInventory().clone(target.getInventory());
+        fake.calculateDimensions();
+        return fake;
     }
 
     private void doBase(BlockPos pos) {

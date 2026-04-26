@@ -82,8 +82,13 @@ public class BlockUtil {
     public static boolean canPlace(BlockPos pos) {
         return canPlace(pos, null);
     }
-    public static boolean canPlaceTrapdoor(BlockPos pos, boolean ignorePlayer) {
-        return canPlaceTrapdoor(pos, null, ignorePlayer);
+    public static boolean hasCrystalPlace(BlockPos pos) {
+        for (Entity entity : getEndCrystals(new Box(pos))) {
+            if (!entity.isAlive() || !(entity instanceof EndCrystalEntity crystal))
+                continue;
+            return crystal.getBlockPos().equals(pos);
+        }
+        return false;
     }
 //    public static boolean canPlace(BlockPos pos, boolean ignoreSneak) {
 //        return canPlace(pos, ignoreSneak);
@@ -100,11 +105,6 @@ public class BlockUtil {
         if (getPlaceSide(pos, directionPredicate) == null) return false;
         if (!canReplace(pos)) return false;
         return !hasEntity(pos, false);
-    }
-    public static boolean canPlaceTrapdoor(BlockPos pos, Predicate<Direction> directionPredicate, boolean ignorePlayer) {
-        if (getPlaceSide(pos, directionPredicate) == null) return false;
-        if (!canReplace(pos)) return false;
-        return !hasEntity(pos, false, ignorePlayer);
     }
     public static boolean hasEntity(BlockPos pos, boolean ignoreCrystal) {
         for (Entity entity : getEntities(new Box(pos))) {
