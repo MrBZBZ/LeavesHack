@@ -2,6 +2,7 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
+import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
@@ -27,29 +28,34 @@ public class ScaffoldPlus extends Module {
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
             .name("Rotate")
+            .description("转头")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> usingPause = sgGeneral.add(new BoolSetting.Builder()
             .name("UsingPause")
+            .description("使用暂停")
             .defaultValue(true)
             .build()
     );
     private final Setting<ShapeMode> shapeMode = sgRender.add(
             new EnumSetting.Builder<ShapeMode>()
                     .name("Shape Mode")
+                    .description("渲染模式")
                     .defaultValue(ShapeMode.Both)
                     .build()
     );
     private final Setting<SettingColor> lineColor = sgRender.add(
             new ColorSetting.Builder()
                     .name("Line")
+                    .description("边框颜色")
                     .defaultValue(new SettingColor(255, 255, 255, 255))
                     .build()
     );
     private final Setting<SettingColor> sideColor = sgRender.add(
             new ColorSetting.Builder()
                     .name("Side")
+                    .description("填充颜色")
                     .defaultValue(new SettingColor(255, 255, 255, 50))
                     .build()
     );
@@ -59,6 +65,7 @@ public class ScaffoldPlus extends Module {
         if (mc.player.isUsingItem() && usingPause.get()) return;
         ItemStack stack = mc.player.getInventory().getStack(mc.player.getInventory().selectedSlot);
         BlockPos pos = mc.player.getBlockPos();
+        if (GlobalSetting.INSTANCE.moveFix.get() && rotate.get()) Rotation.snapAt(pos.toCenterPos());
         boolean slabMode = BlockUtil.getBlock(pos) instanceof SlabBlock;
         for (Direction i : Direction.values()) {
             if (i == Direction.UP || i == Direction.DOWN) continue;

@@ -1,6 +1,8 @@
 package com.dev.leavesHack;
 
 import com.dev.leavesHack.modules.*;
+import com.dev.leavesHack.utils.entity.InventoryUtil;
+import com.dev.leavesHack.utils.rotation.Rotation;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.GithubRepo;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
@@ -11,14 +13,17 @@ import meteordevelopment.meteorclient.systems.modules.Modules;
 import org.slf4j.Logger;
 
 public class LeavesHack extends MeteorAddon {
+    public static long initTime;
     public static final Logger LOG = LogUtils.getLogger();
     public static final Category CATEGORY = new Category("LeavesHack");
     public static final HudGroup HUD_GROUP = new HudGroup("LeavesHack");
 
     @Override
     public void onInitialize() {
+        initTime = System.currentTimeMillis();
         LOG.info("Initializing LeavesHack");
-
+        Rotation.INSTANCE.hashCode();
+        InventoryUtil.INSTANCE.hashCode();
         // Modules
         add(new PlaceRender());
         add(new AutoCrystal());

@@ -3,8 +3,6 @@ package com.dev.leavesHack.modules;
 import com.dev.leavesHack.LeavesHack;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.systems.modules.combat.CrystalAura;
-import meteordevelopment.meteorclient.systems.modules.render.HandView;
 
 public class GlobalSetting extends Module {
     public static GlobalSetting INSTANCE;
@@ -17,56 +15,69 @@ public class GlobalSetting extends Module {
     private final SettingGroup sgElytra = this.settings.createGroup("Elytra");
     public final Setting<Boolean> packetPlace = sgGeneral.add(new BoolSetting.Builder()
             .name("PacketPlace")
+            .description("发包放置")
             .defaultValue(false)
             .build()
     );
     public final Setting<Boolean> optimizedCalc = sgGeneral.add(new BoolSetting.Builder()
             .name("OptimizedCalc")
-            .defaultValue(true)
-            .build()
-    );
-    public final Setting<Boolean> inventorySync = sgGeneral.add(new BoolSetting.Builder()
-            .name("InventorySync")
+            .description("水晶简单计算")
             .defaultValue(true)
             .build()
     );
     public final Setting<SwingMode> placeSwing = sgGeneral.add(new EnumSetting.Builder<SwingMode>()
             .name("PlaceSwing")
+            .description("放置挥手模式")
             .defaultValue(SwingMode.Packet)
             .build()
     );
     public final Setting<SwingMode> attackSwing = sgGeneral.add(new EnumSetting.Builder<SwingMode>()
             .name("AttackSwing")
+            .description("攻击挥手模式")
             .defaultValue(SwingMode.Packet)
             .build()
     );
     public final Setting<HandMode> handMode = sgGeneral.add(new EnumSetting.Builder<HandMode>()
             .name("HandMode")
+            .description("挥手选择")
             .defaultValue(HandMode.MainHand)
             .build()
     );
-    public final Setting<Boolean> interactRotation = sgRotation.add(new BoolSetting.Builder()
+    public final Setting<Boolean> noBadPackets = sgGeneral.add(new BoolSetting.Builder()
+            .name("NoBadPackets")
+            .description("反非法包发送")
+            .defaultValue(true)
+            .build()
+    );
+    public final Setting<Boolean> moveFix = sgRotation.add(new BoolSetting.Builder()
             .name("1.21+")
+            .description("高版本转头(MoveFix移动修复)")
             .defaultValue(true)
             .build()
     );
     public final Setting<Boolean> grimRotation = sgRotation.add(new BoolSetting.Builder()
             .name("GrimRotation")
+            .description("Grim模式转头")
             .defaultValue(true)
+            .visible(() -> !moveFix.get())
             .build()
     );
     public final Setting<Boolean> snapBack = sgRotation.add(new BoolSetting.Builder()
             .name("SnapBack")
+            .description("自动回正转头")
             .defaultValue(true)
+            .visible(() -> !moveFix.get())
             .build()
     );
     public final Setting<Boolean> baritone = sgElytra.add(new BoolSetting.Builder()
             .name("Baritone")
+            .description("接管Baritone")
             .defaultValue(true)
             .build()
     );
     public final Setting<Integer> elytraMinDamage = sgElytra.add(new IntSetting.Builder()
             .name("ElytraMinDamage")
+            .description("鞘翅最小耐久检查")
             .defaultValue(10)
             .min(0)
             .max(100)
@@ -74,6 +85,7 @@ public class GlobalSetting extends Module {
     );
     public final Setting<Integer> minFireworks = sgElytra.add(new IntSetting.Builder()
             .name("MinFireworks")
+            .description("最少烟花数量检查")
             .defaultValue(10)
             .min(0)
             .max(64)

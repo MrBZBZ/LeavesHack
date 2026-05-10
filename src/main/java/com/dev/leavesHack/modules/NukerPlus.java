@@ -47,21 +47,21 @@ public class NukerPlus extends Module {
 
     private final Setting<Shape> shape = sgGeneral.add(new EnumSetting.Builder<Shape>()
             .name("shape")
-            .description("The shape of nuking algorithm.")
+            .description("渲染模式")
             .defaultValue(Shape.Sphere)
             .build()
     );
 
     private final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
             .name("mode")
-            .description("The way the blocks are broken.")
+            .description("破坏模式")
             .defaultValue(Mode.Flatten)
             .build()
     );
 
     private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
             .name("range")
-            .description("The break range.")
+            .description("破坏距离")
             .defaultValue(4)
             .min(0)
             .visible(() -> shape.get() != Shape.Cube)
@@ -70,7 +70,7 @@ public class NukerPlus extends Module {
 
     private final Setting<Integer> range_up = sgGeneral.add(new IntSetting.Builder()
             .name("up")
-            .description("The break range.")
+            .description("破坏距离（上方）")
             .defaultValue(1)
             .min(0)
             .visible(() -> shape.get() == Shape.Cube)
@@ -79,7 +79,7 @@ public class NukerPlus extends Module {
 
     private final Setting<Integer> range_down = sgGeneral.add(new IntSetting.Builder()
             .name("down")
-            .description("The break range.")
+            .description("破坏距离（下方）")
             .defaultValue(1)
             .min(0)
             .visible(() -> shape.get() == Shape.Cube)
@@ -88,7 +88,7 @@ public class NukerPlus extends Module {
 
     private final Setting<Integer> range_left = sgGeneral.add(new IntSetting.Builder()
             .name("left")
-            .description("The break range.")
+            .description("破坏距离（左方）")
             .defaultValue(1)
             .min(0)
             .visible(() -> shape.get() == Shape.Cube)
@@ -97,7 +97,7 @@ public class NukerPlus extends Module {
 
     private final Setting<Integer> range_right = sgGeneral.add(new IntSetting.Builder()
             .name("right")
-            .description("The break range.")
+            .description("破坏距离（右方）")
             .defaultValue(1)
             .min(0)
             .visible(() -> shape.get() == Shape.Cube)
@@ -106,7 +106,7 @@ public class NukerPlus extends Module {
 
     private final Setting<Integer> range_forward = sgGeneral.add(new IntSetting.Builder()
             .name("forward")
-            .description("The break range.")
+            .description("破坏距离（前方）")
             .defaultValue(1)
             .min(0)
             .visible(() -> shape.get() == Shape.Cube)
@@ -115,7 +115,7 @@ public class NukerPlus extends Module {
 
     private final Setting<Integer> range_back = sgGeneral.add(new IntSetting.Builder()
             .name("back")
-            .description("The break range.")
+            .description("破坏距离（后方）")
             .defaultValue(1)
             .min(0)
             .visible(() -> shape.get() == Shape.Cube)
@@ -124,7 +124,7 @@ public class NukerPlus extends Module {
 
     private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
             .name("delay")
-            .description("Delay in ticks between breaking blocks.")
+            .description("破坏延迟")
             .defaultValue(0)
             .max(100)
             .build()
@@ -132,7 +132,7 @@ public class NukerPlus extends Module {
 
     private final Setting<Integer> clickDelay = sgGeneral.add(new IntSetting.Builder()
             .name("ClickDelay")
-            .description("Click in ticks between breaking blocks.")
+            .description("点击延迟")
             .defaultValue(8)
             .max(100)
             .build()
@@ -140,7 +140,7 @@ public class NukerPlus extends Module {
 
     private final Setting<Integer> maxBlocksPerTick = sgGeneral.add(new IntSetting.Builder()
             .name("max-blocks-per-tick")
-            .description("Maximum blocks to try to break per tick. Useful when insta mining.")
+            .description("每刻最大破坏方块数量")
             .defaultValue(1)
             .min(1)
             .sliderRange(1, 6)
@@ -149,28 +149,28 @@ public class NukerPlus extends Module {
 
     private final Setting<SortMode> sortMode = sgGeneral.add(new EnumSetting.Builder<SortMode>()
             .name("sort-mode")
-            .description("The blocks you want to mine first.")
+            .description("排序模式")
             .defaultValue(SortMode.Closest)
             .build()
     );
 
     private final Setting<Boolean> swingHand = sgGeneral.add(new BoolSetting.Builder()
             .name("swing-hand")
-            .description("Swing hand client side.")
+            .description("挥手")
             .defaultValue(true)
             .build()
     );
 
     private final Setting<Boolean> packetMine = sgGeneral.add(new BoolSetting.Builder()
             .name("packet-mine")
-            .description("Attempt to instamine everything at once.")
+            .description("开启包挖")
             .defaultValue(true)
             .build()
     );
 
     private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
             .name("rotate")
-            .description("Rotates server-side to the block being mined.")
+            .description("转头")
             .defaultValue(true)
             .build()
     );
@@ -179,21 +179,21 @@ public class NukerPlus extends Module {
 
     private final Setting<ListMode> listMode = sgWhitelist.add(new EnumSetting.Builder<ListMode>()
             .name("list-mode")
-            .description("Selection mode.")
+            .description("选择模式")
             .defaultValue(ListMode.Blacklist)
             .build()
     );
 
     private final Setting<List<Block>> blacklist = sgWhitelist.add(new BlockListSetting.Builder()
             .name("blacklist")
-            .description("The blocks you don't want to mine.")
+            .description("黑名单")
             .visible(() -> listMode.get() == ListMode.Blacklist)
             .build()
     );
 
     private final Setting<List<Block>> whitelist = sgWhitelist.add(new BlockListSetting.Builder()
             .name("whitelist")
-            .description("The blocks you want to mine.")
+            .description("白名单")
             .visible(() -> listMode.get() == ListMode.Whitelist)
             .build()
     );
@@ -202,14 +202,14 @@ public class NukerPlus extends Module {
 
     private final Setting<Boolean> enableRenderBounding = sgRender.add(new BoolSetting.Builder()
             .name("bounding-box")
-            .description("Enable rendering bounding box for Cube and Uniform Cube.")
+            .description("渲染box")
             .defaultValue(true)
             .build()
     );
 
     private final Setting<ShapeMode> shapeModeBox = sgRender.add(new EnumSetting.Builder<ShapeMode>()
             .name("nuke-box-mode")
-            .description("How the shape for the bounding box is rendered.")
+            .description("渲染模式")
             .defaultValue(ShapeMode.Both)
             .build()
     );

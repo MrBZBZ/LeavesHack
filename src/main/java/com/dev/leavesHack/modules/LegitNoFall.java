@@ -30,12 +30,13 @@ import java.util.ArrayList;
 public class LegitNoFall extends Module {
     public static LegitNoFall INSTANCE;
     public LegitNoFall() {
-        super(LeavesHack.CATEGORY, "LegitNoFall", "");
+        super(LeavesHack.CATEGORY, "LegitNoFall", "合法防摔伤");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final Setting<Integer> checkDown = sgGeneral.add(new IntSetting.Builder()
             .name("checkDown")
+            .description("检查距离")
             .defaultValue(1)
             .min(0)
             .sliderMax(3)
@@ -43,11 +44,13 @@ public class LegitNoFall extends Module {
     );
     private final Setting<Boolean> inventorySwap = sgGeneral.add(new BoolSetting.Builder()
             .name("inventorySwap")
+            .description("背包鬼手")
             .defaultValue(true)
             .build()
     );
     private final Setting<Double> offSet = sgGeneral.add(new DoubleSetting.Builder()
             .name("offSet")
+            .description("偏移位移")
             .defaultValue(0.3)
             .min(0)
             .sliderMax(1)

@@ -34,7 +34,7 @@ public class AutoArmorPlus extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
             .name("Delay")
-            .description("MS")
+            .description("操作延迟(毫秒MS)")
             .defaultValue(10)
             .min(0)
             .sliderMax(1000)
@@ -42,7 +42,7 @@ public class AutoArmorPlus extends Module {
     );
     private final Setting<Boolean> autoElytra = sgGeneral.add(new BoolSetting.Builder()
             .name("AutoElytra")
-            .description("Automatically equips elytra when ElytraFly")
+            .description("自动切换鞘翅")
             .defaultValue(true)
             .build()
     );
@@ -59,7 +59,7 @@ public class AutoArmorPlus extends Module {
             .build()
     );
     public AutoArmorPlus() {
-        super(LeavesHack.CATEGORY, "AutoArmorPlus", "Automatically equips armor or elytra");
+        super(LeavesHack.CATEGORY, "AutoArmorPlus", "自动穿甲与鞘翅");
     }
     @Override
     public void onActivate() {

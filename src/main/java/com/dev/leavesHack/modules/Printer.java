@@ -38,13 +38,13 @@ public class Printer extends Module {
     private final SettingGroup sgWhitelist = settings.createGroup("Whitelist");
     private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
             .name("Rotate")
-            .description("Rotate towards blocks when placing.")
+            .description("转头")
             .defaultValue(true)
             .build()
     );
     private final Setting<Integer> printingRange = sgGeneral.add(new IntSetting.Builder()
             .name("PrintingRange")
-            .description("How far to place blocks around the player.")
+            .description("打印距离")
             .defaultValue(4)
             .min(1)
             .sliderMax(6)
@@ -52,21 +52,25 @@ public class Printer extends Module {
     );
     private final Setting<Boolean> inventorySwap = sgGeneral.add(new BoolSetting.Builder()
             .name("InventorySwap")
+            .description("背包鬼手")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> safeWalk = sgGeneral.add(new BoolSetting.Builder()
             .name("SafeWalk")
+            .description("安全行走")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> ignoreSneak = sgShift.add(new BoolSetting.Builder()
             .name("IgnoreSneak")
+            .description("忽略潜行")
             .defaultValue(true)
             .build()
     );
     private final Setting<Integer> shiftTime = sgShift.add(new IntSetting.Builder()
             .name("ShiftTime")
+            .description("潜行时间")
             .defaultValue(100)
             .min(0)
             .sliderMax(1000)
@@ -74,7 +78,7 @@ public class Printer extends Module {
     );
     private final Setting<Integer> sneakSpeed = sgShift.add(new IntSetting.Builder()
             .name("SneakSpeed")
-            .description("目前来看站着不动是最好的选择")
+            .description("潜行速度（目前来看站着不动是最好的选择）")
             .defaultValue(0)
             .min(0)
             .sliderMax(20)
@@ -82,7 +86,7 @@ public class Printer extends Module {
     );
     private final Setting<ListMode> listMode = sgWhitelist.add(new EnumSetting.Builder<ListMode>()
             .name("ListMode")
-            .description("Selection mode.")
+            .description("选择模式")
             .defaultValue(ListMode.Blacklist)
             .build()
     );

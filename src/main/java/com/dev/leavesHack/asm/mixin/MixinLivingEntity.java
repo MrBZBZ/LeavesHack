@@ -2,6 +2,8 @@ package com.dev.leavesHack.asm.mixin;
 
 import com.dev.leavesHack.events.ElytraUpdateEvent;
 import com.dev.leavesHack.modules.FireworkElytraFly;
+import com.dev.leavesHack.modules.GlobalSetting;
+import com.dev.leavesHack.utils.rotation.Rotation;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import meteordevelopment.meteorclient.MeteorClient;
@@ -24,6 +26,15 @@ public class MixinLivingEntity {
             FireworkElytraFly.INSTANCE.isFallFlying = original.call(instance);
             if (elytraTransformEvent.isCancelled()) {
                 return false;
+            }
+        }
+        return original.call(instance);
+    }
+    @WrapOperation(method = "jump", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"))
+    private float warpGetYaw(LivingEntity instance, Operation<Float> original) {
+        if (GlobalSetting.INSTANCE.moveFix.get()) {
+            if (Rotation.rotation) {
+                return Rotation.targetYaw;
             }
         }
         return original.call(instance);

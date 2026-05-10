@@ -30,12 +30,13 @@ import java.util.List;
 public class AutoCity extends Module {
     public static AutoCity INSTANCE;
     public AutoCity() {
-        super(LeavesHack.CATEGORY, "AutoCity", "Automatically breaks obsidian");
+        super(LeavesHack.CATEGORY, "AutoCity", "自动挖角");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final Setting<Integer> targetRange = sgGeneral.add(new IntSetting.Builder()
             .name("TargetRange")
+            .description("目标距离")
             .defaultValue(6)
             .min(0)
             .sliderMax(8)
@@ -43,6 +44,7 @@ public class AutoCity extends Module {
     );
     public final Setting<Integer> range = sgGeneral.add(new IntSetting.Builder()
             .name("Range")
+            .description("操作距离")
             .defaultValue(6)
             .min(0)
             .sliderMax(8)
@@ -50,46 +52,55 @@ public class AutoCity extends Module {
     );
     private final Setting<Boolean> doubleBreak = sgGeneral.add(new BoolSetting.Builder()
             .name("DoubleBreak")
+            .description("双挖")
             .defaultValue(true)
             .build()
     );
     public final Setting<Boolean> delay = sgGeneral.add(new BoolSetting.Builder()
             .name("CityDelay")
+            .description("挖角延迟")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> antiCrawl = sgGeneral.add(new BoolSetting.Builder()
             .name("AntiCrawl")
+            .description("自动反趴下")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> preferSelfClick = sgGeneral.add(new BoolSetting.Builder()
             .name("PreferSelfClick")
+            .description("优先处理手动点击的挖掘")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> head = sgGeneral.add(new BoolSetting.Builder()
             .name("Head")
+            .description("挖头")
             .defaultValue(false)
             .build()
     );
     private final Setting<Boolean> burrow = sgGeneral.add(new BoolSetting.Builder()
             .name("Burrow")
+            .description("挖黑曜石卡身")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> face = sgGeneral.add(new BoolSetting.Builder()
             .name("Face")
+            .description("挖脸")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> down = sgGeneral.add(new BoolSetting.Builder()
             .name("Down")
+            .description("挖脚底")
             .defaultValue(false)
             .build()
     );
     private final Setting<Boolean> surround = sgGeneral.add(new BoolSetting.Builder()
             .name("Surround")
+            .description("挖包围")
             .defaultValue(true)
             .build()
     );

@@ -5,6 +5,9 @@ import com.dev.leavesHack.utils.world.BlockUtil;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMaps;
+import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.meteorclient.events.packets.PacketEvent;
+import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.SlabBlock;
@@ -28,8 +31,21 @@ import java.util.Set;
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class InventoryUtil {
+    public static final InventoryUtil INSTANCE = new InventoryUtil();
+    private InventoryUtil() {
+        MeteorClient.EVENT_BUS.subscribe(this);
+    }
     static int lastSlot = -1;
     static int lastSelect = -1;
+    @EventHandler
+    public void onPacketSend(PacketEvent.Send event) {
+        if (event.packet instanceof UpdateSelectedSlotC2SPacket packet) {
+            if (GlobalSetting.INSTANCE.noBadPackets.get() && packet.getSelectedSlot() == lastSlot) {
+                event.cancel();
+            }
+            lastSlot = packet.getSelectedSlot();
+        }
+    }
     public static int getEquipmentLevel(PlayerEntity player, RegistryKey<Enchantment> enchantmentKey) {
         int maxLevel = 0;
         for (ItemStack stack : player.getArmorItems()) {

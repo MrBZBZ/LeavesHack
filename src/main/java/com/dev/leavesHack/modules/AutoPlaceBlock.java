@@ -24,7 +24,7 @@ public class AutoPlaceBlock extends Module {
     private final SettingGroup sgDirection = this.settings.createGroup("Direction");
     private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
             .name("Delay")
-            .description("MS")
+            .description("放置延迟(毫秒MS)")
             .defaultValue(50)
             .min(0)
             .sliderMax(10000)
@@ -32,6 +32,7 @@ public class AutoPlaceBlock extends Module {
     );
     private final Setting<Integer> range = sgGeneral.add(new IntSetting.Builder()
             .name("Range")
+            .description("操作距离")
             .defaultValue(3)
             .min(0)
             .sliderMax(6)
@@ -39,28 +40,32 @@ public class AutoPlaceBlock extends Module {
     );
     private final Setting<Block> selectBlock = sgGeneral.add(new BlockSetting.Builder()
             .name("Block")
+            .description("选择方块")
             .defaultValue(Blocks.STONE)
             .build()
     );
     private final Setting<Directions> direction = sgDirection.add(new EnumSetting.Builder<Directions>()
             .name("Direction")
+            .description("放置面朝向")
             .defaultValue(Directions.UP)
             .build()
     );
     private final Setting<SlabDirection> slabDirection = sgDirection.add(new EnumSetting.Builder<SlabDirection>()
             .name("SlabDirection")
+            .description("半砖朝向(上下半砖)")
             .defaultValue(SlabDirection.UP)
             .build()
     );
     private final Setting<Integer> blocksPer = sgGeneral.add(new IntSetting.Builder()
             .name("BlocksPer")
+            .description("每tick操作方块数量")
             .defaultValue(1)
             .min(0)
             .sliderMax(4)
             .build()
     );
     public AutoPlaceBlock() {
-        super(LeavesHack.CATEGORY, "AutoPlaceBlock", "Automatically place block");
+        super(LeavesHack.CATEGORY, "AutoPlaceBlock", "自动铺方块");
     }
     @EventHandler
     private void onRender3d(Render3DEvent event) {

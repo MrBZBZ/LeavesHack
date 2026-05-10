@@ -6,6 +6,7 @@
     "accessors.ITextRenderer",
     "mixin.MixinClientPlayerEntity",
     "mixin.MixinGameRenderer",
+    "mixin.MixinKeyboardInput",
     "mixin.MixinPlayerEntityRenderer"
   ],
   "injectors": {
@@ -17,6 +18,7 @@
     "accessors.IVec3d",
     "accessors.SystemsAccessor",
     "mixin.MineProcessMixin",
+    "mixin.MixinEntity",
     "mixin.MixinFireworkRocketEntity",
     "mixin.MixinLivingEntity",
     "mixin.MixinPlayerEntity",

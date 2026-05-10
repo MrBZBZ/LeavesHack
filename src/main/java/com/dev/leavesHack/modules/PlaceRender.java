@@ -18,18 +18,20 @@ import java.util.Map;
 
 public class PlaceRender extends Module {
     public PlaceRender() {
-        super(LeavesHack.CATEGORY, "PlaceRender", "Renders a block where you place.");
+        super(LeavesHack.CATEGORY, "PlaceRender", "放置渲染");
     }
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<ShapeMode> shapeMode = sgRender.add(
             new EnumSetting.Builder<ShapeMode>()
                     .name("ShapeMode")
+                    .description("渲染模式")
                     .defaultValue(ShapeMode.Both)
                     .build()
     );
     private final Setting<Integer> speed = sgRender.add(
             new IntSetting.Builder()
                     .name("Speed")
+                    .description("渲染速度")
                     .defaultValue(10)
                     .sliderRange(1, 100)
                     .build()
@@ -37,6 +39,7 @@ public class PlaceRender extends Module {
     private final Setting<Double> animationExp = sgRender.add(
             new DoubleSetting.Builder()
                     .name("Animation Exponent")
+                    .description("动画指数")
                     .defaultValue(3)
                     .range(0, 10)
                     .sliderRange(0, 10)
@@ -45,6 +48,7 @@ public class PlaceRender extends Module {
     private final Setting<SettingColor> sideStartColor = sgRender.add(
             new ColorSetting.Builder()
                     .name("SideStart")
+                    .description("方块填充开始颜色")
                     .defaultValue(new SettingColor(255, 255, 255, 0))
                     .build()
     );
@@ -52,6 +56,7 @@ public class PlaceRender extends Module {
     private final Setting<SettingColor> sideEndColor = sgRender.add(
             new ColorSetting.Builder()
                     .name("SideEnd")
+                    .description("方块填充结束颜色")
                     .defaultValue(new SettingColor(255, 255, 255, 50))
                     .build()
     );
@@ -59,6 +64,7 @@ public class PlaceRender extends Module {
     private final Setting<SettingColor> lineStartColor = sgRender.add(
             new ColorSetting.Builder()
                     .name("LineStart")
+                    .description("方块边框开始颜色")
                     .defaultValue(new SettingColor(255, 255, 255, 0))
                     .build()
     );
@@ -66,6 +72,7 @@ public class PlaceRender extends Module {
     private final Setting<SettingColor> lineEndColor = sgRender.add(
             new ColorSetting.Builder()
                     .name("LineEnd")
+                    .description("方块边框结束颜色")
                     .defaultValue(new SettingColor(255, 255, 255, 255))
                     .build()
     );

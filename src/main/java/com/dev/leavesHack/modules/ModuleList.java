@@ -32,48 +32,56 @@ public class ModuleList extends Module {
 
     private final Setting<Boolean> additionalInfo = sgGeneral.add(new BoolSetting.Builder()
             .name("additional-info")
+            .description("模块信息")
             .defaultValue(true)
             .build()
     );
 
     private final Setting<Boolean> onlyBind = sgGeneral.add(new BoolSetting.Builder()
             .name("OnlyBind")
-            .defaultValue(true)
+            .description("仅渲染绑定按键的模块")
+            .defaultValue(false)
             .build()
     );
 
     private final Setting<Boolean> shadow = sgGeneral.add(new BoolSetting.Builder()
             .name("shadow")
+            .description("渲染阴影")
             .defaultValue(true)
             .build()
     );
 
     private final Setting<SettingColor> moduleColor = sgGeneral.add(new ColorSetting.Builder()
             .name("module-color")
+            .description("模块颜色")
             .defaultValue(new SettingColor(255, 255, 255))
             .build()
     );
 
     private final Setting<SettingColor> activeColor = sgGeneral.add(new ColorSetting.Builder()
             .name("active-color")
+            .description("活动模块颜色")
             .defaultValue(new SettingColor(0, 255, 0))
             .build()
     );
 
     private final Setting<SettingColor> inactiveColor = sgGeneral.add(new ColorSetting.Builder()
             .name("inactive-color")
+            .description("非活动模块颜色")
             .defaultValue(new SettingColor(255, 0, 0))
             .build()
     );
 
     private final Setting<SettingColor> background = sgGeneral.add(new ColorSetting.Builder()
             .name("background")
+            .description("背景")
             .defaultValue(new SettingColor(0, 0, 0, 80))
             .build()
     );
 
     private final Setting<SettingColor> tagColor = sgGeneral.add(new ColorSetting.Builder()
             .name("tag-color")
+            .description("标签颜色")
             .defaultValue(new SettingColor(255, 255, 255))
             .build()
     );
@@ -85,7 +93,7 @@ public class ModuleList extends Module {
     private final Map<Module, ModuleEntry> moduleEntries = new HashMap<>();
 
     public ModuleList() {
-        super(LeavesHack.CATEGORY, "module-list", "Displays module states on screen (right-aligned).");
+        super(LeavesHack.CATEGORY, "ModuleList", "模块列表");
     }
 
     @EventHandler

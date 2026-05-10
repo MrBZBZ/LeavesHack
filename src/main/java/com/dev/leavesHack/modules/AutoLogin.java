@@ -32,7 +32,7 @@ public class AutoLogin extends Module {
     }
 
     public AutoLogin() {
-        super(LeavesHack.CATEGORY, "AutoLogin", "Automatically logs you into the server.");
+        super(LeavesHack.CATEGORY, "AutoLogin", "自动登录");
         MeteorClient.EVENT_BUS.subscribe(new StaticListener());
         INSTANCE = this;
     }

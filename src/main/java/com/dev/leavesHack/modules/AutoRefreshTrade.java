@@ -45,7 +45,7 @@ public class AutoRefreshTrade extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final Setting<Integer> range = sgGeneral.add(new IntSetting.Builder()
             .name("Range")
-            .description("range")
+            .description("操作距离")
             .defaultValue(5)
             .min(0)
             .sliderMax(12)
@@ -53,7 +53,7 @@ public class AutoRefreshTrade extends Module {
     );
     private final Setting<Integer> wallRange = sgGeneral.add(new IntSetting.Builder()
             .name("WallRange")
-            .description("wallRange")
+            .description("穿墙操作距离")
             .defaultValue(5)
             .min(0)
             .sliderMax(12)
@@ -61,7 +61,7 @@ public class AutoRefreshTrade extends Module {
     );
     private final Setting<Integer> waitMine = sgGeneral.add(new IntSetting.Builder()
             .name("WaitMineDelay")
-            .description("MS")
+            .description("等待挖掘延迟(毫秒MS)")
             .defaultValue(5000)
             .min(0)
             .sliderMax(10000)
@@ -69,19 +69,19 @@ public class AutoRefreshTrade extends Module {
     );
     private final Setting<Set<RegistryKey<Enchantment>>> enchantmentList = sgGeneral.add(new EnchantmentListSetting.Builder()
             .name("EnchantmentsList")
-            .description("")
+            .description("目标附魔列表")
             .build()
     );
     private final Setting<Integer> enchantmentLevel = sgGeneral.add(new IntSetting.Builder()
             .name("Level")
-            .description("Enchantment level")
+            .description("目标附魔等级")
             .defaultValue(3)
             .min(0)
             .sliderMax(5)
             .build()
     );
     public AutoRefreshTrade() {
-        super(LeavesHack.CATEGORY, "AutoRefreshTrade", "dev Leaves_awa");
+        super(LeavesHack.CATEGORY, "AutoRefreshTrade", "自动刷交易附魔书");
     }
     public BlockPos pos = null;
     public Timer timer = new Timer();

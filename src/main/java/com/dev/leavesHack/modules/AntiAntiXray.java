@@ -39,7 +39,7 @@ public class AntiAntiXray extends Module {
     private int rightIndex;
     private final Setting<Integer> range = sgGeneral.add(new IntSetting.Builder()
         .name("Range")
-        .description("range")
+        .description("扫描范围")
         .defaultValue(15)
         .min(0)
         .sliderMax(50)
@@ -47,7 +47,7 @@ public class AntiAntiXray extends Module {
     );
     private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
             .name("delay")
-            .description("")
+            .description("扫描间隔延迟")
             .defaultValue(0)
             .min(0)
             .sliderMax(100)
@@ -55,7 +55,7 @@ public class AntiAntiXray extends Module {
     );
     private final Setting<Integer> step = sgGeneral.add(new IntSetting.Builder()
         .name("Step")
-        .description("step")
+        .description("扫描步长")
         .defaultValue(2)
         .min(1)
         .sliderMax(2)
@@ -63,45 +63,45 @@ public class AntiAntiXray extends Module {
     );
     private final Setting<Boolean> baritone = sgGeneral.add(new BoolSetting.Builder()
         .name("baritone")
-        .description("Set baritone ore positions to the simulated ones.")
+        .description("联动Baritone")
         .defaultValue(false)
         .build()
     );
     private final Setting<Boolean> autoMine = sgGeneral.add(new BoolSetting.Builder()
         .name("autoMine")
-        .description("")
+        .description("扫描完毕后自动启动Baritone挖掘逻辑")
         .defaultValue(false)
         .build()
     );
     private final Setting<Boolean> iron = sgRender.add(new BoolSetting.Builder()
         .name("Iron")
-        .description("")
+        .description("铁矿")
         .defaultValue(true)
         .build()
     );
     private final Setting<Boolean> gold = sgRender.add(new BoolSetting.Builder()
         .name("Gold")
-        .description("")
+        .description("金矿")
         .defaultValue(true)
         .build()
     );
     private final Setting<Boolean> diamond = sgRender.add(new BoolSetting.Builder()
         .name("Diamond")
-        .description("")
+        .description("钻石矿")
         .defaultValue(true)
         .build()
     );
     private final Setting<Boolean> lapis = sgRender.add(new BoolSetting.Builder()
         .name("Lapis")
-        .description("")
+        .description("绿宝石矿")
         .defaultValue(true)
         .build()
     );
     private final Setting<Boolean> ancientDebris = sgRender.add(new BoolSetting.Builder()
-            .name("AncientDebris")
-            .description("")
-            .defaultValue(true)
-            .build()
+        .name("AncientDebris")
+        .description("远古残骸")
+        .defaultValue(true)
+        .build()
     );
     public AntiAntiXray() {
         super(LeavesHack.CATEGORY, "AntiAntiXray", "雷达矿透");
