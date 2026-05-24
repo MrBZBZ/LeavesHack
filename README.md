@@ -20,6 +20,7 @@ bilibili: https://space.bilibili.com/1932462042
 点击链接加入群聊【LeavesHack-user-group】：https://qm.qq.com/q/YwajlOYRGw
 ## 注意事项
 - 这个东西是我玩3c3u写的，开源只是顺手，我想写什么就写什么，readme的更新有一定滞后性，我尽量把每个模块的教程写上
+- 插件现在已经自带汉化系统，打开GlobalSetting(全局设置)，在里面找到Chinese选项，打开即可
 - Meteor本身不支持中文渲染，可以通过下载现代化UI和模组菜单，打开现代化UI的文本引擎，对字体规则选择“忽略全部”，再关闭Meteor的CustomFont解决
 - 理论上AntiAntiXray可以绕过其他服务器的假矿或其他反矿透插件，如果腐竹不给开挂，而且你使用这个插件导致被封号等等后果请自负
 - 如果你觉得这个插件不错可以请我吃个肠粉，咕咕嘎嘎
