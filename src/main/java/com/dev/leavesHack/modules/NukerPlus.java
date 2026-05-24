@@ -274,7 +274,7 @@ public class NukerPlus extends Module {
     int maxv = 0;
 
     public NukerPlus() {
-        super(LeavesHack.CATEGORY, "Nuker+", "Nuker for grim");
+        super(LeavesHack.CATEGORY, "Nuker+", "范围挖掘");
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.dev.leavesHack;
 
+import com.dev.leavesHack.manager.ModuleManager;
 import com.dev.leavesHack.modules.*;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.rotation.Rotation;
@@ -24,6 +25,7 @@ public class LeavesHack extends MeteorAddon {
         LOG.info("Initializing LeavesHack");
         Rotation.INSTANCE.hashCode();
         InventoryUtil.INSTANCE.hashCode();
+        ModuleManager.INSTANCE.hashCode();
         // Modules
         add(new PlaceRender());
         add(new AutoCrystal());

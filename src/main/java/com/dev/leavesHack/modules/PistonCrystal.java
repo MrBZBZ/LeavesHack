@@ -181,6 +181,7 @@ public class PistonCrystal extends Module {
     }
     @Override
     public String getInfoString() {
+        if (mc.world == null || mc.player == null) return null;
         return target == null ? null : "§f[" + target.getName().getString() + "]";
     }
     @EventHandler

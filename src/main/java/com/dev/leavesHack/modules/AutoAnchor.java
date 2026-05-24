@@ -164,6 +164,7 @@ public class AutoAnchor extends Module {
         renderPosEntry = new PosEntry();
     }
     public String getInfoString() {
+        if (mc.world == null || mc.player == null) return null;
         return target == null ? null : "§f[" + target.getName().getString() + "]";
     }
     @EventHandler

@@ -36,14 +36,15 @@ public class InventoryUtil {
         MeteorClient.EVENT_BUS.subscribe(this);
     }
     static int lastSlot = -1;
+    static int serverSlot = -1;
     static int lastSelect = -1;
     @EventHandler
     public void onPacketSend(PacketEvent.Send event) {
         if (event.packet instanceof UpdateSelectedSlotC2SPacket packet) {
-            if (GlobalSetting.INSTANCE.noBadPackets.get() && packet.getSelectedSlot() == lastSlot) {
+            if (GlobalSetting.INSTANCE.noBadPackets.get() && packet.getSelectedSlot() == serverSlot) {
                 event.cancel();
             }
-            lastSlot = packet.getSelectedSlot();
+            serverSlot = packet.getSelectedSlot();
         }
     }
     public static int getEquipmentLevel(PlayerEntity player, RegistryKey<Enchantment> enchantmentKey) {
@@ -130,7 +131,7 @@ public class InventoryUtil {
         return mc.player.getInventory().getStack(i);
     }
     public static void switchToSlot(int slot) {
-        mc.player.getInventory().selectedSlot = slot;
+        if (GlobalSetting.INSTANCE.clientSwitch.get()) mc.player.getInventory().selectedSlot = slot;
         sendPacket(new UpdateSelectedSlotC2SPacket(slot));
     }
     public enum MineSwitchMode {

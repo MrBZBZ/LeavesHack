@@ -18,4 +18,17 @@ public interface IPlayerMoveC2SPacket {
     @Mutable
     @Accessor("yaw")
     void setYaw(float yaw);
+
+    @Mutable
+    @Accessor("y")
+    void setY(double y);
+
+    @Accessor("y")
+    double getY();
+
+    @Accessor("yaw")
+    float getYaw();
+
+    @Accessor("pitch")
+    float getPitch();
 }

@@ -108,6 +108,7 @@ public class AntiAntiXray extends Module {
     }
     @Override
     public String getInfoString() {
+        if (mc.world == null || mc.player == null) return null;
         return "§f[" + progress*step.get() + "%]";
     }
     @Override

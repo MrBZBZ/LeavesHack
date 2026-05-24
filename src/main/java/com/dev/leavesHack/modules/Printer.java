@@ -126,7 +126,7 @@ public class Printer extends Module {
             .build()
     );
     public Printer() {
-        super(LeavesHack.CATEGORY, "printer", "Places blocks based on a Litematica schematic.");
+        super(LeavesHack.CATEGORY, "Printer", "打印机");
     }
     boolean hasSneak = false;
     private Timer shiftTimer = new Timer();

@@ -22,7 +22,7 @@ import net.minecraft.util.math.Direction;
 
 public class ScaffoldPlus extends Module {
     public ScaffoldPlus() {
-        super(LeavesHack.CATEGORY, "scaffold+", "Automatically places blocks under you.");
+        super(LeavesHack.CATEGORY, "scaffold+", "自动搭路");
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final SettingGroup sgRender = settings.createGroup("Render");

@@ -217,6 +217,7 @@ public class AutoCrystal extends Module {
     }
     private final RenderPos renderPos = new RenderPos();
     public String getInfoString() {
+        if (mc.world == null || mc.player == null) return null;
         return target == null ? null : "§f[" + target.getName().getString() + "]";
     }
     @Override

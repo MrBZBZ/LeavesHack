@@ -41,7 +41,7 @@ import static com.dev.leavesHack.utils.entity.InventoryUtil.sendPacket;
 public class PacketMine extends Module {
     public static PacketMine INSTANCE;
     public PacketMine() {
-        super(LeavesHack.CATEGORY, "PacketMine+", "PacketMine for grim");
+        super(LeavesHack.CATEGORY, "PacketMine+", "数据包挖掘");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -356,6 +356,7 @@ public class PacketMine extends Module {
     }
     @Override
     public String getInfoString() {
+        if (mc.world == null || mc.player == null) return null;
         if (targetPos == null) return null;
         double max = getMineTicks(getTool(targetPos));
         if (progress >= max * mineDamage.get()) return "§f[100%]";

@@ -40,13 +40,13 @@ public class FireworkElytraFly extends Module {
     public final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
             .name("Mode")
             .description("运行模式(Legit合法，GrimDurability甲飞)")
-            .defaultValue(Mode.Legit)
+            .defaultValue(Mode.GrimDurability)
             .build()
     );
     public final Setting<FireWorkMode> fireWorkMode = sgGeneral.add(new EnumSetting.Builder<FireWorkMode>()
             .name("FireWorkMode")
             .description("烟花使用模式(Delay延迟放，Auto自动放)")
-            .defaultValue(FireWorkMode.Delay)
+            .defaultValue(FireWorkMode.Auto)
             .build()
     );
     private final Setting<Double> packetDealy = sgGeneral.add(new DoubleSetting.Builder()
