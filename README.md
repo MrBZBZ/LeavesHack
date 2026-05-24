@@ -99,7 +99,8 @@ bilibili: https://space.bilibili.com/1932462042
  * 注意如果你在刷精准采集这类1级附魔，不需要主动降低level的值，模块有自动检测max的逻辑，当附魔已经为可能的最大附魔且在需求列表中，也会视为找到目标
  * 比如：你选择了锋利和经验修补以及耐久，level设置为5，寻找锋利时只有5级才符合要求，但当村民出现经验修补时，因为1级就是精修的最大等级，模块会自动视为找到目标，如果刷出耐久三同理
 <img src="screen2.png">  
-<img src="screen3.png">  
+<img src="screen3.png">
+
 ## Credits
 
 This project would not be possible without:
