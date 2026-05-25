@@ -103,16 +103,16 @@ bilibili: https://space.bilibili.com/1932462042
 
 ## Credits
 
-This project would not be possible without:
+致谢项目:
 
 - [Meteor Client](https://github.com/MeteorDevelopment/meteor-client)
 - [Meteor Translation Addon](https://github.com/Nippaku-Zanmu/meteor-translation-addon)
 - [Baritone](https://github.com/cabaletta/baritone)
 - [Epsilon](https://github.com/NekoyaHouse/Epsilon)
 
-Special thanks to:
+特别致谢:
 - L3MonKe
 - Chen Meng
-
+- matl
 
 
