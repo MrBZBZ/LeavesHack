@@ -17,7 +17,9 @@
 
 bilibili: https://space.bilibili.com/1932462042  
 神秘群聊欢迎吹水：1076456572  
-点击链接加入群聊【LeavesHack-user-group】：https://qm.qq.com/q/YwajlOYRGw
+点击链接加入群聊【LeavesHack-user-group】：https://qm.qq.com/q/YwajlOYRGw  
+中文使用文档：
+https://leaveshack.netlify.app/  
 ## 注意事项
 - 这个东西是我玩3c3u写的，开源只是顺手，我想写什么就写什么，readme的更新有一定滞后性，我尽量把每个模块的教程写上
 - 插件现在已经自带汉化系统，打开GlobalSetting(全局设置)，在里面找到Chinese选项，打开即可
