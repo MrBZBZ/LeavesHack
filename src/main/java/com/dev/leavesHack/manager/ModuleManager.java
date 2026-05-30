@@ -36,7 +36,7 @@ public class ModuleManager {
     public void onTick(TickEvent.Pre event) {
         if (!chinese && GlobalSetting.INSTANCE.chinese.get()) {
             for (Module module : Modules.get().getAll()) {
-                if (!module.addon.name.equals("LeavesHack")) continue;
+                if (module.addon == null || !module.addon.name.equals("LeavesHack")) continue;
                 IModule iModule = (IModule) module;
                 String engModule = iModule.getTitle();
                 if (iModule.getDescription().isEmpty()) continue;
@@ -56,7 +56,7 @@ public class ModuleManager {
             chinese = true;
         } else if (chinese && !GlobalSetting.INSTANCE.chinese.get()) {
             for (Module module : Modules.get().getAll()) {
-                if (!module.addon.name.equals("LeavesHack")) continue;
+                if (module.addon == null || !module.addon.name.equals("LeavesHack")) continue;
                 IModule iModule = (IModule) module;
                 String zhModule = iModule.getTitle();
                 if (iModule.getDescription().isEmpty()) continue;
