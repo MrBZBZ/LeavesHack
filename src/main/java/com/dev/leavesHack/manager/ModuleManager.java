@@ -26,13 +26,6 @@ public class ModuleManager {
     }
     public boolean chinese = false;
     @EventHandler
-    private void onGameJoined(ServerConnectBeginEvent event) {
-        if (GlobalSetting.INSTANCE.chinese.get()) {
-            refreshGui();
-            refreshGui();
-        }
-    }
-    @EventHandler
     public void onTick(TickEvent.Pre event) {
         if (!chinese && GlobalSetting.INSTANCE.chinese.get()) {
             for (Module module : Modules.get().getAll()) {

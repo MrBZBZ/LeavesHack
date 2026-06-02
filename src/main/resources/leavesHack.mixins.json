@@ -22,6 +22,7 @@
     "accessors.SettingGroupAccessor",
     "accessors.SystemsAccessor",
     "mixin.MineProcessMixin",
+    "mixin.MixinBlockItem",
     "mixin.MixinDecoderHandler",
     "mixin.MixinEntity",
     "mixin.MixinFireworkRocketEntity",

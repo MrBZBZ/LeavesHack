@@ -1,6 +1,7 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
+import com.dev.leavesHack.events.PlaceBlockEvent;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
@@ -17,8 +18,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PlaceRender extends Module {
+    public static PlaceRender INSTANCE;
     public PlaceRender() {
         super(LeavesHack.CATEGORY, "PlaceRender", "放置渲染");
+        INSTANCE = this;
     }
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<ShapeMode> shapeMode = sgRender.add(
@@ -34,6 +37,13 @@ public class PlaceRender extends Module {
                     .description("渲染速度")
                     .defaultValue(10)
                     .sliderRange(1, 100)
+                    .build()
+    );
+    private final Setting<Boolean> renderClientPlace = sgRender.add(
+            new BoolSetting.Builder()
+                    .name("RenderClientPlace")
+                    .description("客户端放置渲染")
+                    .defaultValue(true)
                     .build()
     );
     private final Setting<Double> animationExp = sgRender.add(
@@ -80,6 +90,12 @@ public class PlaceRender extends Module {
     @Override
     public void onActivate() {
         BlockUtil.placeList.clear();
+    }
+    @EventHandler
+    public void onBlockPlace(PlaceBlockEvent event) {
+        if (event.blockPos != null && renderClientPlace.get()) {
+            BlockUtil.placeList.add(event.blockPos);
+        }
     }
     @EventHandler
     public void onRender(Render3DEvent event) {

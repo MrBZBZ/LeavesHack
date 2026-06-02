@@ -37,7 +37,6 @@ public class LeavesHack extends MeteorAddon {
         add(new Printer());
         add(new AutoTorch());
         add(new ScaffoldPlus());
-        add(new LegitNoFall());
         add(new AutoCity());
         add(new AutoPlaceBlock());
         add(new NukerPlus());

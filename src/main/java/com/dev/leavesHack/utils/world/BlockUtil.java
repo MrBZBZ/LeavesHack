@@ -337,11 +337,9 @@ public class BlockUtil {
     );
     public static void placeBlock(BlockPos pos, Direction side, boolean rotate) {
         clickBlock(pos.offset(side), side.getOpposite(), rotate);
-        placeList.add(pos);
     }
     public static void placeSlabBlock(BlockPos pos, Direction side, Direction slabSide, boolean rotate) {
         clickSlabBlock(pos.offset(side), side.getOpposite(), slabSide, rotate);
-        placeList.add(pos);
     }
     public static Block getBlock(BlockPos pos) {
         return mc.world.getBlockState(pos).getBlock();
@@ -353,6 +351,7 @@ public class BlockUtil {
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         if (GlobalSetting.INSTANCE.packetPlace.get()){
             mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
+            placeList.add(pos);
         } else {
             mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
         }
@@ -371,6 +370,7 @@ public class BlockUtil {
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         if (GlobalSetting.INSTANCE.packetPlace.get()){
             mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
+            placeList.add(pos);
         } else {
             mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
         }

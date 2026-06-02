@@ -18,15 +18,15 @@ public class ModuleList extends Module {
 
     private final Setting<Integer> x = sgGeneral.add(new IntSetting.Builder()
             .name("x")
-            .defaultValue(1910)
-            .sliderRange(0, 1920)
+            .defaultValue(3000)
+            .sliderRange(0, 3000)
             .build()
     );
 
     private final Setting<Integer> y = sgGeneral.add(new IntSetting.Builder()
             .name("y")
-            .defaultValue(10)
-            .sliderRange(0, 1080)
+            .defaultValue(0)
+            .sliderRange(0, 3000)
             .build()
     );
 
@@ -103,6 +103,11 @@ public class ModuleList extends Module {
         TextRenderer textRenderer = TextRenderer.get();
         boolean useShadow = shadow.get();
 
+        int screenWidth = mc.getWindow().getWidth();
+        int screenHeight = mc.getWindow().getHeight();
+        double clampedX = Math.max(0, Math.min(x.get(), screenWidth));
+        double clampedY = Math.max(0, Math.min(y.get(), screenHeight));
+
         for (Module m : Modules.get().getAll()) {
             if (!moduleEntries.containsKey(m)) {
                 moduleEntries.put(m, new ModuleEntry(m));
@@ -117,7 +122,7 @@ public class ModuleList extends Module {
                 ))
                 .toList();
 
-        double drawY = y.get();
+        double drawY = clampedY;
 
         for (int i = 0; i < activeModules.size(); i++) {
             Module module = activeModules.get(i);
@@ -128,7 +133,7 @@ public class ModuleList extends Module {
             double width = textRenderer.getWidth(fullText, useShadow);
             double height = textRenderer.getHeight(useShadow);
 
-            double targetX = x.get() - width;
+            double targetX = clampedX - width;
             entry.x += (targetX - entry.x) * slideSpeed;
             entry.y += (drawY - entry.y) * ySpeed;
             entry.fade += (1 - entry.fade) * fadeSpeed;
@@ -167,7 +172,7 @@ public class ModuleList extends Module {
             if (!activeModules.contains(m)) {
                 ModuleEntry entry = moduleEntries.get(m);
                 entry.fade += (0 - entry.fade) * fadeSpeed;
-                entry.x += ((x.get() + 50) - entry.x) * slideSpeed;
+                entry.x += ((clampedX + 50) - entry.x) * slideSpeed;
             }
         }
     }
