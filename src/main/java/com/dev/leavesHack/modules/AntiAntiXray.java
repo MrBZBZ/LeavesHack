@@ -1,17 +1,16 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
+import com.dev.leavesHack.utils.BaritoneReflection;
+import com.dev.leavesHack.utils.ModCompatibility;
 import com.dev.leavesHack.utils.math.Timer;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
-import meteordevelopment.meteorclient.pathing.BaritoneUtils;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import baritone.api.BaritoneAPI;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Blocks;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import net.minecraft.util.math.Direction;
@@ -65,12 +64,14 @@ public class AntiAntiXray extends Module {
         .name("baritone")
         .description("联动Baritone")
         .defaultValue(false)
+        .visible(() -> ModCompatibility.isBaritoneAvailable())
         .build()
     );
     private final Setting<Boolean> autoMine = sgGeneral.add(new BoolSetting.Builder()
         .name("autoMine")
         .description("扫描完毕后自动启动Baritone挖掘逻辑")
         .defaultValue(false)
+        .visible(() -> ModCompatibility.isBaritoneAvailable() && baritone.get())
         .build()
     );
     private final Setting<Boolean> iron = sgRender.add(new BoolSetting.Builder()
@@ -130,15 +131,19 @@ public class AntiAntiXray extends Module {
     @Override
     public void onDeactivate() {
         executor.shutdown();
-        BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
+        if (ModCompatibility.isBaritoneAvailable()) {
+            BaritoneReflection.cancelEverything();
+        }
     }
     public boolean baritone() {
-        return isActive() && baritone.get() && BaritoneUtils.IS_AVAILABLE;
+        return isActive() && baritone.get() && ModCompatibility.isBaritoneAvailable();
     }
     @EventHandler
     private void onRender3d(Render3DEvent event) {
         if (render && breakList.isEmpty()) {
-            if (autoMine.get()) BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
+            if (autoMine.get() && ModCompatibility.isBaritoneAvailable()) {
+                BaritoneReflection.cancelEverything();
+            }
             toggle();
         }
         if (!executor.isShutdown()) {
@@ -157,7 +162,9 @@ public class AntiAntiXray extends Module {
             progress = (int) Math.round(percentage);
         }
         if (progress * step.get() == 100 && !render) {
-            if (autoMine.get()) BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().execute("mine minecraft:iron_ore");
+            if (autoMine.get() && ModCompatibility.isBaritoneAvailable()) {
+                BaritoneReflection.executeCommand("mine minecraft:iron_ore");
+            }
             render = true;
         }
         if (leftIndex > rightIndex) {

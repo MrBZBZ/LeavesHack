@@ -35,8 +35,8 @@ public class PlaceRender extends Module {
             new IntSetting.Builder()
                     .name("Speed")
                     .description("渲染速度")
-                    .defaultValue(10)
-                    .sliderRange(1, 100)
+                    .defaultValue(3)
+                    .sliderRange(1, 10)
                     .build()
     );
     private final Setting<Boolean> renderClientPlace = sgRender.add(

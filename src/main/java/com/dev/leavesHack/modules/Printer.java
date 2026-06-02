@@ -2,12 +2,12 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.events.MoveEvent;
+import com.dev.leavesHack.utils.LitematicaReflection;
+import com.dev.leavesHack.utils.ModCompatibility;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockUtil;
-import fi.dy.masa.litematica.world.SchematicWorldHandler;
-import fi.dy.masa.litematica.world.WorldSchematic;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
@@ -132,6 +132,11 @@ public class Printer extends Module {
     private Timer shiftTimer = new Timer();
     @Override
     public void onActivate() {
+        if (!ModCompatibility.isLitematicaAvailable()) {
+            error("Litematica 模组未安装或未启用，Printer 模块无法工作。");
+            toggle();
+            return;
+        }
         hasSneak = false;
         shiftTimer.setMs(99999);
     }
@@ -145,15 +150,20 @@ public class Printer extends Module {
     @EventHandler
     private void onRender3D(Render3DEvent event) {
         if (mc.player == null || mc.world == null) return;
-        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (!ModCompatibility.isLitematicaAvailable()) return;
+
+        Object schematic = LitematicaReflection.getSchematicWorld();
         if (schematic == null) return;
+
         if (!shiftTimer.passedMs(shiftTime.get()) && hasSneak && ignoreSneak.get()) {
             return;
         }
         List<BlockPos> sphere = BlockUtil.getSphere(printingRange.get());
         int placed = 0;
         for (BlockPos pos : sphere) {
-            BlockState required = schematic.getBlockState(pos);
+            BlockState required = LitematicaReflection.getBlockState(schematic, pos);
+            if (required == null) continue;
+
             if (listMode.get() == ListMode.Blacklist && blacklist.get().contains(required.getBlock())) continue;
             if (listMode.get() == ListMode.Whitelist && !whitelist.get().contains(required.getBlock())) continue;
             if (!required.isAir() && !required.isLiquid() && (mc.world.isAir(pos) || BlockUtil.canReplace(pos)) && !BlockUtil.hasEntity(pos, false)) {
