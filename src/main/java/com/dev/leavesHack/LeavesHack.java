@@ -27,6 +27,8 @@ public class LeavesHack extends MeteorAddon {
         InventoryUtil.INSTANCE.hashCode();
         ModuleManager.INSTANCE.hashCode();
         // Modules
+        add(new Follower());
+        add(new GlassFiller());
         add(new PlaceRender());
         add(new AutoCrystal());
         add(new AutoAnchor());

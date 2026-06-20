@@ -69,7 +69,6 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
             if (this.hasVehicle()) {
                 Rotation.rotationYaw = this.getYaw();
                 Rotation.rotationPitch = this.getPitch();
-                this.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(this.getYaw(), this.getPitch(), this.isOnGround()));
             }
         } catch (Exception e) {
             e.printStackTrace();

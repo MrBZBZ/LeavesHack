@@ -10,6 +10,7 @@ import com.dev.leavesHack.utils.render.Render3DUtil;
 import com.dev.leavesHack.utils.world.BlockPosX;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.entity.player.StartBreakingBlockEvent;
+import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
@@ -41,141 +42,160 @@ import static com.dev.leavesHack.utils.entity.InventoryUtil.sendPacket;
 public class PacketMine extends Module {
     public static PacketMine INSTANCE;
     public PacketMine() {
-        super(LeavesHack.CATEGORY, "PacketMine+", "数据包挖掘");
+        super(LeavesHack.CATEGORY, "PacketMine+", "发包挖掘");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgRender = settings.createGroup("Render");
-    private final Setting<Boolean> usingPause = sgGeneral.add(new BoolSetting.Builder()
-            .name("UsingPause")
-            .description("使用暂停")
-            .defaultValue(true)
-            .build()
+    private final Setting<Boolean> usingPause = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("UsingPause")
+                    .description("使用暂停")
+                    .defaultValue(true)
+                    .build()
     );
-    private final Setting<Boolean> onlyMain = sgGeneral.add(new BoolSetting.Builder()
-            .name("OnlyMain")
-            .description("仅检查主手")
-            .defaultValue(true)
-            .visible(usingPause::get)
-            .build()
+    private final Setting<Boolean> onlyMain = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("OnlyMain")
+                    .description("仅主手暂停")
+                    .defaultValue(true)
+                    .visible(usingPause::get)
+                    .build()
     );
     public final Setting<MineSwitchMode> autoSwitch = sgGeneral.add(new EnumSetting.Builder<MineSwitchMode>()
             .name("AutoSwitch")
-            .description("自动切镐")
+            .description("自动切换")
             .defaultValue(MineSwitchMode.Silent)
             .build()
     );
-    public final Setting<Integer> range = sgGeneral.add(new IntSetting.Builder()
-            .name("Range")
-            .description("操作距离")
-            .defaultValue(6)
-            .min(0)
-            .sliderMax(12)
-            .build()
+    public final Setting<Integer> range = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("Range")
+                    .description("挖掘距离")
+                    .defaultValue(6)
+                    .min(0)
+                    .sliderMax(12)
+                    .build()
     );
-    public final Setting<Integer> maxBreaks = sgGeneral.add(new IntSetting.Builder()
-            .name("TryBreakTime")
-            .description("最大尝试挖掘次数")
-            .defaultValue(6)
-            .min(0)
-            .sliderMax(10)
-            .build()
+    public final Setting<Integer> maxBreaks = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("TryBreakTime")
+                    .description("最大尝试破坏次数")
+                    .defaultValue(6)
+                    .min(0)
+                    .sliderMax(10)
+                    .build()
     );
-    private final Setting<Boolean> farCancel = sgGeneral.add(new BoolSetting.Builder()
-            .name("FarCancel")
-            .description("过远取消")
-            .defaultValue(true)
-            .build()
+    private final Setting<Boolean> farCancel = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("FarCancel")
+                    .description("远离取消")
+                    .defaultValue(true)
+                    .build()
     );
-    private final Setting<Boolean> swing = sgGeneral.add(new BoolSetting.Builder()
-            .name("SwingHand")
-            .description("挥手")
-            .defaultValue(true)
-            .build()
+    private final Setting<Boolean> swing = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("SwingHand")
+                    .description("挥手动效")
+                    .defaultValue(true)
+                    .build()
     );
-    private final Setting<Boolean> instantMine = sgGeneral.add(new BoolSetting.Builder()
-            .name("InstantMine")
-            .description("秒挖")
-            .defaultValue(false)
-            .build()
+    private final Setting<Boolean> instantMine = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("InstantMine")
+                    .description("瞬间挖矿")
+                    .defaultValue(true)
+                    .build()
     );
-    private final Setting<Integer> instantDelay = sgGeneral.add(new IntSetting.Builder()
-            .name("InstantDelay")
-            .description("秒挖延迟")
-            .defaultValue(10)
-            .min(0)
-            .sliderMax(1000)
-            .build()
+    private final Setting<Integer> instantDelay = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("InstantDelay")
+                    .description("瞬挖延迟")
+                    .defaultValue(10)
+                    .min(0)
+                    .sliderMax(1000)
+                    .build()
     );
-    private final Setting<Boolean> fastBypass = sgGeneral.add(new BoolSetting.Builder()
-            .name("FastBypass")
-            .description("快速挖掘绕过")
-            .defaultValue(true)
-            .build()
+    private final Setting<Boolean> fastBypass = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("FastBypass")
+                    .description("快速绕过")
+                    .defaultValue(true)
+                    .build()
     );
-    private final Setting<Boolean> doubleBreak = sgGeneral.add(new BoolSetting.Builder()
-            .name("DoubleBreak")
-            .description("双挖")
-            .defaultValue(false)
-            .build()
+    private final Setting<Boolean> doubleBreak = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("DoubleBreak")
+                    .description("双挖")
+                    .defaultValue(false)
+                    .build()
     );
-    private final Setting<Boolean> checkGround = sgGeneral.add(new BoolSetting.Builder()
-            .name("CheckGround")
-            .description("检查是否在地面上")
-            .defaultValue(true)
-            .build()
+    private final Setting<Boolean> checkGround = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("CheckGround")
+                    .description("检查着地")
+                    .defaultValue(true)
+                    .build()
     );
-    private final Setting<Boolean> bypassGround = sgGeneral.add(new BoolSetting.Builder()
-            .name("BypassGround")
-            .description("滞空挖掘绕过")
-            .defaultValue(false)
-            .build()
+    private final Setting<Boolean> bypassGround = sgGeneral.add(
+            new BoolSetting.Builder()
+                    .name("BypassGround")
+                    .description("绕过着地检测")
+                    .defaultValue(false)
+                    .build()
     );
-    private final Setting<Integer> switchDamage = sgGeneral.add(new IntSetting.Builder()
-            .name("SwitchDamage")
-            .description("自动切镐挖掘进度阈值")
-            .defaultValue(95)
-            .min(0)
-            .sliderMax(100)
-            .build()
+    private final Setting<Integer> switchDamage = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("SwitchDamage")
+                    .description("切换伤害阈值")
+                    .defaultValue(95)
+                    .min(0)
+                    .sliderMax(100)
+                    .build()
     );
-    private final Setting<Integer> switchTime = sgGeneral.add(new IntSetting.Builder()
-            .name("SwitchTime")
-            .description("持镐时间")
-            .defaultValue(100)
-            .min(0)
-            .sliderMax(1000)
-            .build()
+    private final Setting<Integer> switchTime = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("SwitchTime")
+                    .description("切换回退时间")
+                    .defaultValue(100)
+                    .min(0)
+                    .sliderMax(1000)
+                    .build()
     );
-    public final Setting<Integer> mineDelay = sgGeneral.add(new IntSetting.Builder()
-            .name("MineDelay")
-            .description("挖掘选择延迟")
-            .defaultValue(300)
-            .min(0)
-            .sliderMax(1000)
-            .build()
+    public final Setting<Integer> mineDelay = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("MineDelay")
+                    .description("挖掘延迟")
+                    .defaultValue(300)
+                    .min(0)
+                    .sliderMax(1000)
+                    .build()
     );
-    private final Setting<Integer> packetDelay = sgGeneral.add(new IntSetting.Builder()
-            .name("PacketDelay")
-            .description("绕过包发送延迟")
-            .defaultValue(0)
-            .min(0)
-            .sliderMax(1000)
-            .build()
+    private final Setting<Integer> packetDelay = sgGeneral.add(
+            new IntSetting.Builder()
+                    .name("PacketDelay")
+                    .description("发包延迟")
+                    .defaultValue(200)
+                    .min(0)
+                    .sliderMax(1000)
+                    .build()
     );
-    private final Setting<Double> mineDamage = sgGeneral.add(new DoubleSetting.Builder()
-            .name("Damage")
-            .description("总挖掘进度设置")
-            .defaultValue(0.8)
-            .sliderMax(2.0)
-            .build()
+    private final Setting<Double> mineDamage = sgGeneral.add(
+            new DoubleSetting.Builder()
+                    .name("Damage")
+                    .description("挖掘伤害倍率")
+                    .defaultValue(0.8)
+                    .sliderMax(2.0)
+                    .build()
     );
-    private final Setting<Double> animationExp = sgRender.add(new DoubleSetting.Builder()
-            .name("Animation Exponent")
-            .defaultValue(3)
-            .range(0, 10)
-            .sliderRange(0, 10)
-            .build()
+    private final Setting<Double> animationExp = sgRender.add(
+            new DoubleSetting.Builder()
+                    .name("Animation Exponent")
+                    .description("动画指数")
+                    .defaultValue(3)
+                    .range(0, 10)
+                    .sliderRange(0, 10)
+                    .build()
     );
     private final Setting<Boolean> renderProgress = sgRender.add(new BoolSetting.Builder()
             .name("RenderProgress")
@@ -195,56 +215,74 @@ public class PacketMine extends Module {
             .defaultValue(new SettingColor(255, 255, 255, 50))
             .build()
     );
-    private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>()
-            .name("ShapeMode")
-            .defaultValue(ShapeMode.Both)
-            .build()
+    private final Setting<ShapeMode> shapeMode = sgRender.add(
+            new EnumSetting.Builder<ShapeMode>()
+                    .name("ShapeMode")
+                    .description("渲染模式")
+                    .defaultValue(ShapeMode.Both)
+                    .build()
     );
-    private final Setting<SettingColor> sideStartColor = sgRender.add(new ColorSetting.Builder()
-            .name("SideStart")
-            .defaultValue(new SettingColor(255, 255, 255, 0))
-            .build()
-    );
-
-    private final Setting<SettingColor> sideEndColor = sgRender.add(new ColorSetting.Builder()
-            .name("SideEnd")
-            .defaultValue(new SettingColor(255, 255, 255, 50))
-            .build()
+    private final Setting<SettingColor> sideStartColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SideStart")
+                    .description("主挖起始填充色")
+                    .defaultValue(new SettingColor(255, 255, 255, 0))
+                    .build()
     );
 
-    private final Setting<SettingColor> lineStartColor = sgRender.add(new ColorSetting.Builder()
-            .name("LineStart")
-            .defaultValue(new SettingColor(255, 255, 255, 0))
-            .build()
+    private final Setting<SettingColor> sideEndColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SideEnd")
+                    .description("主挖结束填充色")
+                    .defaultValue(new SettingColor(255, 255, 255, 50))
+                    .build()
     );
 
-    private final Setting<SettingColor> lineEndColor = sgRender.add(new ColorSetting.Builder()
-            .name("LineEnd")
-            .defaultValue(new SettingColor(255, 255, 255, 255))
-            .build()
-    );
-    private final Setting<SettingColor> secondSideStartColor = sgRender.add(new ColorSetting.Builder()
-            .name("SecondSideStart")
-            .defaultValue(new SettingColor(255, 255, 255, 0))
-            .build()
+    private final Setting<SettingColor> lineStartColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("LineStart")
+                    .description("主挖起始线条色")
+                    .defaultValue(new SettingColor(255, 255, 255, 0))
+                    .build()
     );
 
-    private final Setting<SettingColor> secondSideEndColor = sgRender.add(new ColorSetting.Builder()
-            .name("SecondSideEnd")
-            .defaultValue(new SettingColor(255, 255, 255, 50))
-            .build()
+    private final Setting<SettingColor> lineEndColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("LineEnd")
+                    .description("主挖结束线条色")
+                    .defaultValue(new SettingColor(255, 255, 255, 255))
+                    .build()
+    );
+    private final Setting<SettingColor> secondSideStartColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SecondSideStart")
+                    .description("副挖起始填充色")
+                    .defaultValue(new SettingColor(255, 255, 255, 0))
+                    .build()
     );
 
-    private final Setting<SettingColor> secondLineStartColor = sgRender.add(new ColorSetting.Builder()
-            .name("SecondLineStart")
-            .defaultValue(new SettingColor(255, 255, 255, 0))
-            .build()
+    private final Setting<SettingColor> secondSideEndColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SecondSideEnd")
+                    .description("副挖结束填充色")
+                    .defaultValue(new SettingColor(255, 255, 255, 50))
+                    .build()
     );
 
-    private final Setting<SettingColor> secondLineEndColor = sgRender.add(new ColorSetting.Builder()
-            .name("SecondLineEnd")
-            .defaultValue(new SettingColor(255, 255, 255, 255))
-            .build()
+    private final Setting<SettingColor> secondLineStartColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SecondLineStart")
+                    .description("副挖起始线条色")
+                    .defaultValue(new SettingColor(255, 255, 255, 0))
+                    .build()
+    );
+
+    private final Setting<SettingColor> secondLineEndColor = sgRender.add(
+            new ColorSetting.Builder()
+                    .name("SecondLineEnd")
+                    .description("副挖结束线条色")
+                    .defaultValue(new SettingColor(255, 255, 255, 255))
+                    .build()
     );
     public static BlockPos selfClickPos = null;
     public static int maxBreaksCount;
@@ -296,31 +334,34 @@ public class PacketMine extends Module {
             secondHasSwitch = false;
         }
     }
-
+    @EventHandler
+    public void onBreak(PacketEvent.Send event) {
+        if (event.packet instanceof PlayerActionC2SPacket packet) {
+            if (packet.getAction() == PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK) mineTimer.reset();
+        }
+    }
     @EventHandler
     private void onStartBreakingBlock(StartBreakingBlockEvent event) {
         if (!BlockUtils.canBreak(event.blockPos)) return;
         event.cancel();
+        if (mineDelay.get() > 0 && !mineTimer.passedMs(mineDelay.get()) && completed) {
+            targetPos = null;
+            publicProgress = 0;
+            started = false;
+            progress = 0;
+            completed = false;
+            return;
+        }
         if (!mineTimer.passedMs(mineDelay.get())) return;
         selfClickPos = event.blockPos;
         mine(event.blockPos);
     }
     public void mine(BlockPos pos) {
         if (AutoCity.INSTANCE.isActive() && AutoCity.INSTANCE.delay.get() && !mineTimer.passedMs(mineDelay.get())) return;
-        mineTimer.reset();
         maxBreaksCount = 0;
         if (doubleBreak.get()) {
             if (targetPos != null && secondPos == null && !targetPos.equals(pos)) {
                 if (completed) {
-                    if (mineDelay.get() > 0) {
-                        mineTimer.reset();
-                        targetPos = null;
-                        publicProgress = 0;
-                        started = false;
-                        progress = 0;
-                        completed = false;
-                        return;
-                    }
                     targetPos = pos;
                     secondStarted = false;
                     secondProgress = 0;
@@ -353,10 +394,10 @@ public class PacketMine extends Module {
                 completed = false;
             }
         }
+        mineTimer.reset();
     }
     @Override
     public String getInfoString() {
-        if (mc.world == null || mc.player == null) return null;
         if (targetPos == null) return null;
         double max = getMineTicks(getTool(targetPos));
         if (progress >= max * mineDamage.get()) return "§f[100%]";

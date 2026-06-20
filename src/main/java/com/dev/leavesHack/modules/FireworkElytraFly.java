@@ -177,6 +177,7 @@ public class FireworkElytraFly extends Module {
     public void onTravel(TravelEvent event) {
         if (!isFallFlying) return;
         if (mode.get() == Mode.Legit) return;
+        if (Follower.INSTANCE.canFollow) return;
         if (!control.get()) return;
         if (mc.currentScreen instanceof ChatScreen) {
             setY(fallSpeed.get());
