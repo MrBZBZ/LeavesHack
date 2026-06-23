@@ -27,8 +27,7 @@
 ## 简体中文
 
 bilibili: https://space.bilibili.com/1932462042  
-神秘群聊欢迎吹水：1076456572  
-点击链接加入群聊【LeavesHack-user-group】：https://qm.qq.com/q/YwajlOYRGw  
+神秘群聊欢迎吹水：（群满了，悲）   
 中文使用文档：https://leaveshack.netlify.app/
 
 ### 注意事项
@@ -73,9 +72,7 @@ bilibili: https://space.bilibili.com/1932462042
 
 ## English
 
-bilibili: https://space.bilibili.com/1932462042  
-QQ Group: 1076456572  
-Join Group【LeavesHack-user-group】: https://qm.qq.com/q/YwajlOYRGw  
+bilibili: https://space.bilibili.com/1932462042   
 Documentation: https://leaveshack.netlify.app/
 
 ### Notes
