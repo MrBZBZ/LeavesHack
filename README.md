@@ -28,7 +28,7 @@
 
 bilibili: https://space.bilibili.com/1932462042  
 神秘群聊欢迎吹水：
-1群：1076456572
+1群：1076456572  
 2群：2160060506
 中文使用文档：https://leaveshack.netlify.app/
 
