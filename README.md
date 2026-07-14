@@ -126,6 +126,7 @@ The following features are updated so far. Default parameters should work on 3c3
 - [Meteor Translation Addon](https://github.com/Nippaku-Zanmu/meteor-translation-addon)
 - [Baritone](https://github.com/cabaletta/baritone)
 - [Epsilon](https://github.com/NekoyaHouse/Epsilon)
+- [AntiAntiXray](https://github.com/tokfrans03/AntiAntiXray)  
 
 特别致谢 / Special Thanks:
 - L3MonKe
