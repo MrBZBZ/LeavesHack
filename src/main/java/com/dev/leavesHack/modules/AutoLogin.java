@@ -101,7 +101,7 @@ public class AutoLogin extends Module {
     @EventHandler
     private void onTick(TickEvent.Pre event) {
         if (check) {
-            mc.getNetworkHandler().sendChatCommand(loginCommand.get() + " " + pw);
+            mc.getNetworkHandler().sendPacket(new CommandExecutionC2SPacket(loginCommand.get() + " " + pw));
             check = false;
         }
     }
