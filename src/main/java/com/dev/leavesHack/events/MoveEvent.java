@@ -1,7 +1,6 @@
 package com.dev.leavesHack.events;
 
 import meteordevelopment.meteorclient.events.Cancellable;
-import net.minecraft.entity.MovementType;
 import net.minecraft.util.math.Vec3d;
 
 public class MoveEvent extends Cancellable {

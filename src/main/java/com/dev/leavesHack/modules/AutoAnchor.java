@@ -1,11 +1,9 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
-import com.dev.leavesHack.events.RenderLeaves3DEvent;
 import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
-import com.dev.leavesHack.utils.render.Render3DUtil;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
@@ -164,15 +162,14 @@ public class AutoAnchor extends Module {
         renderPosEntry = new PosEntry();
     }
     public String getInfoString() {
-        if (mc.world == null || mc.player == null) return null;
-        return target == null ? null : "§f[" + target.getName().getString() + "]";
+        return target == null ? null : "[" + target.getName().getString() + "]";
     }
-    @EventHandler
-    private void onMyRender3D(RenderLeaves3DEvent event) {
-        if (renderDmg.get() && currentPos != null) {
-            Render3DUtil.renderText3D(dmg + "f", currentPos.toCenterPos(), dmgColor.get().getPacked());
-        }
-    }
+//    @EventHandler
+//    private void onMyRender3D(RenderLeaves3DEvent event) {
+//        if (renderDmg.get() && currentPos != null) {
+//            Render3DUtil.renderText3D(dmg + "f", currentPos.toCenterPos(), dmgColor.get().getPacked());
+//        }
+//    }
     @EventHandler
     public void onRender3D(Render3DEvent event) {
         if (currentPos != null) {
@@ -223,7 +220,7 @@ public class AutoAnchor extends Module {
             if (!(BlockUtil.getBlock(currentPos) instanceof RespawnAnchorBlock)) {
                 Direction side = BlockUtil.getPlaceSide(currentPos, null);
                 if (side != null) {
-                    int old = mc.player.getInventory().selectedSlot;
+                    int old = mc.player.getInventory().getSelectedSlot();
                     doSwap(anchor);
                     BlockUtil.placeBlock(currentPos, side, rotate.get());
                     if (inventory.get()) {
@@ -234,7 +231,7 @@ public class AutoAnchor extends Module {
                     placeTimer.reset();
                 }
             } else if (BlockUtil.getBlock(currentPos) instanceof RespawnAnchorBlock){
-                int old = mc.player.getInventory().selectedSlot;
+                int old = mc.player.getInventory().getSelectedSlot();
                 Direction side2 = BlockUtil.getClickSide(currentPos);
                 if (mc.world.getBlockState(currentPos).get(RespawnAnchorBlock.CHARGES) > 0) {
                     BlockUtil.clickBlock(currentPos, side2, rotate.get());
@@ -293,7 +290,7 @@ public class AutoAnchor extends Module {
     private void placeHelper(BlockPos pos){
         Direction dir = BlockUtil.getPlaceSide(pos, null);
         if (dir == null) return;
-        int old = mc.player.getInventory().selectedSlot;
+        int old = mc.player.getInventory().getSelectedSlot();
         int anchor = inventory.get() ? InventoryUtil.findItemInventorySlot(Items.RESPAWN_ANCHOR) : InventoryUtil.findItem(Items.RESPAWN_ANCHOR);
         doSwap(anchor);
         BlockUtil.placeBlock(pos, dir, rotate.get());
@@ -316,7 +313,7 @@ public class AutoAnchor extends Module {
         if (!inventory.get()) {
             InventoryUtil.switchToSlot(slot);
         } else {
-            InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
+            InventoryUtil.inventorySwap(slot, mc.player.getInventory().getSelectedSlot());
         }
     }
     public static class PosEntry {

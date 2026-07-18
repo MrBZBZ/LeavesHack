@@ -16,7 +16,6 @@ import meteordevelopment.meteorclient.gui.widgets.pressable.WMinus;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
 import net.minecraft.text.Text;
 
@@ -102,7 +101,7 @@ public class AutoLogin extends Module {
     @EventHandler
     private void onTick(TickEvent.Pre event) {
         if (check) {
-            mc.getNetworkHandler().sendCommand(loginCommand.get() + " " + pw);
+            mc.getNetworkHandler().sendChatCommand(loginCommand.get() + " " + pw);
             check = false;
         }
     }

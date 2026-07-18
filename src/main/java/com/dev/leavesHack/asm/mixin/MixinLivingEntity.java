@@ -17,7 +17,7 @@ import static meteordevelopment.meteorclient.MeteorClient.mc;
 public class MixinLivingEntity {
     @WrapOperation(
             method = "tick",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;isFallFlying()Z")
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;isGliding()Z")
     )
     private boolean wrapIsFallFlying(LivingEntity instance, Operation<Boolean> original) {
         if (instance == mc.player) {

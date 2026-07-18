@@ -113,7 +113,7 @@ public class GlassFiller extends Module {
         int minZ = (int) Math.floor(boundingBox.minZ);
         int maxZ = (int) Math.floor(boundingBox.maxZ);
         int slot = inventorySwap.get()?InventoryUtil.findItemInventorySlot(Items.GLASS):InventoryUtil.findItem(Items.GLASS);
-        int old = mc.player.getInventory().selectedSlot;
+        int old = mc.player.getInventory().getSelectedSlot();
         if(slot==-1) return;
         if (!glassTimer.passed((long) placeDelay.get())) return;
         for (int x = minX; x <= maxX; x++)
@@ -135,7 +135,7 @@ public class GlassFiller extends Module {
                         if (rotate.get()) {
                             Rotation.snapAt(directionVec);
                         }
-                        BlockUtil.placeList.add(pos);
+                        // In 1.21.11, clickBlock already adds to placeList internally
                         BlockUtil.clickBlock(pos.offset(side), side.getOpposite(), false);
                         glassTimer.reset();
                         if (rotate.get()) {
@@ -162,10 +162,9 @@ public class GlassFiller extends Module {
     }
     private void doSwap(int slot) {
         if (inventorySwap.get()) {
-            InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
+            InventoryUtil.inventorySwap(slot, mc.player.getInventory().getSelectedSlot());
         } else {
             InventoryUtil.switchToSlot(slot);
         }
     }
 }
-

@@ -4,10 +4,7 @@ import com.dev.leavesHack.modules.AutoCity;
 import com.dev.leavesHack.modules.GlobalSetting;
 import com.dev.leavesHack.utils.entity.EntityUtil;
 import com.dev.leavesHack.utils.rotation.Rotation;
-import net.minecraft.block.BedBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.block.*;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ExperienceOrbEntity;
@@ -17,6 +14,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.entity.projectile.thrown.ExperienceBottleEntity;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
+import net.minecraft.registry.tag.BlockTags;
+import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -73,26 +72,15 @@ public class BlockUtil {
         return true;
     }
     public static boolean canClick(BlockPos pos) {
-        return mc.world.getBlockState(pos).isSolid() && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || mc.player.isSneaking());
+        return (mc.world.getBlockState(pos).isSolidBlock(mc.world, pos) || getBlock(pos) instanceof RedstoneTorchBlock)&& (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || mc.player.isSneaking());
     }
     public static boolean canClick(BlockPos pos, boolean ignoreSneak) {
-        return mc.world.getBlockState(pos).isSolid() && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || (mc.player.isSneaking() || ignoreSneak));
+        return (mc.world.getBlockState(pos).isSolidBlock(mc.world, pos) || getBlock(pos) instanceof RedstoneTorchBlock)&& (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || (mc.player.isSneaking() || ignoreSneak));
     }
 
     public static boolean canPlace(BlockPos pos) {
         return canPlace(pos, null);
     }
-    public static boolean hasCrystalPlace(BlockPos pos) {
-        for (Entity entity : getEndCrystals(new Box(pos))) {
-            if (!entity.isAlive() || !(entity instanceof EndCrystalEntity crystal))
-                continue;
-            return crystal.getBlockPos().equals(pos);
-        }
-        return false;
-    }
-//    public static boolean canPlace(BlockPos pos, boolean ignoreSneak) {
-//        return canPlace(pos, ignoreSneak);
-//    }
     public static boolean clientCanPlace(BlockPos pos, boolean ignoreCrystal) {
         if (!canReplace(pos)) return false;
         return !hasEntity(pos, ignoreCrystal);
@@ -114,11 +102,9 @@ public class BlockUtil {
         }
         return false;
     }
-    public static boolean hasEntity(BlockPos pos, boolean ignoreCrystal, boolean ignorePlayer) {
+    public static boolean hasItem(BlockPos pos) {
         for (Entity entity : getEntities(new Box(pos))) {
-            if (!entity.isAlive() || entity instanceof ItemEntity || entity instanceof ExperienceOrbEntity || entity instanceof ExperienceBottleEntity || entity instanceof ArrowEntity || ignoreCrystal && entity instanceof EndCrystalEntity || ignorePlayer && entity instanceof PlayerEntity)
-                continue;
-            return true;
+            if (entity instanceof ItemEntity) return true;
         }
         return false;
     }
@@ -135,19 +121,6 @@ public class BlockUtil {
     public static ArrayList<BlockPos> getSphere(double range) {
         return getSphere(range, mc.player.getEyePos());
     }
-//    public static List<BlockPos> getSphere(int range) {
-//        List<BlockPos> list = new ArrayList<>();
-//        BlockPos center = mc.player.getBlockPos();
-//        for (int x = -range; x <= range; x++) {
-//            for (int y = -range; y <= range; y++) {
-//                for (int z = -range; z <= range; z++) {
-//                    if (x * x + y * y + z * z > range * range) continue;
-//                    list.add(center.add(x, y, z));
-//                }
-//            }
-//        }
-//        return list;
-//    }
     public static ArrayList<BlockPos> getSphere(double range, Vec3d pos) {
         ArrayList<BlockPos> list = new ArrayList<>();
         for (double x = pos.getX() - range; x < pos.getX() + range; ++x) {
@@ -174,6 +147,28 @@ public class BlockUtil {
             if (!entity.isAlive() || !(entity instanceof EndCrystalEntity))
                 continue;
             return true;
+        }
+        return false;
+    }
+    public static boolean hasCrystalPlace(BlockPos pos) {
+        for (Entity entity : getEndCrystals(new Box(pos))) {
+            if (!entity.isAlive() || !(entity instanceof EndCrystalEntity crystal))
+                continue;
+            if (crystal.getBlockPos().equals(pos)) return true;
+            boolean offset = true;//是否是偏移位置的水晶
+            for (Direction direction : Direction.values()) {
+                //if (crystal.getBlockPos().equals(pos.offset(direction))) offset = false; 666不能这样写
+                if (crystal.getEntityPos().equals(pos.offset(direction).toCenterPos())) offset = false;
+            }
+            return offset;
+        }
+        return false;
+    }
+    public static boolean hasCrystalPlaceAccurate(BlockPos pos) {
+        for (Entity entity : getEndCrystals(new Box(pos))) {
+            if (!entity.isAlive() || !(entity instanceof EndCrystalEntity crystal))
+                continue;
+            if (crystal.getBlockPos().equals(pos)) return true;
         }
         return false;
     }
@@ -275,7 +270,7 @@ public class BlockUtil {
         if (side != null) return side;
         side = Direction.UP;
         for (Direction i : Direction.values()) {
-                if (!isGrimDirection(pos, i))continue;
+            if (!isGrimDirection(pos, i))continue;
             if (MathHelper.sqrt((float) mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos())) > range)
                 continue;
             side = i;
@@ -300,11 +295,11 @@ public class BlockUtil {
     }
     private static boolean isIntersected(Box bb, Box other) {
         return other.maxX - VoxelShapes.MIN_SIZE > bb.minX
-                && other.minX + VoxelShapes.MIN_SIZE < bb.maxX
-                && other.maxY - VoxelShapes.MIN_SIZE > bb.minY
-                && other.minY + VoxelShapes.MIN_SIZE < bb.maxY
-                && other.maxZ - VoxelShapes.MIN_SIZE > bb.minZ
-                && other.minZ + VoxelShapes.MIN_SIZE < bb.maxZ;
+            && other.minX + VoxelShapes.MIN_SIZE < bb.maxX
+            && other.maxY - VoxelShapes.MIN_SIZE > bb.minY
+            && other.minY + VoxelShapes.MIN_SIZE < bb.maxY
+            && other.maxZ - VoxelShapes.MIN_SIZE > bb.minZ
+            && other.minZ + VoxelShapes.MIN_SIZE < bb.maxZ;
     }
     private static final double MIN_EYE_HEIGHT = 0.4;
     private static final double MAX_EYE_HEIGHT = 1.62;
@@ -327,19 +322,21 @@ public class BlockUtil {
         };
     }
     public static final List<Block> shiftBlocks = Arrays.asList(
-            Blocks.ENDER_CHEST, Blocks.CHEST, Blocks.TRAPPED_CHEST, Blocks.CRAFTING_TABLE,
-            Blocks.BIRCH_TRAPDOOR, Blocks.BAMBOO_TRAPDOOR, Blocks.DARK_OAK_TRAPDOOR, Blocks.CHERRY_TRAPDOOR,
-            Blocks.ANVIL, Blocks.BREWING_STAND, Blocks.HOPPER, Blocks.DROPPER, Blocks.DISPENSER,
-            Blocks.ACACIA_TRAPDOOR, Blocks.ENCHANTING_TABLE, Blocks.WHITE_SHULKER_BOX, Blocks.ORANGE_SHULKER_BOX,
-            Blocks.MAGENTA_SHULKER_BOX, Blocks.LIGHT_BLUE_SHULKER_BOX, Blocks.YELLOW_SHULKER_BOX, Blocks.LIME_SHULKER_BOX,
-            Blocks.PINK_SHULKER_BOX, Blocks.GRAY_SHULKER_BOX, Blocks.CYAN_SHULKER_BOX, Blocks.PURPLE_SHULKER_BOX,
-            Blocks.BLUE_SHULKER_BOX, Blocks.BROWN_SHULKER_BOX, Blocks.GREEN_SHULKER_BOX, Blocks.RED_SHULKER_BOX, Blocks.BLACK_SHULKER_BOX
+        Blocks.ENDER_CHEST, Blocks.CHEST, Blocks.TRAPPED_CHEST, Blocks.CRAFTING_TABLE,
+        Blocks.BIRCH_TRAPDOOR, Blocks.BAMBOO_TRAPDOOR, Blocks.DARK_OAK_TRAPDOOR, Blocks.CHERRY_TRAPDOOR,
+        Blocks.ANVIL, Blocks.BREWING_STAND, Blocks.HOPPER, Blocks.DROPPER, Blocks.DISPENSER,
+        Blocks.ACACIA_TRAPDOOR, Blocks.ENCHANTING_TABLE, Blocks.WHITE_SHULKER_BOX, Blocks.ORANGE_SHULKER_BOX,
+        Blocks.MAGENTA_SHULKER_BOX, Blocks.LIGHT_BLUE_SHULKER_BOX, Blocks.YELLOW_SHULKER_BOX, Blocks.LIME_SHULKER_BOX,
+        Blocks.PINK_SHULKER_BOX, Blocks.GRAY_SHULKER_BOX, Blocks.CYAN_SHULKER_BOX, Blocks.PURPLE_SHULKER_BOX,
+        Blocks.BLUE_SHULKER_BOX, Blocks.BROWN_SHULKER_BOX, Blocks.GREEN_SHULKER_BOX, Blocks.RED_SHULKER_BOX, Blocks.BLACK_SHULKER_BOX
     );
     public static void placeBlock(BlockPos pos, Direction side, boolean rotate) {
         clickBlock(pos.offset(side), side.getOpposite(), rotate);
+        placeList.add(pos);
     }
     public static void placeSlabBlock(BlockPos pos, Direction side, Direction slabSide, boolean rotate) {
         clickSlabBlock(pos.offset(side), side.getOpposite(), slabSide, rotate);
+        placeList.add(pos);
     }
     public static Block getBlock(BlockPos pos) {
         return mc.world.getBlockState(pos).getBlock();
@@ -351,7 +348,6 @@ public class BlockUtil {
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         if (GlobalSetting.INSTANCE.packetPlace.get()){
             mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
-            placeList.add(pos);
         } else {
             mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
         }
@@ -370,7 +366,6 @@ public class BlockUtil {
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         if (GlobalSetting.INSTANCE.packetPlace.get()){
             mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
-            placeList.add(pos);
         } else {
             mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
         }
@@ -381,10 +376,23 @@ public class BlockUtil {
         BlockPos obsPos = pos.down();
         BlockPos boost = obsPos.up();
         return (getBlock(obsPos) == Blocks.BEDROCK || getBlock(obsPos) == Blocks.OBSIDIAN)
-                && getClickSideStrict(obsPos) != null
-                && (mc.world.isAir(boost))
-                && !hasEntityBlockCrystal(boost, false)
-                && !hasEntityBlockCrystal(boost.up(), false);
+            && getClickSideStrict(obsPos) != null
+            && (mc.world.isAir(boost))
+            && !hasEntityBlockCrystal(boost, false)
+            && !hasEntityBlockCrystal(boost.up(), false);
+    }
+    public static boolean canPlaceCrystal(BlockPos pos, boolean ignoreFire) {
+        if (!isAirOrFire(pos, ignoreFire)) return false;
+        BlockPos obsPos = pos.down();
+        BlockPos boost = obsPos.up();
+        return (getBlock(obsPos) == Blocks.BEDROCK || getBlock(obsPos) == Blocks.OBSIDIAN)
+            && getClickSideStrict(obsPos) != null
+            && !hasEntityBlockCrystal(boost, false)
+            && !hasEntityBlockCrystal(boost.up(), false);
+    }
+    public static boolean isAirOrFire(BlockPos pos, boolean ignoreFire) {
+        BlockState state = mc.world.getBlockState(pos);
+        return state.isAir() || (state.isIn(BlockTags.FIRE) && ignoreFire);
     }
     public static boolean hasEntityBlockCrystal(BlockPos pos, boolean ignoreCrystal) {
         for (Entity entity : getEntities(new Box(pos))) {

@@ -3,10 +3,10 @@
   "package": "com.dev.leavesHack.asm",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "accessors.IClientPlayerEntity",
-    "accessors.ITextRenderer",
+    "accessors.IClientWorld",
     "mixin.MixinClientPlayerEntity",
     "mixin.MixinGameRenderer",
+    "mixin.MixinInGameHud",
     "mixin.MixinKeyboardInput",
     "mixin.MixinPlayerEntityRenderer"
   ],
@@ -16,12 +16,13 @@
   "mixins": [
     "accessors.ILivingEntity",
     "accessors.IModule",
+    "accessors.IPlayerInterectItemC2SPacket",
     "accessors.IPlayerMoveC2SPacket",
     "accessors.IVec3d",
     "accessors.SettingAccessor",
     "accessors.SettingGroupAccessor",
     "accessors.SystemsAccessor",
-    "mixin.MineProcessMixin",
+    "mixin.CustomTextRendererMixin",
     "mixin.MixinBlockItem",
     "mixin.MixinDecoderHandler",
     "mixin.MixinEntity",

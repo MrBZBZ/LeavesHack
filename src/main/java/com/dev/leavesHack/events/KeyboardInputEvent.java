@@ -1,72 +1,75 @@
 package com.dev.leavesHack.events;
 
+import net.minecraft.util.PlayerInput;
+
 public class KeyboardInputEvent {
 
     private float forward;
     private float strafe;
+    private boolean jump;
+    private boolean sneak;
+    private boolean sprint;
 
-    public boolean jump;
-    public boolean sneak;
-
-    public KeyboardInputEvent(
-            boolean forward,
-            boolean backward,
-            boolean left,
-            boolean right,
-            boolean jump,
-            boolean sneak
-    ) {
+    public KeyboardInputEvent(boolean forward, boolean backward, boolean left, boolean right, boolean jump, boolean sneak, boolean sprint) {
+        float f = forward == backward ? 0.0F : (forward ? 1.0F : -1.0F);
+        float g = left == right ? 0.0F : (left ? 1.0F : -1.0F);
+        this.forward = f;
+        this.strafe = g;
         this.jump = jump;
         this.sneak = sneak;
+        this.sprint = sprint;
+    }
 
-        this.forward =
-                (forward ? 1.0F : 0.0F)
-                        - (backward ? 1.0F : 0.0F);
-
-        this.strafe =
-                (left ? 1.0F : 0.0F)
-                        - (right ? 1.0F : 0.0F);
+    public PlayerInput toNewInput() {
+        return new PlayerInput(
+            this.forward > 0,
+            this.forward < 0,
+            this.strafe > 0,
+            this.strafe < 0,
+            this.jump,
+            this.sneak,
+            this.sprint
+        );
     }
 
     public float getForward() {
-        return forward;
+        return this.forward;
+    }
+
+    public float getStrafe() {
+        return this.strafe;
+    }
+
+    public boolean isJump() {
+        return this.jump;
+    }
+
+    public boolean isSneak() {
+        return this.sneak;
     }
 
     public void setForward(float forward) {
         this.forward = forward;
     }
 
-    public float getStrafe() {
-        return strafe;
-    }
-
     public void setStrafe(float strafe) {
         this.strafe = strafe;
     }
 
-    // 给mc.player.input同步用
-    public float getMovementForward() {
-        return forward;
+    public void setJump(boolean jump) {
+        this.jump = jump;
     }
 
-    public float getMovementSideways() {
-        return strafe;
+    public void setSneak(boolean sneak) {
+        this.sneak = sneak;
     }
 
-    // 如果你还需要bool状态
-    public boolean isForward() {
-        return forward > 0;
+    public boolean isSprint() {
+        return sprint;
     }
 
-    public boolean isBackward() {
-        return forward < 0;
+    public void setSprint(boolean sprint) {
+        this.sprint = sprint;
     }
 
-    public boolean isLeft() {
-        return strafe < 0;
-    }
-
-    public boolean isRight() {
-        return strafe > 0;
-    }
 }

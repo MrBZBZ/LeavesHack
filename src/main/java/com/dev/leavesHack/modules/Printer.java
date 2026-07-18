@@ -2,12 +2,13 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.events.MoveEvent;
-import com.dev.leavesHack.utils.LitematicaReflection;
-import com.dev.leavesHack.utils.ModCompatibility;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import fi.dy.masa.litematica.world.SchematicWorldHandler;
+import fi.dy.masa.litematica.world.WorldSchematic;
+import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
@@ -19,6 +20,8 @@ import net.minecraft.block.*;
 import net.minecraft.block.enums.SlabType;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
+import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
+import net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket;
 import net.minecraft.state.property.Properties;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
@@ -37,93 +40,87 @@ public class Printer extends Module {
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final SettingGroup sgWhitelist = settings.createGroup("Whitelist");
     private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
-            .name("Rotate")
-            .description("转头")
-            .defaultValue(true)
-            .build()
+        .name("Rotate")
+        .description("转头")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Integer> printingRange = sgGeneral.add(new IntSetting.Builder()
-            .name("PrintingRange")
-            .description("打印距离")
-            .defaultValue(4)
-            .min(1)
-            .sliderMax(6)
-            .build()
+        .name("PrintingRange")
+        .description("打印距离")
+        .defaultValue(4)
+        .min(1)
+        .sliderMax(6)
+        .build()
     );
     private final Setting<Boolean> inventorySwap = sgGeneral.add(new BoolSetting.Builder()
-            .name("InventorySwap")
-            .description("背包鬼手")
-            .defaultValue(true)
-            .build()
+        .name("InventorySwap")
+        .description("背包鬼手")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> safeWalk = sgGeneral.add(new BoolSetting.Builder()
-            .name("SafeWalk")
-            .description("安全行走")
-            .defaultValue(true)
-            .build()
+        .name("SafeWalk")
+        .description("安全行走")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> ignoreSneak = sgShift.add(new BoolSetting.Builder()
-            .name("IgnoreSneak")
-            .description("忽略潜行")
-            .defaultValue(true)
-            .build()
+        .name("IgnoreSneak")
+        .description("忽略潜行")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Integer> shiftTime = sgShift.add(new IntSetting.Builder()
-            .name("ShiftTime")
-            .description("潜行时间")
-            .defaultValue(100)
-            .min(0)
-            .sliderMax(1000)
-            .build()
+        .name("ShiftTime")
+        .description("潜行时间")
+        .defaultValue(100)
+        .min(0)
+        .sliderMax(1000)
+        .build()
     );
     private final Setting<Integer> sneakSpeed = sgShift.add(new IntSetting.Builder()
-            .name("SneakSpeed")
-            .description("潜行速度（目前来看站着不动是最好的选择）")
-            .defaultValue(0)
-            .min(0)
-            .sliderMax(20)
-            .build()
+        .name("SneakSpeed")
+        .description("潜行速度（目前来看站着不动是最好的选择）")
+        .defaultValue(0)
+        .min(0)
+        .sliderMax(20)
+        .build()
     );
     private final Setting<ListMode> listMode = sgWhitelist.add(new EnumSetting.Builder<ListMode>()
-            .name("ListMode")
-            .description("选择模式")
-            .defaultValue(ListMode.Blacklist)
-            .build()
+        .name("ListMode")
+        .description("选择模式")
+        .defaultValue(ListMode.Blacklist)
+        .build()
     );
 
     private final Setting<List<Block>> blacklist = sgWhitelist.add(new BlockListSetting.Builder()
-            .name("BlackList")
-            .description("黑名单")
-            .visible(() -> listMode.get() == ListMode.Blacklist)
-            .build()
+        .name("BlackList")
+        .description("黑名单")
+        .visible(() -> listMode.get() == ListMode.Blacklist)
+        .build()
     );
 
     private final Setting<List<Block>> whitelist = sgWhitelist.add(new BlockListSetting.Builder()
-            .name("WhiteList")
-            .description("白名单")
-            .visible(() -> listMode.get() == ListMode.Whitelist)
-            .build()
+        .name("WhiteList")
+        .description("白名单")
+        .visible(() -> listMode.get() == ListMode.Whitelist)
+        .build()
     );
     private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>()
-            .name("ShapeMode")
-            .defaultValue(ShapeMode.Both)
-            .build()
+        .name("ShapeMode")
+        .defaultValue(ShapeMode.Both)
+        .build()
     );
     private final Setting<SettingColor> lineColor = sgRender.add(new ColorSetting.Builder()
-            .name("LineColor")
-            .defaultValue(new SettingColor(255, 255, 255, 255))
-            .build()
+        .name("LineColor")
+        .defaultValue(new SettingColor(255, 255, 255, 255))
+        .build()
     );
     private final Setting<SettingColor> sideColor = sgRender.add(new ColorSetting.Builder()
-            .name("SideColor")
-            .defaultValue(new SettingColor(255, 255, 255, 50))
-            .build()
-    );
-    private final Setting<Boolean> debug = sgGeneral.add(new BoolSetting.Builder()
-            .name("DeBug")
-            .description("Dev用来测试的，iq低的不要开")
-            .defaultValue(false)
-            .build()
+        .name("SideColor")
+        .defaultValue(new SettingColor(255, 255, 255, 50))
+        .build()
     );
     public Printer() {
         super(LeavesHack.CATEGORY, "Printer", "打印机");
@@ -132,71 +129,57 @@ public class Printer extends Module {
     private Timer shiftTimer = new Timer();
     @Override
     public void onActivate() {
-        if (!ModCompatibility.isLitematicaAvailable()) {
-            error("Litematica 模组未安装或未启用，Printer 模块无法工作。");
-            toggle();
-            return;
-        }
         hasSneak = false;
         shiftTimer.setMs(99999);
     }
     @Override
     public void onDeactivate() {
         if (hasSneak) {
-            mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
+            mc.player.setSneaking(false);
             hasSneak = false;
         }
     }
     @EventHandler
     private void onRender3D(Render3DEvent event) {
         if (mc.player == null || mc.world == null) return;
-        if (!ModCompatibility.isLitematicaAvailable()) return;
-
-        Object schematic = LitematicaReflection.getSchematicWorld();
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null) return;
-
         if (!shiftTimer.passedMs(shiftTime.get()) && hasSneak && ignoreSneak.get()) {
             return;
         }
         List<BlockPos> sphere = BlockUtil.getSphere(printingRange.get());
         int placed = 0;
         for (BlockPos pos : sphere) {
-            BlockState required = LitematicaReflection.getBlockState(schematic, pos);
-            if (required == null) continue;
-
+            BlockState required = schematic.getBlockState(pos);
             if (listMode.get() == ListMode.Blacklist && blacklist.get().contains(required.getBlock())) continue;
             if (listMode.get() == ListMode.Whitelist && !whitelist.get().contains(required.getBlock())) continue;
-            if (!required.isAir() && !required.isLiquid() && (mc.world.isAir(pos) || BlockUtil.canReplace(pos)) && !BlockUtil.hasEntity(pos, false)) {
+            if (!required.isAir() && !required.isSolidBlock(mc.world, pos) && (mc.world.isAir(pos) || BlockUtil.canReplace(pos)) && !BlockUtil.hasEntity(pos, false)) {
                 if (placed >= 1) {
-                    if (debug.get()) mc.player.sendMessage(Text.of("已超过最大数量，当前placed:" + placed));
                     return;
                 }
                 int slot = inventorySwap.get() ? InventoryUtil.findBlockInventory(required.getBlock()) : InventoryUtil.findBlock(required.getBlock());
                 if (slot == -1) continue;
-                int old = mc.player.getInventory().selectedSlot;
+                int old = mc.player.getInventory().getSelectedSlot();
                 ArrayList<Direction> sides = BlockUtil.getPlaceSides(pos, null, ignoreSneak.get());
                 if (sides.isEmpty()) continue;
                 event.renderer.box(new Box(pos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
                 Direction target = sides.getFirst();
                 Direction facing = getBlockFacing(required);
                 if (facing != null && !isRedstoneComponent(required)) {
-                    if (debug.get()) mc.player.sendMessage(Text.of("方块包含方向"));
                     boolean find = false;
                     for (Direction i : sides) {
-                        if (debug.get()) mc.player.sendMessage(Text.of("side列表: " + i));
                         if (checkState(pos.offset(i), required, i.getOpposite())) {
                             find = true;
                             target = i;
                         }
                     }
                     if (!find) {
-                        if (debug.get()) mc.player.sendMessage(Text.of("未找到目标方向"));
                         continue;
                     }
                 }
                 if (required.getBlock() instanceof RedstoneWireBlock && (mc.world.isAir(pos.down()) || mc.world.getBlockState(pos.down()).isReplaceable())) continue;
                 if (BlockUtil.needSneak(BlockUtil.getBlock(pos.offset(target))) && !hasSneak) {
-                    mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY));
+                    mc.player.setSneaking(true);
                     hasSneak = true;
                     mc.player.setSneaking(true);
                     shiftTimer.reset();
@@ -229,7 +212,6 @@ public class Printer extends Module {
                     BlockUtil.placeBlock(pos, target, false);
                 }
                 if (hasSneak && ignoreSneak.get()) {
-                    mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
                     mc.player.setSneaking(false);
                     hasSneak = false;
                 }
@@ -241,6 +223,13 @@ public class Printer extends Module {
                     doSwap(old);
                 }
             }
+        }
+    }
+    @EventHandler
+    public void onPacketReceive(PacketEvent.Receive event) {
+        if (event.packet instanceof OpenScreenS2CPacket packet) {
+            mc.getNetworkHandler().sendPacket(new CloseHandledScreenC2SPacket(packet.getSyncId()));
+            event.cancel();
         }
     }
     @EventHandler(priority = EventPriority.LOW)
@@ -298,15 +287,15 @@ public class Printer extends Module {
     @EventHandler
     public void onMove2(MoveEvent event) {
         if (shiftTimer.passedMs(shiftTime.get() * 2) && ignoreSneak.get() && hasSneak) {
-            mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY));
+            mc.player.setSneaking(false);
             hasSneak = false;
             return;
         }
         if (!hasSneak) return;
         double speed = sneakSpeed.get();
         double moveSpeed = 0.2873 / 100 * speed;
-        double n = mc.player.input.movementForward;
-        double n2 = mc.player.input.movementSideways;
+        double n = mc.player.input.getMovementInput().y;
+        double n2 = mc.player.input.getMovementInput().x;
         double n3 = mc.player.getYaw();
         if (n == 0.0 && n2 == 0.0) {
             event.setX(0.0);
@@ -371,8 +360,6 @@ public class Printer extends Module {
         BlockState result = targetState.getBlock().getPlacementState(ctx);
         if (result != null && isSameFacing(result, targetState)) {
             return true;
-        } else if (result == null) {
-            if (debug.get()) mc.player.sendMessage(Text.of("result: null"));
         }
         return false;
     }
@@ -398,13 +385,8 @@ public class Printer extends Module {
     }
     private boolean isSameFacing(BlockState a, BlockState b) {
         if (a.getBlock() != b.getBlock()) return false;
-
         Direction fa = getBlockFacing(a);
         Direction fb = getBlockFacing(b);
-
-
-
-        if (debug.get()) mc.player.sendMessage(Text.of("fa: " + fa + " fb: " + fb));
         if (fa == null || fb == null) return true;
 
         return fa == fb;
@@ -413,7 +395,7 @@ public class Printer extends Module {
         if (!inventorySwap.get()) {
             InventoryUtil.switchToSlot(slot);
         } else {
-            InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
+            InventoryUtil.inventorySwap(slot, mc.player.getInventory().getSelectedSlot());
         }
     }
     public enum ListMode {

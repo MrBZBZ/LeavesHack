@@ -10,80 +10,82 @@ import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ModuleList extends Module {
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
     private final Setting<Integer> x = sgGeneral.add(new IntSetting.Builder()
-            .name("x")
-            .defaultValue(3000)
-            .sliderRange(0, 3000)
-            .build()
+        .name("x")
+        .defaultValue(1910)
+        .sliderRange(0, 1920)
+        .build()
     );
 
     private final Setting<Integer> y = sgGeneral.add(new IntSetting.Builder()
-            .name("y")
-            .defaultValue(0)
-            .sliderRange(0, 3000)
-            .build()
+        .name("y")
+        .defaultValue(10)
+        .sliderRange(0, 1080)
+        .build()
     );
 
     private final Setting<Boolean> additionalInfo = sgGeneral.add(new BoolSetting.Builder()
-            .name("additional-info")
-            .description("模块信息")
-            .defaultValue(true)
-            .build()
+        .name("additional-info")
+        .description("模块信息")
+        .defaultValue(true)
+        .build()
     );
 
     private final Setting<Boolean> onlyBind = sgGeneral.add(new BoolSetting.Builder()
-            .name("OnlyBind")
-            .description("仅渲染绑定按键的模块")
-            .defaultValue(false)
-            .build()
+        .name("OnlyBind")
+        .description("仅渲染绑定按键的模块")
+        .defaultValue(false)
+        .build()
     );
 
     private final Setting<Boolean> shadow = sgGeneral.add(new BoolSetting.Builder()
-            .name("shadow")
-            .description("渲染阴影")
-            .defaultValue(true)
-            .build()
+        .name("shadow")
+        .description("渲染阴影")
+        .defaultValue(true)
+        .build()
     );
 
     private final Setting<SettingColor> moduleColor = sgGeneral.add(new ColorSetting.Builder()
-            .name("module-color")
-            .description("模块颜色")
-            .defaultValue(new SettingColor(255, 255, 255))
-            .build()
+        .name("module-color")
+        .description("模块颜色")
+        .defaultValue(new SettingColor(255, 255, 255))
+        .build()
     );
 
     private final Setting<SettingColor> activeColor = sgGeneral.add(new ColorSetting.Builder()
-            .name("active-color")
-            .description("活动模块颜色")
-            .defaultValue(new SettingColor(0, 255, 0))
-            .build()
+        .name("active-color")
+        .description("活动模块颜色")
+        .defaultValue(new SettingColor(0, 255, 0))
+        .build()
     );
 
     private final Setting<SettingColor> inactiveColor = sgGeneral.add(new ColorSetting.Builder()
-            .name("inactive-color")
-            .description("非活动模块颜色")
-            .defaultValue(new SettingColor(255, 0, 0))
-            .build()
+        .name("inactive-color")
+        .description("非活动模块颜色")
+        .defaultValue(new SettingColor(255, 0, 0))
+        .build()
     );
 
     private final Setting<SettingColor> background = sgGeneral.add(new ColorSetting.Builder()
-            .name("background")
-            .description("背景")
-            .defaultValue(new SettingColor(0, 0, 0, 80))
-            .build()
+        .name("background")
+        .description("背景")
+        .defaultValue(new SettingColor(0, 0, 0, 80))
+        .build()
     );
 
     private final Setting<SettingColor> tagColor = sgGeneral.add(new ColorSetting.Builder()
-            .name("tag-color")
-            .description("标签颜色")
-            .defaultValue(new SettingColor(255, 255, 255))
-            .build()
+        .name("tag-color")
+        .description("标签颜色")
+        .defaultValue(new SettingColor(255, 255, 255))
+        .build()
     );
 
     private final double slideSpeed = 0.2;
@@ -103,11 +105,6 @@ public class ModuleList extends Module {
         TextRenderer textRenderer = TextRenderer.get();
         boolean useShadow = shadow.get();
 
-        int screenWidth = mc.getWindow().getWidth();
-        int screenHeight = mc.getWindow().getHeight();
-        double clampedX = Math.max(0, Math.min(x.get(), screenWidth));
-        double clampedY = Math.max(0, Math.min(y.get(), screenHeight));
-
         for (Module m : Modules.get().getAll()) {
             if (!moduleEntries.containsKey(m)) {
                 moduleEntries.put(m, new ModuleEntry(m));
@@ -122,7 +119,7 @@ public class ModuleList extends Module {
                 ))
                 .toList();
 
-        double drawY = clampedY;
+        double drawY = y.get();
 
         for (int i = 0; i < activeModules.size(); i++) {
             Module module = activeModules.get(i);
@@ -133,7 +130,7 @@ public class ModuleList extends Module {
             double width = textRenderer.getWidth(fullText, useShadow);
             double height = textRenderer.getHeight(useShadow);
 
-            double targetX = clampedX - width;
+            double targetX = x.get() - width;
             entry.x += (targetX - entry.x) * slideSpeed;
             entry.y += (drawY - entry.y) * ySpeed;
             entry.fade += (1 - entry.fade) * fadeSpeed;
@@ -155,7 +152,7 @@ public class ModuleList extends Module {
                             (int) (tagColor.get().a * entry.fade)
                     )
             );
-            Renderer2D.COLOR.render(null);
+            Renderer2D.COLOR.render();
 
             textRenderer.beginBig();
             double nameWidth = textRenderer.getWidth(module.title, useShadow);
@@ -172,7 +169,7 @@ public class ModuleList extends Module {
             if (!activeModules.contains(m)) {
                 ModuleEntry entry = moduleEntries.get(m);
                 entry.fade += (0 - entry.fade) * fadeSpeed;
-                entry.x += ((clampedX + 50) - entry.x) * slideSpeed;
+                entry.x += ((x.get() + 50) - entry.x) * slideSpeed;
             }
         }
     }

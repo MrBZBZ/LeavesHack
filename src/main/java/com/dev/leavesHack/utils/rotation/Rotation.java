@@ -1,16 +1,15 @@
 package com.dev.leavesHack.utils.rotation;
 
+import com.dev.leavesHack.asm.accessors.IPlayerInterectItemC2SPacket;
 import com.dev.leavesHack.events.KeyboardInputEvent;
 import com.dev.leavesHack.modules.GlobalSetting;
 import com.dev.leavesHack.utils.entity.MoveFixUtil;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.orbit.EventHandler;
-import meteordevelopment.orbit.EventPriority;
 import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
-import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -36,16 +35,16 @@ public class Rotation {
             targetYaw = yaw;
         } else {
             if (GlobalSetting.INSTANCE.grimRotation.get()) {
-                sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround()));
+                sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround(), mc.player.horizontalCollision));
             } else {
-                sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, mc.player.isOnGround()));
+                sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, mc.player.isOnGround(), mc.player.horizontalCollision));
             }
         }
     }
     public static void snapBack() {
         if (!GlobalSetting.INSTANCE.snapBack.get()) return;
         if (GlobalSetting.INSTANCE.moveFix.get()) return;
-        sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), rotationYaw, rotationPitch, mc.player.isOnGround()));
+        sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), rotationYaw, rotationPitch, mc.player.isOnGround(), mc.player.horizontalCollision));
     }
     public static void sendPacket(Packet<?> packet) {
         mc.getNetworkHandler().sendPacket(packet);
@@ -65,29 +64,17 @@ public class Rotation {
     @EventHandler(priority = -999)
     public void onPacketSend(PacketEvent.Send event) {
         if (mc.player == null || event.isCancelled()) return;
+        //BadPacketJ Disabler
+        if (event.packet instanceof PlayerInteractItemC2SPacket packet && rotation) {
+            ((IPlayerInterectItemC2SPacket) packet).setYaw(targetYaw);
+            ((IPlayerInterectItemC2SPacket) packet).setPitch(targetPitch);
+        }
         if (event.packet instanceof PlayerMoveC2SPacket packet) {
             if (packet.changesLook()) {
                 lastYaw = packet.getYaw(lastYaw);
                 lastPitch = packet.getPitch(lastPitch);
             }
             lastGround = packet.isOnGround();
-        }
-    }
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onReceivePacket(PacketEvent.Receive event) {
-        if (mc.player == null) return;
-        if (event.packet instanceof PlayerPositionLookS2CPacket packet) {
-            if (packet.getFlags().contains(PositionFlag.X_ROT)) {
-                lastYaw = lastYaw + packet.getYaw();
-            } else {
-                lastYaw = packet.getYaw();
-            }
-
-            if (packet.getFlags().contains(PositionFlag.Y_ROT)) {
-                lastPitch = lastPitch + packet.getPitch();
-            } else {
-                lastPitch = packet.getPitch();
-            }
         }
     }
     public static Vec3d getClosestPointToEye(Vec3d eyePos, Box box) {

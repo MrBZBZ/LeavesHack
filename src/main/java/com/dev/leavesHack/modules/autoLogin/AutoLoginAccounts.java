@@ -54,15 +54,15 @@ public class AutoLoginAccounts extends System<AutoLoginAccounts> {
     public AutoLoginAccounts fromTag(NbtCompound tag) {
         accounts.clear();
 
-        NbtList list = tag.getList("accounts", 10);
+        NbtList list = tag.getListOrEmpty("accounts");
 
         for (NbtElement e : list) {
             NbtCompound t = (NbtCompound) e;
 
             AutoLoginAccount acc = new AutoLoginAccount();
-            acc.username.set(t.getString("username"));
-            acc.serverIp.set(t.getString("ip"));
-            acc.password.set(t.getString("password"));
+            acc.username.set(String.valueOf(t.getString("username")));
+            acc.serverIp.set(String.valueOf(t.getString("ip")));
+            acc.password.set(String.valueOf(t.getString("password")));
 
             accounts.add(acc);
         }

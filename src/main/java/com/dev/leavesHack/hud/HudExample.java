@@ -5,7 +5,7 @@ import meteordevelopment.meteorclient.systems.hud.HudElement;
 import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.render.color.Color;
-//懒得删，说不定以后用得到
+
 public class HudExample extends HudElement {
     /**
      * The {@code name} parameter should be in kebab-case.

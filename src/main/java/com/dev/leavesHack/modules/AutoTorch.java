@@ -26,48 +26,48 @@ public class AutoTorch extends Module {
     private Timer placeTimer = new Timer();
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
-            .name("Delay")
-            .description("放置延迟(毫秒MS)")
-            .defaultValue(50)
-            .min(0)
-            .sliderMax(10000)
-            .build()
+        .name("Delay")
+        .description("放置延迟(毫秒MS)")
+        .defaultValue(50)
+        .min(0)
+        .sliderMax(10000)
+        .build()
     );
     private final Setting<Integer> renderRange = sgGeneral.add(new IntSetting.Builder()
-            .name("RenderRange")
-            .description("渲染距离")
-            .defaultValue(10)
-            .min(0)
-            .sliderMax(10)
-            .build()
+        .name("RenderRange")
+        .description("渲染距离")
+        .defaultValue(10)
+        .min(0)
+        .sliderMax(10)
+        .build()
     );
     private final Setting<Integer> range = sgGeneral.add(new IntSetting.Builder()
-            .name("Range")
-            .description("操作距离")
-            .defaultValue(5)
-            .min(0)
-            .sliderMax(6)
-            .build()
+        .name("Range")
+        .description("操作距离")
+        .defaultValue(5)
+        .min(0)
+        .sliderMax(6)
+        .build()
     );
     private final Setting<Boolean> onlyRender = sgGeneral.add(new BoolSetting.Builder()
-            .name("OnlyRender")
-            .description("仅渲染而不操作")
-            .defaultValue(true)
-            .build()
+        .name("OnlyRender")
+        .description("仅渲染而不操作")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> throughWall = sgGeneral.add(new BoolSetting.Builder()
-            .name("ThroughWall")
-            .description("穿墙放置")
-            .defaultValue(false)
-            .build()
+        .name("ThroughWall")
+        .description("穿墙放置")
+        .defaultValue(false)
+        .build()
     );
     private final Setting<Integer> checkLightLevel = sgGeneral.add(new IntSetting.Builder()
-            .name("CheckLightLevel")
-            .description("光照等级")
-            .defaultValue(7)
-            .min(0)
-            .sliderMax(15)
-            .build()
+        .name("CheckLightLevel")
+        .description("光照等级")
+        .defaultValue(7)
+        .min(0)
+        .sliderMax(15)
+        .build()
     );
     public AutoTorch() {
         super(LeavesHack.CATEGORY, "AutoTorch", "自动放火把");
@@ -92,7 +92,7 @@ public class AutoTorch extends Module {
         }
         if (onlyRender.get()) return;
         if (!placeTimer.passedMs(delay.get())) return;
-        int oldSlot = mc.player.getInventory().selectedSlot;
+        int oldSlot = mc.player.getInventory().getSelectedSlot();
         int slot = InventoryUtil.findClass(TorchBlock.class);
         if (slot == -1) return;
         int counts = 0;

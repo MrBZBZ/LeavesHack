@@ -18,10 +18,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PlaceRender extends Module {
-    public static PlaceRender INSTANCE;
     public PlaceRender() {
         super(LeavesHack.CATEGORY, "PlaceRender", "放置渲染");
-        INSTANCE = this;
     }
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<ShapeMode> shapeMode = sgRender.add(
@@ -35,16 +33,16 @@ public class PlaceRender extends Module {
             new IntSetting.Builder()
                     .name("Speed")
                     .description("渲染速度")
-                    .defaultValue(3)
-                    .sliderRange(1, 10)
+                    .defaultValue(10)
+                    .sliderRange(1, 100)
                     .build()
     );
     private final Setting<Boolean> renderClientPlace = sgRender.add(
-            new BoolSetting.Builder()
-                    .name("RenderClientPlace")
-                    .description("客户端放置渲染")
-                    .defaultValue(true)
-                    .build()
+        new BoolSetting.Builder()
+            .name("RenderClientPlace")
+            .description("客户端放置渲染")
+            .defaultValue(true)
+            .build()
     );
     private final Setting<Double> animationExp = sgRender.add(
             new DoubleSetting.Builder()

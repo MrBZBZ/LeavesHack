@@ -2,7 +2,6 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.utils.combat.CombatUtil;
-import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockPosX;
 import com.dev.leavesHack.utils.world.BlockUtil;
@@ -17,7 +16,6 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.PickaxeItem;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -249,7 +247,7 @@ public class AutoCity extends Module {
         return false;
     }
     public BlockPos getPlayerPos(boolean fix) {
-        return new BlockPosX(mc.player.getPos(), fix);
+        return new BlockPosX(mc.player.getEntityPos(), fix);
     }
     public Block getBlock(BlockPos pos) {
         return mc.world.getBlockState(pos).getBlock();

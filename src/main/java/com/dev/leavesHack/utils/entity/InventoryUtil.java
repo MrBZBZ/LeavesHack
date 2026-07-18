@@ -36,7 +36,7 @@ public class InventoryUtil {
         MeteorClient.EVENT_BUS.subscribe(this);
     }
     static int lastSlot = -1;
-    static int serverSlot = -1;
+    public static int serverSlot = 0;
     static int lastSelect = -1;
     @EventHandler
     public void onPacketSend(PacketEvent.Send event) {
@@ -47,17 +47,20 @@ public class InventoryUtil {
             serverSlot = packet.getSelectedSlot();
         }
     }
-    public static int getEquipmentLevel(PlayerEntity player, RegistryKey<Enchantment> enchantmentKey) {
-        int maxLevel = 0;
-        for (ItemStack stack : player.getArmorItems()) {
-            if (!stack.isEmpty()) {
-                int level = getEnchantmentLevel(stack, enchantmentKey);
-                if (level > maxLevel) {
-                    maxLevel = level;
-                }
-            }
-        }
-        return maxLevel;
+//    public static int getEquipmentLevel(PlayerEntity player, RegistryKey<Enchantment> enchantmentKey) {
+//        int maxLevel = 0;
+//        for (ItemStack stack : player.getArmorItems()) {
+//            if (!stack.isEmpty()) {
+//                int level = getEnchantmentLevel(stack, enchantmentKey);
+//                if (level > maxLevel) {
+//                    maxLevel = level;
+//                }
+//            }
+//        }
+//        return maxLevel;
+//    }
+    public static boolean hasEnchantment(ItemStack itemStack, RegistryKey<Enchantment> enchantment) {
+        return getEnchantmentLevel(itemStack, enchantment) > 0;
     }
     public static int getEnchantmentLevel(ItemStack itemStack, RegistryKey<Enchantment> enchantment) {
         if (itemStack.isEmpty()) return 0;
@@ -76,8 +79,8 @@ public class InventoryUtil {
 
         if (!itemStack.isEmpty()) {
             Set<Object2IntMap.Entry<RegistryEntry<Enchantment>>> itemEnchantments = itemStack.getItem() == Items.ENCHANTED_BOOK
-                    ? itemStack.getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT).getEnchantmentEntries()
-                    : itemStack.getEnchantments().getEnchantmentEntries();
+                ? itemStack.getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT).getEnchantmentEntries()
+                : itemStack.getEnchantments().getEnchantmentEntries();
 
             for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : itemEnchantments) {
                 enchantments.put(entry.getKey(), entry.getIntValue());
@@ -131,7 +134,7 @@ public class InventoryUtil {
         return mc.player.getInventory().getStack(i);
     }
     public static void switchToSlot(int slot) {
-        if (GlobalSetting.INSTANCE.clientSwitch.get()) mc.player.getInventory().selectedSlot = slot;
+        if (GlobalSetting.INSTANCE.clientSwitch.get()) mc.player.getInventory().setSelectedSlot(slot);
         sendPacket(new UpdateSelectedSlotC2SPacket(slot));
     }
     public enum MineSwitchMode {

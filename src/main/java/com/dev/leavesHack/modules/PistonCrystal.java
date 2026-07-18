@@ -3,7 +3,6 @@ package com.dev.leavesHack.modules;
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
-import com.dev.leavesHack.utils.math.DamageUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockUtil;
@@ -39,137 +38,137 @@ public class PistonCrystal extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<Double> targetRange = sgGeneral.add(new DoubleSetting.Builder()
-            .name("TargetRange")
-            .description("目标距离")
-            .defaultValue(6.0)
-            .sliderRange(1, 6)
-            .build()
+        .name("TargetRange")
+        .description("目标距离")
+        .defaultValue(6.0)
+        .sliderRange(1, 6)
+        .build()
     );
     private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
-            .name("range")
-            .description("操作距离")
-            .defaultValue(4.5)
-            .sliderRange(1, 6)
-            .build()
+        .name("range")
+        .description("操作距离")
+        .defaultValue(4.5)
+        .sliderRange(1, 6)
+        .build()
     );
     private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
-            .name("delay-ms")
-            .description("放置延迟")
-            .defaultValue(50)
-            .sliderRange(0, 500)
-            .build()
+        .name("delay-ms")
+        .description("放置延迟")
+        .defaultValue(50)
+        .sliderRange(0, 500)
+        .build()
     );
     private final Setting<Integer> breakDelay = sgGeneral.add(new IntSetting.Builder()
-            .name("breakDelay-ms")
-            .description("破坏延迟")
-            .defaultValue(300)
-            .sliderRange(0, 500)
-            .build()
+        .name("breakDelay-ms")
+        .description("破坏延迟")
+        .defaultValue(300)
+        .sliderRange(0, 500)
+        .build()
     );
     private final Setting<Double> minDamage = sgGeneral.add(new DoubleSetting.Builder()
-            .name("MinDamage")
-            .description("最小伤害")
-            .defaultValue(4.0)
-            .sliderRange(1, 36)
-            .build()
+        .name("MinDamage")
+        .description("最小伤害")
+        .defaultValue(4.0)
+        .sliderRange(1, 36)
+        .build()
     );
     private final Setting<Double> maxSelfDmg = sgGeneral.add(new DoubleSetting.Builder()
-            .name("MaxSelfDmg")
-            .description("最大自伤")
-            .defaultValue(12)
-            .sliderRange(1, 36)
-            .build()
+        .name("MaxSelfDmg")
+        .description("最大自伤")
+        .defaultValue(12)
+        .sliderRange(1, 36)
+        .build()
     );
     private final Setting<Boolean> usingPause = sgGeneral.add(new BoolSetting.Builder()
-            .name("UsingPause")
-            .description("使用暂停")
-            .defaultValue(true)
-            .build()
+        .name("UsingPause")
+        .description("使用暂停")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> onlyMain = sgGeneral.add(new BoolSetting.Builder()
-            .name("OnlyMain")
-            .description("仅主手暂停")
-            .defaultValue(true)
-            .visible(usingPause::get)
-            .build()
+        .name("OnlyMain")
+        .description("仅主手暂停")
+        .defaultValue(true)
+        .visible(usingPause::get)
+        .build()
     );
     private final Setting<Boolean> preferCrystal = sgGeneral.add(new BoolSetting.Builder()
-            .name("PreferCrystal")
-            .description("优先水晶光环")
-            .defaultValue(true)
-            .build()
+        .name("PreferCrystal")
+        .description("优先水晶光环")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> attack = sgGeneral.add(new BoolSetting.Builder()
-            .name("AttackForPlace")
-            .description("攻击后放置")
-            .defaultValue(true)
-            .build()
+        .name("AttackForPlace")
+        .description("攻击后放置")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> noSuicide = sgGeneral.add(new BoolSetting.Builder()
-            .name("NoSuicide")
-            .description("防止自杀")
-            .defaultValue(true)
-            .build()
+        .name("NoSuicide")
+        .description("防止自杀")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
-            .name("rotate")
-            .description("转头")
-            .defaultValue(true)
-            .build()
+        .name("rotate")
+        .description("转头")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> inventory = sgGeneral.add(new BoolSetting.Builder()
-            .name("InventorySwap")
-            .description("静默背包切换")
-            .defaultValue(true)
-            .build()
+        .name("InventorySwap")
+        .description("静默背包切换")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> mine = sgGeneral.add(new BoolSetting.Builder()
-            .name("Mine")
-            .description("自动挖活塞")
-            .defaultValue(true)
-            .build()
+        .name("Mine")
+        .description("自动挖活塞")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> yawDeceive = sgGeneral.add(new BoolSetting.Builder()
-            .name("YawDeceive")
-            .description("Yaw欺骗")
-            .defaultValue(true)
-            .build()
+        .name("YawDeceive")
+        .description("Yaw欺骗")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<RedstoneMode> redStoneMode = sgGeneral.add(new EnumSetting.Builder<RedstoneMode>()
-            .name("redStone")
-            .description("红石模式")
-            .defaultValue(RedstoneMode.Block)
-            .build()
+        .name("redStone")
+        .description("红石模式")
+        .defaultValue(RedstoneMode.Block)
+        .build()
     );
     private final Setting<Boolean> render = sgRender.add(new BoolSetting.Builder()
-            .name("render")
-            .description("渲染")
-            .defaultValue(true)
-            .build()
+        .name("render")
+        .description("渲染")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>()
-            .name("shape-mode")
-            .description("渲染模式")
-            .defaultValue(ShapeMode.Both)
-            .build()
+        .name("shape-mode")
+        .description("渲染模式")
+        .defaultValue(ShapeMode.Both)
+        .build()
     );
     private final Setting<SettingColor> crystalColor = sgRender.add(new ColorSetting.Builder()
-            .name("Crystal")
-            .description("水晶颜色")
-            .defaultValue(new SettingColor(255, 0, 0, 80))
-            .build()
+        .name("Crystal")
+        .description("水晶颜色")
+        .defaultValue(new SettingColor(255, 0, 0, 80))
+        .build()
     );
     private final Setting<SettingColor> pistonColor = sgRender.add(new ColorSetting.Builder()
-            .name("Piston")
-            .description("活塞颜色")
-            .defaultValue(new SettingColor(255, 255, 255, 80))
-            .build()
+        .name("Piston")
+        .description("活塞颜色")
+        .defaultValue(new SettingColor(255, 255, 255, 80))
+        .build()
     );
     private final Setting<SettingColor> redstoneColor = sgRender.add(new ColorSetting.Builder()
-            .name("RedStone")
-            .description("红石颜色")
-            .defaultValue(new SettingColor(255, 100, 0, 80))
-            .build()
+        .name("RedStone")
+        .description("红石颜色")
+        .defaultValue(new SettingColor(255, 100, 0, 80))
+        .build()
     );
     private long lastAction = 0;
     private BlockPos crystalPos;
@@ -304,8 +303,8 @@ public class PistonCrystal extends Module {
         BlockPos tempRedstonePos = null;
         //计算伤害
         Vec3d vec = new Vec3d(base.up().getX() + 0.5, base.up().getY(), base.up().getZ() + 0.5);
-        float damage1 = DamageUtil.calculateDamage(vec, target);
-        float selfDmg1 = DamageUtil.calculateDamage(vec, mc.player);
+        float damage1 = DamageUtils.crystalDamage(target, vec);
+        float selfDmg1 = DamageUtils.crystalDamage(mc.player, vec);
         if (damage1 > minDamage.get() && selfDmg1 <= maxSelfDmg.get()) {
             for (Direction dir : Direction.Type.HORIZONTAL) {
                 //第一层遍历，寻找面前可以放水晶的位置
@@ -333,7 +332,7 @@ public class PistonCrystal extends Module {
                         if (!BlockUtil.isGrimDirection(temp.offset(help), help.getOpposite())) continue;
                         if (!BlockUtil.canPlace(temp.offset(help)) || mc.player.getEyePos().distanceTo(temp.offset(help).toCenterPos()) > range.get()) continue;
                         BlockPos helpPos = temp.offset(help);
-                        int old = mc.player.getInventory().selectedSlot;
+                        int old = mc.player.getInventory().getSelectedSlot();
                         Direction side = BlockUtil.getPlaceSide(helpPos, null);
                         doSwap(findRedstone());
                         BlockUtil.placeBlock(helpPos, side, rotate.get());
@@ -374,7 +373,7 @@ public class PistonCrystal extends Module {
                             if (!BlockUtil.canPlace(temp2.offset(help)) || mc.player.getEyePos().distanceTo(temp2.offset(help).toCenterPos()) > range.get())
                                 continue;
                             BlockPos helpPos = temp2.offset(help);
-                            int old = mc.player.getInventory().selectedSlot;
+                            int old = mc.player.getInventory().getSelectedSlot();
                             Direction side = BlockUtil.getPlaceSide(helpPos, null);
                             doSwap(findRedstone());
                             BlockUtil.placeBlock(helpPos, side, rotate.get());
@@ -443,8 +442,8 @@ public class PistonCrystal extends Module {
             }
         }
         Vec3d vec2 = new Vec3d(base.up(2).getX() + 0.5, base.up(2).getY(), base.up(2).getZ() + 0.5);
-        float damage2 = DamageUtil.calculateDamage(vec2, target);
-        float selfDmg2 = DamageUtil.calculateDamage(vec2, mc.player);
+        float damage2 = DamageUtils.crystalDamage(target, vec2);
+        float selfDmg2 = DamageUtils.crystalDamage(mc.player, vec2);
         if (selfDmg2 > EntityUtils.getTotalHealth(mc.player) && noSuicide.get()) return;
         if (damage2 > minDamage.get() && selfDmg2 <= maxSelfDmg.get()) {
             //逻辑同理，只是懒得打包成方法了，这一大段就是遍历头顶
@@ -465,7 +464,7 @@ public class PistonCrystal extends Module {
                             if (!BlockUtil.canPlace(temp.offset(help)) || mc.player.getEyePos().distanceTo(temp.offset(help).toCenterPos()) > range.get())
                                 continue;
                             BlockPos helpPos = temp.offset(help);
-                            int old = mc.player.getInventory().selectedSlot;
+                            int old = mc.player.getInventory().getSelectedSlot();
                             Direction side = BlockUtil.getPlaceSide(helpPos, null);
                             doSwap(findRedstone());
                             BlockUtil.placeBlock(helpPos, side, rotate.get());
@@ -503,7 +502,7 @@ public class PistonCrystal extends Module {
                                 if (!BlockUtil.canPlace(temp2.offset(help)) || mc.player.getEyePos().distanceTo(temp2.offset(help).toCenterPos()) > range.get())
                                     continue;
                                 BlockPos helpPos = temp2.offset(help);
-                                int old = mc.player.getInventory().selectedSlot;
+                                int old = mc.player.getInventory().getSelectedSlot();
                                 Direction side = BlockUtil.getPlaceSide(helpPos, null);
                                 doSwap(findRedstone());
                                 BlockUtil.placeBlock(helpPos, side, rotate.get());
@@ -575,7 +574,7 @@ public class PistonCrystal extends Module {
 
         if (slot == -1) return;
 
-        int old = mc.player.getInventory().selectedSlot;
+        int old = mc.player.getInventory().getSelectedSlot();
         doSwap(slot);
         if (rotate.get()) {
             Rotation.snapAt(pos.toCenterPos().add(new Vec3d(side.getVector().getX() * 0.5, side.getVector().getY() * 0.5, side.getVector().getZ() * 0.5)));
@@ -619,7 +618,7 @@ public class PistonCrystal extends Module {
         if (side == null) return;
         if (slot == -1) return;
 
-        int old = mc.player.getInventory().selectedSlot;
+        int old = mc.player.getInventory().getSelectedSlot();
         doSwap(slot);
         BlockUtil.clickBlock(base, side, rotate.get());
         if (inventory.get()) {
@@ -637,7 +636,7 @@ public class PistonCrystal extends Module {
             if (BlockUtil.getBlock(pos.offset(side)) instanceof PistonBlock) continue;
             if (side == Direction.UP) continue;
             if (slot == -1) return;
-            int old = mc.player.getInventory().selectedSlot;
+            int old = mc.player.getInventory().getSelectedSlot();
             doSwap(slot);
             BlockUtil.placeBlock(pos, side, rotate.get());
             if (inventory.get()) {
@@ -652,7 +651,7 @@ public class PistonCrystal extends Module {
         if (!inventory.get()) {
             InventoryUtil.switchToSlot(slot);
         } else {
-            InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
+            InventoryUtil.inventorySwap(slot, mc.player.getInventory().getSelectedSlot());
         }
     }
 

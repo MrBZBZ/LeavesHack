@@ -25,10 +25,4 @@ public interface IPlayerMoveC2SPacket {
 
     @Accessor("y")
     double getY();
-
-    @Accessor("yaw")
-    float getYaw();
-
-    @Accessor("pitch")
-    float getPitch();
 }

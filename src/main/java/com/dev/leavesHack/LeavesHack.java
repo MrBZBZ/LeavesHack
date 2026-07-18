@@ -27,34 +27,33 @@ public class LeavesHack extends MeteorAddon {
         InventoryUtil.INSTANCE.hashCode();
         ModuleManager.INSTANCE.hashCode();
         // Modules
-        add(new Follower());
-        add(new GlassFiller());
+        add(new ElytraGrimAccelerate());
+        add(new Printer());
         add(new PlaceRender());
         add(new AutoCrystal());
-        add(new AutoAnchor());
-        add(new PistonCrystal());
-        add(new GlobalSetting());
-        add(new AutoTree());
-        add(new AutoLogin());
-        add(new Printer());
-        add(new AutoTorch());
-        add(new ScaffoldPlus());
-        add(new AutoCity());
         add(new AutoPlaceBlock());
-        add(new NukerPlus());
-        add(new ModuleList());
-        add(new PacketMine());
-        add(new Aura());
-        add(new AutoArmorPlus());
-        add(new FireworkElytraFly());
-        add(new AntiAntiXray());
+        add(new AutoAnchor());
         add(new AutoRefreshTrade());
-
-//这两模板还用不上后面用得到再研究
-        // Commands
+        add(new AutoTree());
+        add(new AutoArmorPlus());
+        add(new AutoTorch());
+        add(new ModuleList());
+        add(new Aura());
+        add(new ScaffoldPlus());
+        add(new FireworkElytraFly());
+        add(new AutoCity());
+        add(new PacketMine());
+        add(new GlobalSetting());
+        add(new PacketLogger());
+        add(new Follower());
+        add(new GlassFiller());
+        add(new PistonCrystal());
+        add(new AutoLogin());
+        add(new NukerPlus());
+//        // Commands
 //        Commands.add(new CommandExample());
-
-        // HUD
+//
+//        // HUD
 //        Hud.get().register(HudExample.INFO);
     }
     private void add(Module module){
@@ -64,12 +63,14 @@ public class LeavesHack extends MeteorAddon {
     public void onRegisterCategories() {
         Modules.registerCategory(CATEGORY);
     }
+
     @Override
     public String getPackage() {
         return "com.dev.leavesHack";
     }
+
     @Override
     public GithubRepo getRepo() {
-        return new GithubRepo("MeteorDevelopment", "meteor-addon-leaves");
+        return new GithubRepo("MeteorDevelopment", "meteor-addon-template");
     }
 }

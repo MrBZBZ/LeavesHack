@@ -1,8 +1,3 @@
-/*
- * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
- * Copyright (c) Meteor Development.
- */
-
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
@@ -14,12 +9,10 @@ import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
-import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.player.ChatUtils;
-import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.meteorclient.utils.render.RenderUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.meteorclient.utils.world.BlockIterator;
@@ -27,7 +20,6 @@ import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import net.minecraft.block.Block;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
@@ -42,8 +34,6 @@ public class NukerPlus extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgWhitelist = settings.createGroup("Whitelist");
     private final SettingGroup sgRender = settings.createGroup("Render");
-
-    // General
 
     private final Setting<Shape> shape = sgGeneral.add(new EnumSetting.Builder<Shape>()
             .name("shape")
@@ -175,8 +165,6 @@ public class NukerPlus extends Module {
             .build()
     );
 
-    // Whitelist and blacklist
-
     private final Setting<ListMode> listMode = sgWhitelist.add(new EnumSetting.Builder<ListMode>()
             .name("list-mode")
             .description("选择模式")
@@ -197,8 +185,6 @@ public class NukerPlus extends Module {
             .visible(() -> listMode.get() == ListMode.Whitelist)
             .build()
     );
-
-    // Rendering
 
     private final Setting<Boolean> enableRenderBounding = sgRender.add(new BoolSetting.Builder()
             .name("bounding-box")
@@ -268,7 +254,7 @@ public class NukerPlus extends Module {
     private int noBlockTimer;
     private Timer mineTimer = new Timer();
 
-    private final BlockPos.Mutable pos1 = new BlockPos.Mutable(); // Rendering for cubes
+    private final BlockPos.Mutable pos1 = new BlockPos.Mutable();
     private final BlockPos.Mutable pos2 = new BlockPos.Mutable();
     int maxh = 0;
     int maxv = 0;
@@ -288,7 +274,6 @@ public class NukerPlus extends Module {
     @EventHandler
     private void onRender(Render3DEvent event) {
         if (enableRenderBounding.get()) {
-            // Render bounding box if cube and should break stuff
             if (shape.get() != Shape.Sphere && mode.get() != Mode.Smash) {
                 int minX = Math.min(pos1.getX(), pos2.getX());
                 int minY = Math.min(pos1.getY(), pos2.getY());
@@ -303,13 +288,11 @@ public class NukerPlus extends Module {
 
     @EventHandler
     private void onTickPre(TickEvent.Pre event) {
-        // Update timer
         if (timer > 0) {
             timer--;
             return;
         }
 
-        // Calculate some stuff
         double pX = mc.player.getX();
         double pY = mc.player.getY();
         double pZ = mc.player.getZ();
@@ -318,47 +301,41 @@ public class NukerPlus extends Module {
 
         if (shape.get() == Shape.UniformCube) range.set((double) Math.round(range.get()));
 
-        // Some render stuff
-
         double pX_ = pX;
         double pZ_ = pZ;
         int r = (int) Math.round(range.get());
 
         if (shape.get() == Shape.UniformCube) {
-            pX_ += 1; // weired position stuff
-            pos1.set(pX_ - r, pY - r + 1, pZ - r + 1); // down
-            pos2.set(pX_ + r - 1, pY + r, pZ + r); // up
+            pX_ += 1;
+            pos1.set(pX_ - r, pY - r + 1, pZ - r + 1);
+            pos2.set(pX_ + r - 1, pY + r, pZ + r);
         } else {
             int direction = Math.round((mc.player.getRotationClient().y % 360) / 90);
             direction = Math.floorMod(direction, 4);
 
-            // direction == 1
-            pos1.set(pX_ - range_forward.get(), Math.ceil(pY) - range_down.get(), pZ_ - range_right.get()); // down
-            pos2.set(pX_ + range_back.get() + 1, Math.ceil(pY + range_up.get() + 1), pZ_ + range_left.get() + 1); // up
+            pos1.set(pX_ - range_forward.get(), Math.ceil(pY) - range_down.get(), pZ_ - range_right.get());
+            pos2.set(pX_ + range_back.get() + 1, Math.ceil(pY + range_up.get() + 1), pZ_ + range_left.get() + 1);
 
-            // Only change me if you want to mess with 3D rotations:
-            // I messed with it
             switch (direction) {
                 case 0 -> {
                     pZ_ += 1;
                     pX_ += 1;
-                    pos1.set(pX_ - (range_right.get() + 1), Math.ceil(pY) - range_down.get(), pZ_ - (range_back.get() + 1)); // down
-                    pos2.set(pX_ + range_left.get(), Math.ceil(pY + range_up.get() + 1), pZ_ + range_forward.get()); // up
+                    pos1.set(pX_ - (range_right.get() + 1), Math.ceil(pY) - range_down.get(), pZ_ - (range_back.get() + 1));
+                    pos2.set(pX_ + range_left.get(), Math.ceil(pY + range_up.get() + 1), pZ_ + range_forward.get());
                 }
                 case 2 -> {
                     pX_ += 1;
                     pZ_ += 1;
-                    pos1.set(pX_ - (range_left.get() + 1), Math.ceil(pY) - range_down.get(), pZ_ - (range_forward.get() + 1)); // down
-                    pos2.set(pX_ + range_right.get(), Math.ceil(pY + range_up.get() + 1), pZ_ + range_back.get()); // up
+                    pos1.set(pX_ - (range_left.get() + 1), Math.ceil(pY) - range_down.get(), pZ_ - (range_forward.get() + 1));
+                    pos2.set(pX_ + range_right.get(), Math.ceil(pY + range_up.get() + 1), pZ_ + range_back.get());
                 }
                 case 3 -> {
                     pX_ += 1;
-                    pos1.set(pX_ - (range_back.get() + 1), Math.ceil(pY) - range_down.get(), pZ_ - range_left.get()); // down
-                    pos2.set(pX_ + range_forward.get(), Math.ceil(pY + range_up.get() + 1), pZ_ + range_right.get() + 1); // up
+                    pos1.set(pX_ - (range_back.get() + 1), Math.ceil(pY) - range_down.get(), pZ_ - range_left.get());
+                    pos2.set(pX_ + range_forward.get(), Math.ceil(pY + range_up.get() + 1), pZ_ + range_right.get() + 1);
                 }
             }
 
-            // get largest horizontal
             maxh = 1 + Math.max(Math.max(Math.max(range_back.get(), range_right.get()), range_forward.get()), range_left.get());
             maxv = 1 + Math.max(range_up.get(), range_down.get());
         }
@@ -368,9 +345,7 @@ public class NukerPlus extends Module {
         }
         Box box = new Box(pos1.toCenterPos(), pos2.toCenterPos());
 
-        // Find blocks to break
         BlockIterator.register(Math.max((int) Math.ceil(range.get() + 1), maxh), Math.max((int) Math.ceil(range.get()), maxv), (blockPos, blockState) -> {
-            // Check for air, unbreakable blocks and distance
             switch (shape.get()) {
                 case Sphere -> {
                     if (Utils.squaredDistance(pX, pY, pZ, blockPos.getX() + 0.5, blockPos.getY() + 0.5, blockPos.getZ() + 0.5) > rangeSq) return;
@@ -385,31 +360,23 @@ public class NukerPlus extends Module {
 
             if (!BlockUtils.canBreak(blockPos, blockState)) return;
 
-            // Flatten
             if (mode.get() == Mode.Flatten && blockPos.getY() < Math.floor(mc.player.getY())) return;
 
-            // Smash
             if (mode.get() == Mode.Smash && blockState.getHardness(mc.world, blockPos) != 0) return;
 
-            // Check whitelist or blacklist
             if (listMode.get() == ListMode.Whitelist && !whitelist.get().contains(blockState.getBlock())) return;
             if (listMode.get() == ListMode.Blacklist && blacklist.get().contains(blockState.getBlock())) return;
 
-            // Add block
             blocks.add(blockPos.toImmutable());
         });
 
-        // Break block if found
         BlockIterator.after(() -> {
-            // Sort blocks
             if (sortMode.get() == SortMode.TopDown)
                 blocks.sort(Comparator.comparingDouble(value -> -value.getY()));
             else if (sortMode.get() != SortMode.None)
                 blocks.sort(Comparator.comparingDouble(value -> Utils.squaredDistance(pX, pY, pZ, value.getX() + 0.5, value.getY() + 0.5, value.getZ() + 0.5) * (sortMode.get() == SortMode.Closest ? 1 : -1)));
 
-            // Check if some block was found
             if (blocks.isEmpty()) {
-                // If no block was found for long enough then set firstBlock flag to true to not wait before breaking another again
                 if (noBlockTimer++ >= delay.get()) firstBlock = true;
                 return;
             }
@@ -417,7 +384,6 @@ public class NukerPlus extends Module {
                 noBlockTimer = 0;
             }
 
-            // Update timer
             if (!firstBlock && !lastBlockPos.equals(blocks.getFirst())) {
                 timer = delay.get();
 
@@ -427,7 +393,6 @@ public class NukerPlus extends Module {
                 if (timer > 0) return;
             }
 
-            // Break
             int count = 0;
 
             for (BlockPos block : blocks) {
@@ -436,21 +401,20 @@ public class NukerPlus extends Module {
                 boolean canInstaMine = BlockUtils.canInstaBreak(block);
 
                 if (rotate.get()) {
-                    mc.player.setYaw(Rotation.getRotation(Vec3d.of(block))[0]);
-                    mc.player.setPitch(Rotation.getRotation(Vec3d.of(block))[1]);
-                };
+                    float[] rot = Rotation.getRotation(mc.player.getEyePos(), Vec3d.of(block));
+                    mc.player.setYaw(rot[0]);
+                    mc.player.setPitch(rot[1]);
+                }
                 breakBlock(block);
 
                 if (enableRenderBreaking.get()) RenderUtils.renderTickingBlock(block, sideColor.get(), lineColor.get(), shapeModeBreak.get(), 0, 8, true, false);
                 lastBlockPos.set(block);
 
                 count++;
-                if (!canInstaMine && !packetMine.get() /* With packet mine attempt to break everything possible at once */) break;
+                if (!canInstaMine && !packetMine.get()) break;
             }
 
             firstBlock = false;
-
-            // Clear current block positions
             blocks.clear();
         });
     }
@@ -503,7 +467,6 @@ public class NukerPlus extends Module {
     }
 
     public static int chebyshevDist(int x1, int y1, int z1, int x2, int y2, int z2) {
-        // Gets the largest X, Y or Z difference, chebyshev distance
         int dX = Math.abs(x2 - x1);
         int dY = Math.abs(y2 - y1);
         int dZ = Math.abs(z2 - z1);

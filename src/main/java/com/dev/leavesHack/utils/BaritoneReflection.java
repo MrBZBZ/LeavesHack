@@ -1,7 +1,5 @@
 package com.dev.leavesHack.utils;
 
-import net.minecraft.text.Text;
-
 import java.lang.reflect.Method;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;

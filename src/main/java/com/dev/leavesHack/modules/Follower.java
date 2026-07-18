@@ -14,10 +14,8 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.RaycastContext;
 
 import static com.dev.leavesHack.utils.world.BlockUtil.getClosestPointToBox;
 
@@ -77,7 +75,7 @@ public class Follower extends Module {
     }
     @Override
     public String getInfoString() {
-        return target == null ? null : "§f[" + target.getName().getString() + "]";
+        return target == null ? null : "[" + target.getName().getString() + "]";
     }
     @Override
     public void onDeactivate() {
@@ -128,9 +126,10 @@ public class Follower extends Module {
             shouldReturn = true;
             returnTimer.reset();
         }
-        pitch = shouldReturn ? -90 : Rotation.getRotation(getAttackVec(target))[1];
-        yaw = Rotation.getRotation(getAttackVec(target))[0];
-        mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround()));
+        Vec3d attackVec = getAttackVec(target);
+        pitch = shouldReturn ? -90 : Rotation.getRotation(mc.player.getEyePos(), attackVec)[1];
+        yaw = shouldReturn ? 0 : Rotation.getRotation(mc.player.getEyePos(), attackVec)[0];
+        mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround(), mc.player.horizontalCollision));
     }
     private void setY(double f) {
         ((IVec3d) mc.player.getVelocity()).setY(f);

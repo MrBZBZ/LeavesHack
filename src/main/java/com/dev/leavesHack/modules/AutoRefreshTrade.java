@@ -10,7 +10,10 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
-import meteordevelopment.meteorclient.settings.*;
+import meteordevelopment.meteorclient.settings.EnchantmentListSetting;
+import meteordevelopment.meteorclient.settings.IntSetting;
+import meteordevelopment.meteorclient.settings.Setting;
+import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
@@ -18,11 +21,12 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.item.*;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -31,11 +35,12 @@ import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.math.*;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.village.TradeOffer;
 import net.minecraft.village.TradeOfferList;
 
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -44,41 +49,41 @@ import static meteordevelopment.meteorclient.utils.Utils.getEnchantments;
 public class AutoRefreshTrade extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final Setting<Integer> range = sgGeneral.add(new IntSetting.Builder()
-            .name("Range")
-            .description("操作距离")
-            .defaultValue(5)
-            .min(0)
-            .sliderMax(12)
-            .build()
+        .name("Range")
+        .description("操作距离")
+        .defaultValue(5)
+        .min(0)
+        .sliderMax(12)
+        .build()
     );
     private final Setting<Integer> wallRange = sgGeneral.add(new IntSetting.Builder()
-            .name("WallRange")
-            .description("穿墙操作距离")
-            .defaultValue(5)
-            .min(0)
-            .sliderMax(12)
-            .build()
+        .name("WallRange")
+        .description("穿墙操作距离")
+        .defaultValue(5)
+        .min(0)
+        .sliderMax(12)
+        .build()
     );
     private final Setting<Integer> waitMine = sgGeneral.add(new IntSetting.Builder()
-            .name("WaitMineDelay")
-            .description("等待挖掘延迟(毫秒MS)")
-            .defaultValue(5000)
-            .min(0)
-            .sliderMax(10000)
-            .build()
+        .name("WaitMineDelay")
+        .description("等待挖掘延迟(毫秒MS)")
+        .defaultValue(5000)
+        .min(0)
+        .sliderMax(10000)
+        .build()
     );
     private final Setting<Set<RegistryKey<Enchantment>>> enchantmentList = sgGeneral.add(new EnchantmentListSetting.Builder()
-            .name("EnchantmentsList")
-            .description("目标附魔列表")
-            .build()
+        .name("EnchantmentsList")
+        .description("目标附魔列表")
+        .build()
     );
     private final Setting<Integer> enchantmentLevel = sgGeneral.add(new IntSetting.Builder()
-            .name("Level")
-            .description("目标附魔等级")
-            .defaultValue(3)
-            .min(0)
-            .sliderMax(5)
-            .build()
+        .name("Level")
+        .description("目标附魔等级")
+        .defaultValue(3)
+        .min(0)
+        .sliderMax(5)
+        .build()
     );
     public AutoRefreshTrade() {
         super(LeavesHack.CATEGORY, "AutoRefreshTrade", "自动刷交易附魔书");
@@ -99,7 +104,7 @@ public class AutoRefreshTrade extends Module {
         }
         if (pos != null && mc.world.isAir(pos)) {
             int slot = findItem(Items.LECTERN);
-            int old = mc.player.getInventory().selectedSlot;
+            int old = mc.player.getInventory().getSelectedSlot();
             if (slot != -1) {
                 InventoryUtil.switchToSlot(slot);
                 Direction side = BlockUtil.getPlaceSide(pos, null);
@@ -153,25 +158,25 @@ public class AutoRefreshTrade extends Module {
                 TradeOffer tradeOffer = list.get(size);
                 Item item = tradeOffer.getSellItem().getItem();
                 ItemStack sellStack = tradeOffer.getSellItem();
-                if (item instanceof EnchantedBookItem) {
+                if (item == Items.ENCHANTED_BOOK) {
                     findBook = true;
                     ItemEnchantmentsComponent enchantments = EnchantmentHelper.getEnchantments(sellStack);
                     enchantments.getEnchantments().forEach(entry -> {
                         int level = enchantments.getLevel(entry);
                         int maxLevel = entry.value().getMaxLevel();
                         String name = Enchantment.getName(entry, level).getString();
-                        mc.player.sendMessage(Text.of("[LeavesHack]本次结果 " + name));
+                        info("[LeavesHack]本次结果 " + name);
                         for (RegistryKey<Enchantment> enchantmentKey : enchantmentList.get()){
                             if (hasEnchantments(sellStack, enchantmentKey) && (level >= enchantmentLevel.get() || level == maxLevel)) {
                                 find.set(true);
-                                mc.player.sendMessage(Text.of("[LeavesHack]:已找到所需附魔"));
+                                mc.player.sendMessage(Text.of("[LeavesHack]:已找到所需附魔"), true);
                                 return;
                             }
                         }
                     });
                 }
             }
-            if (!findBook) mc.player.sendMessage(Text.of("[LeavesHack]:本次未找到附魔书"));
+            if (!findBook) info("[LeavesHack]:本次未找到附魔书");
             mc.getNetworkHandler().sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
             mc.currentScreen.close();
             if (find.get()) {

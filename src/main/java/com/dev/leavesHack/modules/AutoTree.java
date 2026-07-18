@@ -33,44 +33,44 @@ public class AutoTree extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<Integer> useDelay = sgGeneral.add(new IntSetting.Builder()
-            .name("UseDelay")
-            .description("使用延迟(毫秒MS)")
-            .defaultValue(50)
-            .min(0)
-            .sliderMax(1000)
-            .build()
+        .name("UseDelay")
+        .description("使用延迟(毫秒MS)")
+        .defaultValue(50)
+        .min(0)
+        .sliderMax(1000)
+        .build()
     );
     private final Setting<Integer> BlocksPer = sgGeneral.add(new IntSetting.Builder()
-            .name("BlocksPer")
-            .description("每tick操作方块数量")
-            .defaultValue(1)
-            .min(0)
-            .sliderMax(4)
-            .build()
+        .name("BlocksPer")
+        .description("每tick操作方块数量")
+        .defaultValue(1)
+        .min(0)
+        .sliderMax(4)
+        .build()
     );
     private final Setting<Boolean> useBoneMeal = sgGeneral.add(new BoolSetting.Builder()
-            .name("UseBoneMeal")
-            .description("使用骨粉")
-            .defaultValue(true)
-            .build()
+        .name("UseBoneMeal")
+        .description("使用骨粉")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>()
-            .name("Shape Mode")
-            .description("渲染模式")
-            .defaultValue(ShapeMode.Both)
-            .build()
+        .name("Shape Mode")
+        .description("渲染模式")
+        .defaultValue(ShapeMode.Both)
+        .build()
     );
     private final Setting<SettingColor> lineColor = sgRender.add(new ColorSetting.Builder()
-            .name("Line Color")
-            .description("外框颜色")
-            .defaultValue(new SettingColor(new java.awt.Color(255, 255, 255, 255)))
-            .build()
+        .name("Line Color")
+        .description("外框颜色")
+        .defaultValue(new SettingColor(new java.awt.Color(255, 255, 255, 255)))
+        .build()
     );
     private final Setting<SettingColor> sideColor = sgRender.add(new ColorSetting.Builder()
-            .name("Side Color")
-            .description("填充颜色")
-            .defaultValue(new SettingColor(new java.awt.Color(255, 255, 255, 50)))
-            .build()
+        .name("Side Color")
+        .description("填充颜色")
+        .defaultValue(new SettingColor(new java.awt.Color(255, 255, 255, 50)))
+        .build()
     );
     public ArrayList<BlockPos> treePos = new ArrayList<>();
     public Timer timer = new Timer();
@@ -82,10 +82,10 @@ public class AutoTree extends Module {
             }
             if (!timer.passedMs(useDelay.get())) return;
             int i = 0;
-            int old = mc.player.getInventory().selectedSlot;
+            int old = mc.player.getInventory().getSelectedSlot();
             int tree = InventoryUtil.findClass(SaplingBlock.class);
             int boneMeal = InventoryUtil.findItem(Items.BONE_MEAL);
-            if (mc.player.getInventory().getStack(mc.player.getInventory().selectedSlot).getItem() instanceof BlockItem treeItem && treeItem.getBlock() instanceof SaplingBlock) {
+            if (mc.player.getInventory().getStack(mc.player.getInventory().getSelectedSlot()).getItem() instanceof BlockItem treeItem && treeItem.getBlock() instanceof SaplingBlock) {
                 for (BlockPos pos : treePos) {
                     if (i >= BlocksPer.get()) break;
                     if (tree != -1) {

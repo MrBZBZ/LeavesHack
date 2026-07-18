@@ -37,7 +37,7 @@ public class MixinPlayerEntity {
         TravelEvent event = new TravelEvent(player);
         MeteorClient.EVENT_BUS.post(event);
     }
-    @WrapOperation(method = "updatePose", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;isFallFlying()Z"))
+    @WrapOperation(method = "getExpectedPose", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;isGliding()Z"))
     private boolean hookUpdatePose(PlayerEntity instance, Operation<Boolean> original) {
         if (instance == mc.player) {
             ElytraUpdateEvent elytraTransformEvent = new ElytraUpdateEvent(instance);
@@ -46,6 +46,6 @@ public class MixinPlayerEntity {
                 return false;
             }
         }
-        return instance.isFallFlying();
+        return instance.isGliding();
     }
 }
