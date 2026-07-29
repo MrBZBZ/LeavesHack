@@ -87,9 +87,15 @@ public class Follower extends Module {
         double speed = followSpeed.get();
         double radYaw = Math.toRadians(yaw);
         double radPitch = Math.toRadians(pitch);
-        double x = -Math.sin(radYaw) * Math.cos(radPitch) * speed;
-        double y = -Math.sin(radPitch) * speed;
-        double z = Math.cos(radYaw) * Math.cos(radPitch) * speed;
+        double x = -Math.sin(radYaw) * Math.cos(radPitch);
+        double y = -Math.sin(radPitch);
+        double z = Math.cos(radYaw) * Math.cos(radPitch);
+        double len = Math.sqrt(x * x + y * y + z * z);
+        if (len > 0.001) {
+            x = x / len * speed;
+            y = y / len * speed;
+            z = z / len * speed;
+        }
         setX(x);
         setY(y);
         setZ(z);
@@ -129,7 +135,7 @@ public class Follower extends Module {
         Vec3d attackVec = getAttackVec(target);
         pitch = shouldReturn ? -90 : Rotation.getRotation(mc.player.getEyePos(), attackVec)[1];
         yaw = shouldReturn ? 0 : Rotation.getRotation(mc.player.getEyePos(), attackVec)[0];
-        mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround(), mc.player.horizontalCollision));
+        Rotation.snapAt(yaw, pitch);
     }
     private void setY(double f) {
         ((IVec3d) mc.player.getVelocity()).setY(f);

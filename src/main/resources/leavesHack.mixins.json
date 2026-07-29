@@ -28,6 +28,7 @@
     "mixin.MixinEntity",
     "mixin.MixinFireworkRocketEntity",
     "mixin.MixinLivingEntity",
+    "mixin.MixinMeteorModule",
     "mixin.MixinPlayerEntity",
     "mixin.MixinWorld",
     "mixin.SystemsMixin"

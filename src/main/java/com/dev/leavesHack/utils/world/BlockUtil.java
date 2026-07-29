@@ -4,6 +4,7 @@ import com.dev.leavesHack.modules.AutoCity;
 import com.dev.leavesHack.modules.GlobalSetting;
 import com.dev.leavesHack.utils.entity.EntityUtil;
 import com.dev.leavesHack.utils.rotation.Rotation;
+import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import net.minecraft.block.*;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
@@ -72,10 +73,10 @@ public class BlockUtil {
         return true;
     }
     public static boolean canClick(BlockPos pos) {
-        return (mc.world.getBlockState(pos).isSolidBlock(mc.world, pos) || getBlock(pos) instanceof RedstoneTorchBlock)&& (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || mc.player.isSneaking());
+        return (mc.world.getBlockState(pos).isSolidBlock(mc.world, pos) || getBlock(pos) instanceof RedstoneTorchBlock || getBlock(pos) instanceof RedstoneBlock) && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || mc.player.isSneaking());
     }
     public static boolean canClick(BlockPos pos, boolean ignoreSneak) {
-        return (mc.world.getBlockState(pos).isSolidBlock(mc.world, pos) || getBlock(pos) instanceof RedstoneTorchBlock)&& (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || (mc.player.isSneaking() || ignoreSneak));
+        return (mc.world.getBlockState(pos).isSolidBlock(mc.world, pos) || getBlock(pos) instanceof RedstoneTorchBlock || getBlock(pos) instanceof RedstoneBlock) && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || (mc.player.isSneaking() || ignoreSneak));
     }
 
     public static boolean canPlace(BlockPos pos) {
@@ -184,13 +185,15 @@ public class BlockUtil {
         return list;
     }
     public static Direction getPlaceSide(BlockPos pos, Predicate<Direction> directionPredicate) {
-        if (pos == null) return null;
+        if (pos == null) {
+            return null;
+        }
         double dis = 114514;
         Direction side = null;
         for (Direction i : Direction.values()) {
             if (directionPredicate != null && !directionPredicate.test(i)) continue;
-            if (canClick(pos.offset(i)) && !mc.world.getBlockState(pos.offset(i)).isReplaceable()) {
-                if (!isGrimDirection(pos.offset(i), i.getOpposite()))continue;
+            BlockPos adj = pos.offset(i);
+            if (canClick(adj) && !mc.world.getBlockState(adj).isReplaceable() && isGrimDirection(adj, i.getOpposite())) {
                 double vecDis = mc.player.getEyePos().squaredDistanceTo(pos.toCenterPos().add(i.getVector().getX() * 0.5, i.getVector().getY() * 0.5, i.getVector().getZ() * 0.5));
                 if (side == null || vecDis < dis) {
                     side = i;

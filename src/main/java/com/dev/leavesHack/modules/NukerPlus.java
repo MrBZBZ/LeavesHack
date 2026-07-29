@@ -202,28 +202,28 @@ public class NukerPlus extends Module {
 
     private final Setting<SettingColor> sideColorBox = sgRender.add(new ColorSetting.Builder()
             .name("side-color")
-            .description("The side color of the bounding box.")
+            .description("边界盒填充颜色")
             .defaultValue(new SettingColor(255, 255, 255, 0))
             .build()
     );
 
     private final Setting<SettingColor> lineColorBox = sgRender.add(new ColorSetting.Builder()
             .name("line-color")
-            .description("The line color of the bounding box.")
+            .description("边界盒边框颜色")
             .defaultValue(new SettingColor(255, 255, 255, 0))
             .build()
     );
 
     private final Setting<Boolean> enableRenderBreaking = sgRender.add(new BoolSetting.Builder()
             .name("broken-blocks")
-            .description("Enable rendering bounding box for Cube and Uniform Cube.")
+            .description("启用破坏方块渲染")
             .defaultValue(true)
             .build()
     );
 
     private final Setting<ShapeMode> shapeModeBreak = sgRender.add(new EnumSetting.Builder<ShapeMode>()
             .name("nuke-block-mode")
-            .description("How the shapes for broken blocks are rendered.")
+            .description("破坏方块渲染模式")
             .defaultValue(ShapeMode.Both)
             .visible(enableRenderBreaking::get)
             .build()
@@ -231,7 +231,7 @@ public class NukerPlus extends Module {
 
     private final Setting<SettingColor> sideColor = sgRender.add(new ColorSetting.Builder()
             .name("side-color")
-            .description("The side color of the target block rendering.")
+            .description("方块内部颜色")
             .defaultValue(new SettingColor(255, 255, 255, 80))
             .visible(enableRenderBreaking::get)
             .build()
@@ -239,7 +239,7 @@ public class NukerPlus extends Module {
 
     private final Setting<SettingColor> lineColor = sgRender.add(new ColorSetting.Builder()
             .name("line-color")
-            .description("The line color of the target block rendering.")
+            .description("方块线条颜色")
             .defaultValue(new SettingColor(255, 255, 255, 255))
             .visible(enableRenderBreaking::get)
             .build()

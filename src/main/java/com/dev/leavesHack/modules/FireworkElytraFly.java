@@ -47,7 +47,7 @@ public class FireworkElytraFly extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     public final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
             .name("Mode")
-            .description("运行模式(Legit合法，GrimDurability甲飞)")
+            .description("运行模式")
             .defaultValue(Mode.Legit)
             .build()
     );
@@ -60,7 +60,7 @@ public class FireworkElytraFly extends Module {
     );
     public final Setting<FireWorkMode> fireWorkMode = sgGeneral.add(new EnumSetting.Builder<FireWorkMode>()
             .name("FireWorkMode")
-            .description("烟花使用模式(Delay延迟放，Auto自动放)")
+            .description("烟花使用模式")
             .defaultValue(FireWorkMode.Delay)
             .build()
     );
@@ -69,13 +69,6 @@ public class FireworkElytraFly extends Module {
             .description("发包延迟tick数")
             .defaultValue(3)
             .sliderMax(100)
-            .build()
-    );
-    public final Setting<Boolean> unbreaking = sgGeneral.add(new BoolSetting.Builder()
-            .name("Unbreaking")
-            .description("无限耐久")
-            .description("")
-            .defaultValue(true)
             .build()
     );
     private final Setting<Double> fakeDelay = sgGeneral.add(new DoubleSetting.Builder()
@@ -139,12 +132,26 @@ public class FireworkElytraFly extends Module {
             .defaultValue(true)
             .build()
     );
+    private final Setting<Double> flySpeed = sgGeneral.add(new DoubleSetting.Builder()
+        .name("Speed")
+        .description("飞行速度")
+        .defaultValue(1.7)
+        .min(0)
+        .sliderMax(5.0)
+        .build()
+    );
     private final Setting<Double> fallSpeed = sgGeneral.add(new DoubleSetting.Builder()
             .name("FallSpeed")
             .description("下落速度")
             .defaultValue(0.02)
             .sliderRange(0.0, 3.0)
             .build()
+    );
+    private final Setting<Boolean> horizontalNoGravity = sgGeneral.add(new BoolSetting.Builder()
+        .name("HorizontalNoGravity")
+        .description("水平飞行时关闭重力")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> deBug = sgGeneral.add(new BoolSetting.Builder()
             .name("DeBug")
@@ -169,6 +176,8 @@ public class FireworkElytraFly extends Module {
     public boolean shouldJump = false, shouldRestore = false;
     public PlayerInput bypassInput = null;
     public boolean hasSpear = false;
+    private boolean savedNoGravity = false;
+    private boolean isNoGravityActive = false;
     @Override
     public void onActivate() {
         hasSpear = false;
@@ -207,9 +216,26 @@ public class FireworkElytraFly extends Module {
     }
     @EventHandler
     public void onTravel(TravelEvent event) {
+        if (isNoGravityActive) {
+            mc.player.setNoGravity(savedNoGravity);
+            isNoGravityActive = false;
+            return;
+        }
         if (!isFallFlying) return;
-        if (mode.get() != Mode.GrimDurability) return;
+        if (mode.get() == Mode.Legit) return;
         if (!control.get()) return;
+        if (Follower.INSTANCE.isActive() && Follower.INSTANCE.canFollow) return;
+        double speed = flySpeed.get();
+        double radYaw = Math.toRadians(yaw);
+        double radPitch = Math.toRadians(pitch);
+        double x = -Math.sin(radYaw) * Math.cos(radPitch) * speed;
+        double y = -Math.sin(radPitch) * speed;
+        double z = Math.cos(radYaw) * Math.cos(radPitch) * speed;
+        double horLen = Math.sqrt(x * x + z * z);
+        if (horLen > 0.001) {
+            x = x / horLen * speed;
+            z = z / horLen * speed;
+        }
         if (mc.currentScreen instanceof ChatScreen) {
             setY(fallSpeed.get());
             return;
@@ -218,6 +244,15 @@ public class FireworkElytraFly extends Module {
             setX(0);
             setZ(0);
             setY(fallSpeed.get());
+        } else {
+            setX(x);
+            setY(y);
+            setZ(z);
+        }
+        if (horizontalNoGravity.get() && Math.abs(y) <= 0.02 && !mc.player.isOnGround()) {
+            savedNoGravity = mc.player.hasNoGravity();
+            mc.player.setNoGravity(true);
+            isNoGravityActive = true;
         }
     }
     private void setY(double f) {
@@ -263,17 +298,10 @@ public class FireworkElytraFly extends Module {
         if (mc.currentScreen != null && mc.currentScreen instanceof HandledScreen<?> && !(mc.currentScreen instanceof InventoryScreen || mc.currentScreen instanceof CreativeInventoryScreen)) return;
         yaw = getSprintYaw(mc.player.getYaw());
         pitch = getPitch(mc.player.getPitch());
-//        if (mode.get() == Mode.AutoSpear && wantToMove()) {
-//            Rotation.snapAt(mc.player.getYaw(), -45);
-//        }
         if (deBug.get()) info("Yaw: " + yaw + " Pitch: " + pitch);
         syncInput();
         if (control.get()) {
-            if (GlobalSetting.INSTANCE.moveFix.get()) {
-                Rotation.snapAt(yaw, pitch);
-            } else {
-                mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround(), mc.player.horizontalCollision));
-            }
+            Rotation.snapAt(yaw, pitch);
         }
         packetDelayInt++;
         boolean hasFirework = false;
@@ -289,21 +317,13 @@ public class FireworkElytraFly extends Module {
         isUsingFirework = hasFirework;
         int elytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA);
 //        int armor = findChestplate();
-        ItemStack chestStack = mc.player.getEquippedStack(EquipmentSlot.CHEST);
+//        ItemStack chestStack = mc.player.getEquippedStack(EquipmentSlot.CHEST);
         ItemStack chest = mc.player.getEquippedStack(EquipmentSlot.CHEST);
         boolean wearingElytra = chest.isOf(Items.ELYTRA) && chest.isDamageable() && chest.getDamage() < chest.getMaxDamage();
         if (wearingElytra && !isFallFlying && !mc.player.isOnGround() && mode.get() != Mode.AutoSpear) {
             shouldJump = true;
             sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
             mc.player.startGliding();
-        }
-        if (mode.get() == Mode.Legit && wearingElytra && isFallFlying && !mc.player.isOnGround() && unbreaking.get() && swapTimer.passedMs(fakeDelay.get())) {
-            shouldJump = true;
-            mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
-            mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
-//            mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-            mc.player.startGliding();
-            swapTimer.reset();
         }
         if (mode.get() == Mode.GrimDurability) {
             if (elytra != -1 && packetDelayInt > packetDealy.get()) {
@@ -477,9 +497,7 @@ public class FireworkElytraFly extends Module {
         None
     }
     public boolean isMoving() {
-        if (mc.player == null || mc.player.input == null) return false;
-        Vec2f mv = mc.player.input.getMovementInput();
-        return mv.x != 0.0F || mv.y != 0.0F;
+        return mc.options.forwardKey.isPressed() || mc.options.backKey.isPressed() || mc.options.rightKey.isPressed() || mc.options.leftKey.isPressed();
     }
     public float getSprintYaw(float yaw) {
         if (mc.options.forwardKey.isPressed() && !mc.options.backKey.isPressed()) {
@@ -519,8 +537,8 @@ public class FireworkElytraFly extends Module {
                     pitch = 90;
                 }
             }
-            if (isMoving() && !mc.options.sneakKey.isPressed() && !mc.options.jumpKey.isPressed()) {
-                pitch = -1.9f;
+            if (isMoving() && !mc.options.sneakKey.isPressed() && !mc.options.jumpKey.isPressed() && !mc.options.forwardKey.isPressed()) {
+                pitch = horizontalNoGravity.get() ? 0 : -1.9f;
             }
         }
         return pitch;
