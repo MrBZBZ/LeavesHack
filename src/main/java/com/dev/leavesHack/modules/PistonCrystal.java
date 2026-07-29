@@ -190,7 +190,7 @@ public class PistonCrystal extends LeavesModule {
     }
     @Override
     public String getInfoString() {
-        return target == null ? null : "§f[" + target.getName().getString() + "]";
+        return target == null ? null : "[" + target.getName().getString() + "]";
     }
     @Override
     public void onThread() {
