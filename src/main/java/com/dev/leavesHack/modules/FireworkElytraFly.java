@@ -129,6 +129,18 @@ public class FireworkElytraFly extends Module {
             .defaultValue(true)
             .build()
     );
+    public final Setting<Boolean> packetF = sgGeneral.add(new BoolSetting.Builder()
+        .name("PacketFly")
+        .description("")
+        .defaultValue(true)
+        .build()
+    );
+    public final Setting<Boolean> clientF = sgGeneral.add(new BoolSetting.Builder()
+        .name("ClientFly")
+        .description("")
+        .defaultValue(true)
+        .build()
+    );
     private final Setting<Double> flySpeed = sgGeneral.add(new DoubleSetting.Builder()
         .name("Speed")
         .description("飞行速度")
@@ -323,20 +335,20 @@ public class FireworkElytraFly extends Module {
 //        ItemStack chestStack = mc.player.getEquippedStack(EquipmentSlot.CHEST);
         ItemStack chest = mc.player.getEquippedStack(EquipmentSlot.CHEST);
         boolean wearingElytra = chest.isOf(Items.ELYTRA) && chest.isDamageable() && chest.getDamage() < chest.getMaxDamage();
-        if (wearingElytra && !isFallFlying && !mc.player.isOnGround() && mode.get() != Mode.AutoSpear) {
+        if (wearingElytra && !isFallFlying && !mc.player.isOnGround() && mode.get() == Mode.Legit) {
             shouldJump = true;
             sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
             mc.player.startGliding();
         }
-        if (mode.get() == Mode.GrimDurability) {
+        if (mode.get() == Mode.GrimDurability && !isFallFlying) {
             if (elytra != -1 && packetDelayInt > packetDealy.get()) {
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
                 if (!mc.player.isOnGround()) {
                     shouldJump = true;
-                    sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-                    mc.player.startGliding();
+                    if (packetF.get()) sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
+                    if (clientF.get()) mc.player.startGliding();
                 }
                 if (!hasFirework && fireWorkMode.get() == FireWorkMode.Auto) {
                     offFirework();
