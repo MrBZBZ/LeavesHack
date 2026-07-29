@@ -48,7 +48,7 @@ public class FireworkElytraFly extends Module {
     public final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
             .name("Mode")
             .description("运行模式")
-            .defaultValue(Mode.Legit)
+            .defaultValue(Mode.GrimDurability)
             .build()
     );
     private final Setting<Double> spearDelay = sgGeneral.add(new DoubleSetting.Builder()
@@ -61,7 +61,7 @@ public class FireworkElytraFly extends Module {
     public final Setting<FireWorkMode> fireWorkMode = sgGeneral.add(new EnumSetting.Builder<FireWorkMode>()
             .name("FireWorkMode")
             .description("烟花使用模式")
-            .defaultValue(FireWorkMode.Delay)
+            .defaultValue(FireWorkMode.Auto)
             .build()
     );
     private final Setting<Double> packetDealy = sgGeneral.add(new DoubleSetting.Builder()
@@ -71,31 +71,21 @@ public class FireworkElytraFly extends Module {
             .sliderMax(100)
             .build()
     );
-    private final Setting<Double> fakeDelay = sgGeneral.add(new DoubleSetting.Builder()
-            .name("FakeDelay")
-            .description("无限耐久操作延迟")
-            .defaultValue(800)
-            .sliderMax(1000)
-            .build()
-    );
     public final Setting<Boolean> stand = sgGeneral.add(new BoolSetting.Builder()
             .name("Stand")
             .description("站飞")
-            .description("")
             .defaultValue(true)
             .build()
     );
     public final Setting<Boolean> releaseSneak = sgGeneral.add(new BoolSetting.Builder()
             .name("ReleaseSneak")
-            .description("自动shift")
-            .description("")
+            .description("自动松开shift")
             .defaultValue(true)
             .build()
     );
     public final Setting<Boolean> pressSneak = sgGeneral.add(new BoolSetting.Builder()
             .name("PressSneak")
-            .description("自动shift")
-            .description("")
+            .description("自动按下shift")
             .defaultValue(true)
             .build()
     );
@@ -149,7 +139,7 @@ public class FireworkElytraFly extends Module {
     );
     private final Setting<Boolean> horizontalNoGravity = sgGeneral.add(new BoolSetting.Builder()
         .name("HorizontalNoGravity")
-        .description("水平飞行时关闭重力")
+        .description("关闭重力")
         .defaultValue(true)
         .build()
     );

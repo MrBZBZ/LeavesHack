@@ -61,14 +61,14 @@ public class PistonCrystal extends LeavesModule {
     private final Setting<Integer> breakDelay = sgGeneral.add(new IntSetting.Builder()
         .name("breakDelay-ms")
         .description("破坏延迟")
-        .defaultValue(300)
+        .defaultValue(150)
         .sliderRange(0, 500)
         .build()
     );
     private final Setting<Double> minDamage = sgGeneral.add(new DoubleSetting.Builder()
         .name("MinDamage")
         .description("最小伤害")
-        .defaultValue(4.0)
+        .defaultValue(6.0)
         .sliderRange(1, 36)
         .build()
     );
