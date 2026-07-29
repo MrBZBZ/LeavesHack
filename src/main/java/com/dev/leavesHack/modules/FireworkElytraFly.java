@@ -15,6 +15,7 @@ import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.movement.Sprint;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
@@ -76,6 +77,12 @@ public class FireworkElytraFly extends Module {
             .description("站飞")
             .defaultValue(true)
             .build()
+    );
+    public final Setting<Boolean> noSprint = sgGeneral.add(new BoolSetting.Builder()
+        .name("NoSprint")
+        .description("自动停止疾跑")
+        .defaultValue(true)
+        .build()
     );
     public final Setting<Boolean> releaseSneak = sgGeneral.add(new BoolSetting.Builder()
             .name("ReleaseSneak")
@@ -140,7 +147,7 @@ public class FireworkElytraFly extends Module {
     private final Setting<Boolean> horizontalNoGravity = sgGeneral.add(new BoolSetting.Builder()
         .name("HorizontalNoGravity")
         .description("关闭重力")
-        .defaultValue(true)
+        .defaultValue(false)
         .build()
     );
     private final Setting<Boolean> deBug = sgGeneral.add(new BoolSetting.Builder()
@@ -194,6 +201,12 @@ public class FireworkElytraFly extends Module {
                     });
                 }
             }, delay);
+        }
+    }
+    @EventHandler
+    public void onSprint(PacketEvent.Send send) {
+        if (noSprint.get() && send.packet instanceof ClientCommandC2SPacket packet) {
+            if (packet.getMode() == ClientCommandC2SPacket.Mode.START_SPRINTING) send.cancel();
         }
     }
     @EventHandler

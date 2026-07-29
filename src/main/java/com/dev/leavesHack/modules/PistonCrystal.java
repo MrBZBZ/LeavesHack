@@ -61,7 +61,7 @@ public class PistonCrystal extends LeavesModule {
     private final Setting<Integer> breakDelay = sgGeneral.add(new IntSetting.Builder()
         .name("breakDelay-ms")
         .description("破坏延迟")
-        .defaultValue(150)
+        .defaultValue(200)
         .sliderRange(0, 500)
         .build()
     );
