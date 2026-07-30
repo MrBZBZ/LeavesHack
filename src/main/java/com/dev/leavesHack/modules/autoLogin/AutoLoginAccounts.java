@@ -60,9 +60,9 @@ public class AutoLoginAccounts extends System<AutoLoginAccounts> {
             NbtCompound t = (NbtCompound) e;
 
             AutoLoginAccount acc = new AutoLoginAccount();
-            acc.username.set(String.valueOf(t.getString("username")));
-            acc.serverIp.set(String.valueOf(t.getString("ip")));
-            acc.password.set(String.valueOf(t.getString("password")));
+            acc.username.set(t.getString("username", ""));
+            acc.serverIp.set(t.getString("ip", ""));
+            acc.password.set(t.getString("password", ""));
 
             accounts.add(acc);
         }

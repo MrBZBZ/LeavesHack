@@ -11,7 +11,6 @@ import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.EndCrystalEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -71,7 +70,8 @@ public class CombatUtil {
             return;
         if (crystal != null) {
             Rotation.snapAt(new Vec3d(crystal.getX(), crystal.getY() + 0.25, crystal.getZ()));
-            mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(crystal, mc.player.isSneaking()));
+//            mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(crystal, mc.player.isSneaking()));
+            mc.interactionManager.attackEntity(mc.player, crystal);
             mc.player.resetTicksSinceLastAttack();
             EntityUtil.attackSwingHand();
             if (rotate) {

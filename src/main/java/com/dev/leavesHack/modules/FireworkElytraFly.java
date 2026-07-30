@@ -10,12 +10,10 @@ import com.dev.leavesHack.utils.entity.EntityUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
-import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.systems.modules.movement.Sprint;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
@@ -30,14 +28,12 @@ import net.minecraft.entity.projectile.FireworkRocketEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.*;
-import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
 import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.PlayerInput;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec2f;
 
 import java.util.TimerTask;
 
@@ -129,18 +125,6 @@ public class FireworkElytraFly extends Module {
             .defaultValue(true)
             .build()
     );
-    public final Setting<Boolean> packetF = sgGeneral.add(new BoolSetting.Builder()
-        .name("PacketFly")
-        .description("")
-        .defaultValue(true)
-        .build()
-    );
-    public final Setting<Boolean> clientF = sgGeneral.add(new BoolSetting.Builder()
-        .name("ClientFly")
-        .description("")
-        .defaultValue(true)
-        .build()
-    );
     private final Setting<Double> flySpeed = sgGeneral.add(new DoubleSetting.Builder()
         .name("Speed")
         .description("飞行速度")
@@ -189,6 +173,7 @@ public class FireworkElytraFly extends Module {
     private boolean isNoGravityActive = false;
     @Override
     public void onActivate() {
+        if (noSprint.get()) mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.STOP_SPRINTING));
         hasSpear = false;
         spearTimer.setMs(99999);
         fireworkTimer.setMs(99999);
@@ -345,11 +330,9 @@ public class FireworkElytraFly extends Module {
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
-                if (!mc.player.isOnGround()) {
-                    shouldJump = true;
-                    if (packetF.get()) sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-                    if (clientF.get()) mc.player.startGliding();
-                }
+                shouldJump = true;
+                sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
+                mc.player.startGliding();
                 if (!hasFirework && fireWorkMode.get() == FireWorkMode.Auto) {
                     offFirework();
                 } else if (fireWorkMode.get() == FireWorkMode.Delay && wantToMove()){

@@ -6,6 +6,7 @@ import com.dev.leavesHack.utils.entity.EntityUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
+import com.dev.leavesHack.utils.spear.SpearUtil;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
@@ -219,7 +220,7 @@ public class Aura extends Module {
         if (autoSwitch.get() != SwitchMode.None && !itemInHand()) {
             Predicate<ItemStack> predicate = switch (weapon.get()) {
                 case Axe -> stack -> stack.getItem() instanceof AxeItem;
-                case Sword -> stack -> stack.isIn(ItemTags.SWORDS);
+                case Sword -> stack -> (stack.isIn(ItemTags.SWORDS) && !SpearUtil.isSpear(mc.player.getMainHandStack()));
                 case Mace -> stack -> stack.getItem() instanceof MaceItem;
                 case Trident -> stack -> stack.getItem() instanceof TridentItem;
                 case All -> stack -> stack.getItem() instanceof AxeItem || stack.isIn(ItemTags.SWORDS) || stack.getItem() instanceof MaceItem || stack.getItem() instanceof TridentItem;
@@ -250,7 +251,8 @@ public class Aura extends Module {
                             Vec3d hitVec = getAttackVec(target);
                             Rotation.snapAt(hitVec);
                         }
-                        mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
+                        mc.interactionManager.attackEntity(mc.player, target);
+                        //mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
                         mc.player.resetTicksSinceLastAttack();
                         EntityUtil.attackSwingHand();
                         if (rotate.get()) {
@@ -270,7 +272,8 @@ public class Aura extends Module {
                 Vec3d hitVec = getAttackVec(target);
                 Rotation.snapAt(hitVec);
             }
-            mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
+            mc.interactionManager.attackEntity(mc.player, target);
+//            mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
             mc.player.resetTicksSinceLastAttack();
             EntityUtil.attackSwingHand();
             tick.reset();
@@ -283,7 +286,7 @@ public class Aura extends Module {
     private boolean itemInHand() {
         return switch (weapon.get()) {
             case Axe -> mc.player.getMainHandStack().getItem() instanceof AxeItem;
-            case Sword -> mc.player.getMainHandStack().isIn(ItemTags.SWORDS);
+            case Sword -> (mc.player.getMainHandStack().isIn(ItemTags.SWORDS) && !SpearUtil.isSpear(mc.player.getMainHandStack()));
             case Mace -> mc.player.getMainHandStack().getItem() instanceof MaceItem;
             case Trident -> mc.player.getMainHandStack().getItem() instanceof TridentItem;
             case All -> mc.player.getMainHandStack().getItem() instanceof AxeItem || mc.player.getMainHandStack().isIn(ItemTags.SWORDS) || mc.player.getMainHandStack().getItem() instanceof MaceItem || mc.player.getMainHandStack().getItem() instanceof TridentItem;

@@ -33,7 +33,7 @@ public class PlaceRender extends Module {
             new IntSetting.Builder()
                     .name("Speed")
                     .description("渲染速度")
-                    .defaultValue(10)
+                    .defaultValue(4)
                     .sliderRange(1, 100)
                     .build()
     );

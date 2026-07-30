@@ -47,7 +47,7 @@ public class PistonCrystal extends LeavesModule {
     private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
         .name("range")
         .description("操作距离")
-        .defaultValue(4.5)
+        .defaultValue(4.0)
         .sliderRange(1, 6)
         .build()
     );
@@ -82,6 +82,12 @@ public class PistonCrystal extends LeavesModule {
     private final Setting<Boolean> usingPause = sgGeneral.add(new BoolSetting.Builder()
         .name("UsingPause")
         .description("使用暂停")
+        .defaultValue(true)
+        .build()
+    );
+    public final Setting<Boolean> packetPlace = sgGeneral.add(new BoolSetting.Builder()
+        .name("PacketPlace")
+        .description("发包放置")
         .defaultValue(true)
         .build()
     );
@@ -398,7 +404,7 @@ public class PistonCrystal extends LeavesModule {
                     int old = mc.player.getInventory().getSelectedSlot();
                     Direction side = BlockUtil.getPlaceSide(helpPos, null);
                     doSwap(findRedstone());
-                    BlockUtil.placeBlock(helpPos, side, rotate.get());
+                    BlockUtil.placeBlock(helpPos, side, rotate.get(), packetPlace.get());
                     if (inventory.get()) {
                         doSwap(findRedstone());
                     } else {
@@ -452,7 +458,7 @@ public class PistonCrystal extends LeavesModule {
                 pistonFacing(dir);
             }
         }
-        BlockUtil.placeBlock(pos, side, false);
+        BlockUtil.placeBlock(pos, side, false, packetPlace.get());
         if (rotate.get()) {
             Rotation.snapBack();
         }
@@ -506,7 +512,7 @@ public class PistonCrystal extends LeavesModule {
             if (slot == -1) return;
             int old = mc.player.getInventory().getSelectedSlot();
             doSwap(slot);
-            BlockUtil.placeBlock(pos, side, rotate.get());
+            BlockUtil.placeBlock(pos, side, rotate.get(), packetPlace.get());
             if (inventory.get()) {
                 doSwap(slot);
             } else {

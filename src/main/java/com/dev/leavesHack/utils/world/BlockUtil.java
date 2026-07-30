@@ -337,8 +337,16 @@ public class BlockUtil {
         clickBlock(pos.offset(side), side.getOpposite(), rotate);
         placeList.add(pos);
     }
+    public static void placeBlock(BlockPos pos, Direction side, boolean rotate, boolean paketPlace) {
+        clickBlock(pos.offset(side), side.getOpposite(), rotate, paketPlace);
+        placeList.add(pos);
+    }
     public static void placeSlabBlock(BlockPos pos, Direction side, Direction slabSide, boolean rotate) {
         clickSlabBlock(pos.offset(side), side.getOpposite(), slabSide, rotate);
+        placeList.add(pos);
+    }
+    public static void placeSlabBlock(BlockPos pos, Direction side, Direction slabSide, boolean rotate, boolean packetPlace) {
+        clickSlabBlock(pos.offset(side), side.getOpposite(), slabSide, rotate, packetPlace);
         placeList.add(pos);
     }
     public static Block getBlock(BlockPos pos) {
@@ -349,7 +357,15 @@ public class BlockUtil {
         if (rotate) Rotation.snapAt(directionVec);
         EntityUtil.placeSwingHand();
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
-        if (GlobalSetting.INSTANCE.packetPlace.get()){
+        mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
+        if (rotate) Rotation.snapBack();
+    }
+    public static void clickBlock(BlockPos pos, Direction side, boolean rotate, boolean packetPlace) {
+        Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
+        if (rotate) Rotation.snapAt(directionVec);
+        EntityUtil.placeSwingHand();
+        BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
+        if (packetPlace){
             mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
         } else {
             mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
@@ -367,7 +383,18 @@ public class BlockUtil {
         if (rotate) Rotation.snapAt(directionVec);
         mc.player.swingHand(Hand.MAIN_HAND);
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
-        if (GlobalSetting.INSTANCE.packetPlace.get()){
+        mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
+        if (rotate) Rotation.snapBack();
+    }
+    public static void clickSlabBlock(BlockPos pos, Direction side, Direction slabSide, boolean rotate, boolean packetPlace) {
+        double yOffset = 0.5;
+        if (slabSide == Direction.UP) yOffset += 0.1;
+        if (slabSide == Direction.DOWN) yOffset -= 0.1;
+        Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + yOffset + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
+        if (rotate) Rotation.snapAt(directionVec);
+        mc.player.swingHand(Hand.MAIN_HAND);
+        BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
+        if (packetPlace){
             mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
         } else {
             mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);

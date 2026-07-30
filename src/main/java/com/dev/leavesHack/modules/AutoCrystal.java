@@ -53,14 +53,14 @@ public class AutoCrystal extends Module {
     private final Setting<Double> placeRange = sgGeneral.add(new DoubleSetting.Builder()
             .name("PlaceRange")
             .description("放置距离")
-            .defaultValue(4.5)
+            .defaultValue(4.0)
             .sliderRange(1, 6)
             .build()
     );
     private final Setting<Double> breakRange = sgGeneral.add(new DoubleSetting.Builder()
             .name("BreakRange")
             .description("破坏距离")
-            .defaultValue(4.5)
+            .defaultValue(4.0)
             .sliderRange(1, 6)
             .build()
     );

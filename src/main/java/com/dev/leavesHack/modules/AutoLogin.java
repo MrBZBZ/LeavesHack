@@ -87,6 +87,7 @@ public class AutoLogin extends Module {
                     if (account.username.get().equals(username)
                             && account.serverIp.get().equals(server)) {
                         account.password.set(password);
+                        AutoLoginAccounts.get().save();
                         return;
                     }
                 }
@@ -155,6 +156,8 @@ public class AutoLogin extends Module {
             if (value.username.get().isBlank()) return false;
             if (!accounts().contains(value)) {
                 AutoLoginAccounts.get().add(value);
+            } else {
+                AutoLoginAccounts.get().save();
             }
             return true;
         }

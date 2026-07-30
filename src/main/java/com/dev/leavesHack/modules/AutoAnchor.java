@@ -42,7 +42,7 @@ public class AutoAnchor extends Module {
     private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
             .name("range")
             .description("操作距离")
-            .defaultValue(4.5)
+            .defaultValue(4.0)
             .sliderRange(1, 6)
             .build()
     );

@@ -9,6 +9,7 @@ import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockPosX;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.entity.player.StartBreakingBlockEvent;
+import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
@@ -295,11 +296,24 @@ public class PacketMine extends Module {
             secondHasSwitch = false;
         }
     }
-
+    @EventHandler
+    public void onBreak(PacketEvent.Send event) {
+        if (event.packet instanceof PlayerActionC2SPacket packet) {
+            if (packet.getAction() == PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK) mineTimer.reset();
+        }
+    }
     @EventHandler
     private void onStartBreakingBlock(StartBreakingBlockEvent event) {
         if (!BlockUtils.canBreak(event.blockPos)) return;
         event.cancel();
+        if (mineDelay.get() > 0 && !mineTimer.passedMs(mineDelay.get()) && completed) {
+            targetPos = null;
+            publicProgress = 0;
+            started = false;
+            progress = 0;
+            completed = false;
+            return;
+        }
         if (!mineTimer.passedMs(mineDelay.get())) return;
         selfClickPos = event.blockPos;
         mine(event.blockPos);
@@ -311,15 +325,6 @@ public class PacketMine extends Module {
         if (doubleBreak.get()) {
             if (targetPos != null && secondPos == null && !targetPos.equals(pos)) {
                 if (completed) {
-                    if (mineDelay.get() > 0) {
-                        mineTimer.reset();
-                        targetPos = null;
-                        publicProgress = 0;
-                        started = false;
-                        progress = 0;
-                        completed = false;
-                        return;
-                    }
                     targetPos = pos;
                     secondStarted = false;
                     secondProgress = 0;
@@ -352,6 +357,7 @@ public class PacketMine extends Module {
                 completed = false;
             }
         }
+        mineTimer.reset();
     }
     @Override
     public String getInfoString() {

@@ -25,12 +25,6 @@ public class GlobalSetting extends Module {
         .defaultValue(false)
         .build()
     );
-    public final Setting<Boolean> packetPlace = sgGeneral.add(new BoolSetting.Builder()
-        .name("PacketPlace")
-        .description("发包放置")
-        .defaultValue(false)
-        .build()
-    );
     public final Setting<SwingMode> placeSwing = sgGeneral.add(new EnumSetting.Builder<SwingMode>()
         .name("PlaceSwing")
         .description("放置挥手模式")
