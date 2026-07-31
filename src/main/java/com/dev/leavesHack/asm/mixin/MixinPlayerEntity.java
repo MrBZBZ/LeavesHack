@@ -2,7 +2,6 @@ package com.dev.leavesHack.asm.mixin;
 
 import com.dev.leavesHack.events.ElytraUpdateEvent;
 import com.dev.leavesHack.events.TravelEvent;
-import com.dev.leavesHack.modules.SprintPlus;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import meteordevelopment.meteorclient.MeteorClient;

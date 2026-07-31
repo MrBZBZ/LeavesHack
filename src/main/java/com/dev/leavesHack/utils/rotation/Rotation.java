@@ -41,6 +41,11 @@ public class Rotation {
             }
         }
     }
+    public static void elytraSnapAt(float yaw, float pitch) {
+        rotation = true;
+        targetPitch = pitch;
+        targetYaw = yaw;
+    }
     public static void snapBack() {
         if (!GlobalSetting.INSTANCE.snapBack.get()) return;
         if (GlobalSetting.INSTANCE.moveFix.get()) return;

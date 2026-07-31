@@ -2,6 +2,7 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.asm.accessors.IVec3d;
+import com.dev.leavesHack.events.KeyboardInputEvent;
 import com.dev.leavesHack.events.TravelEvent;
 import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.math.Timer;
@@ -68,6 +69,7 @@ public class Follower extends Module {
     public float pitch;
     public boolean canFollow = false;
     public Timer returnTimer = new Timer();
+    public boolean shouldJump = false;
     @Override
     public void onActivate() {
         returnTimer.setMs(9999999);
@@ -81,8 +83,19 @@ public class Follower extends Module {
         canFollow = false;
     }
     @EventHandler
+    public void onKeyInput(KeyboardInputEvent event) {
+        if (shouldJump) {
+            event.setJump(true);
+            shouldJump = false;
+        }
+    }
+    @EventHandler
     public void onTravel(TravelEvent event) {
         if (!FireworkElytraFly.INSTANCE.isFallFlying || !canFollow) return;
+        if (mc.player.isOnGround()) {
+            shouldJump = true;
+            return;
+        }
         double speed = followSpeed.get();
         double radYaw = Math.toRadians(yaw);
         double radPitch = Math.toRadians(pitch);
@@ -103,6 +116,10 @@ public class Follower extends Module {
     public void onTick(TickEvent.Pre event){
         if (!FireworkElytraFly.INSTANCE.isActive()) {
             if (autoDisable.get()) toggle();
+            return;
+        }
+        if (mc.player.isOnGround()) {
+            shouldJump = true;
             return;
         }
         target = CombatUtil.getClosestEnemy(targetRange.get());

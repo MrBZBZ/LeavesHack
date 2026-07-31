@@ -2,6 +2,7 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.asm.accessors.IClientWorld;
+import com.dev.leavesHack.asm.accessors.IPlayerMoveC2SPacket;
 import com.dev.leavesHack.asm.accessors.IVec3d;
 import com.dev.leavesHack.events.ElytraUpdateEvent;
 import com.dev.leavesHack.events.KeyboardInputEvent;
@@ -216,15 +217,19 @@ public class FireworkElytraFly extends Module {
     }
     @EventHandler
     public void onTravel(TravelEvent event) {
+        if (!isFallFlying || !isUsingFirework) return;
         if (isNoGravityActive) {
             mc.player.setNoGravity(savedNoGravity);
             isNoGravityActive = false;
             return;
         }
-        if (!isFallFlying) return;
         if (mode.get() == Mode.Legit) return;
         if (!control.get()) return;
         if (Follower.INSTANCE.isActive() && Follower.INSTANCE.canFollow) return;
+        if (mc.player.isOnGround()) {
+            shouldJump = true;
+            return;
+        }
         double speed = flySpeed.get();
         double radYaw = Math.toRadians(yaw);
         double radPitch = Math.toRadians(pitch);
@@ -296,13 +301,14 @@ public class FireworkElytraFly extends Module {
     public void onTick(TickEvent.Pre event){
         if (mc.currentScreen != null && deBug.get()) info("screen" + mc.currentScreen.getTitle() + " " + mc.currentScreen.getClass().getSimpleName() + " " + mc.currentScreen.getClass().getSuperclass().getSimpleName() + " " + mc.currentScreen.getTitle());
         if (mc.currentScreen != null && mc.currentScreen instanceof HandledScreen<?> && !(mc.currentScreen instanceof InventoryScreen || mc.currentScreen instanceof CreativeInventoryScreen)) return;
+        if (mc.player.isOnGround()) {
+            shouldJump = true;
+            return;
+        }
         yaw = getSprintYaw(mc.player.getYaw());
         pitch = getPitch(mc.player.getPitch());
         if (deBug.get()) info("Yaw: " + yaw + " Pitch: " + pitch);
         syncInput();
-        if (control.get()) {
-            Rotation.snapAt(yaw, pitch);
-        }
         packetDelayInt++;
         boolean hasFirework = false;
         if (checkFirework.get()) {
@@ -315,6 +321,9 @@ public class FireworkElytraFly extends Module {
             }
         }
         isUsingFirework = hasFirework;
+        if (control.get() && isUsingFirework) {
+            Rotation.elytraSnapAt(yaw, pitch);
+        }
         int elytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA);
 //        int armor = findChestplate();
 //        ItemStack chestStack = mc.player.getEquippedStack(EquipmentSlot.CHEST);

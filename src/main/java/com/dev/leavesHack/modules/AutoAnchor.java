@@ -304,7 +304,7 @@ public class AutoAnchor extends Module {
         if (AutoCrystal.INSTANCE.isActive() && AutoCrystal.INSTANCE.preferMode.get() == AutoCrystal.PreferMode.PreferCrystal) {
             return AutoCrystal.INSTANCE.crystalPos != null;
         }
-        return !usingPause.get() || checkPause(onlyMain.get());
+        return usingPause.get() && checkPause(onlyMain.get());
     }
     public boolean checkPause(boolean onlyMain) {
         return (mc.options.useKey.isPressed() || mc.player.isUsingItem()) && (!onlyMain || mc.player.getActiveHand() == Hand.MAIN_HAND);

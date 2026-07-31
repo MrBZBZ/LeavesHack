@@ -1,3 +1,6 @@
 accessWidener	v1	named
 accessible field net/minecraft/util/math/Direction HORIZONTAL [Lnet/minecraft/util/math/Direction;
 accessible field net/minecraft/client/network/ClientPlayerEntity lastPlayerInput Lnet/minecraft/util/PlayerInput;
+accessible field net/minecraft/entity/projectile/FireworkRocketEntity life I
+accessible field net/minecraft/entity/projectile/FireworkRocketEntity lifeTime I
+

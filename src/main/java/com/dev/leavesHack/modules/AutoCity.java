@@ -102,7 +102,7 @@ public class AutoCity extends Module {
             .defaultValue(true)
             .build()
     );
-    private final Timer cityTimer = new Timer();
+    public final Timer cityTimer = new Timer();
     @EventHandler
     public void onPacketSend(PacketEvent.Send event) {
         if (event.packet instanceof PlayerActionC2SPacket packet) {
@@ -265,7 +265,7 @@ public class AutoCity extends Module {
     );
 
     private boolean isObsidian(BlockPos pos) {
-        return mc.player.getEyePos().distanceTo(pos.toCenterPos()) <= PacketMine.INSTANCE.range.get() && hard.contains(mc.world.getBlockState(pos).getBlock()) && BlockUtil.getClickSideStrict(pos) != null;
+        return mc.player.getEyePos().distanceTo(pos.toCenterPos()) <= PacketMine.INSTANCE.range.get() && (hard.contains(mc.world.getBlockState(pos).getBlock()) || BlockUtil.getBlock(pos) == Blocks.GLASS) && BlockUtil.getClickSideStrict(pos) != null;
     }
 
     private boolean canBreak(BlockPos pos) {

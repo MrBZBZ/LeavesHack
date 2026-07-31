@@ -379,7 +379,7 @@ public class PacketMine extends Module {
     @EventHandler
     private void onRender(Render3DEvent event) {
         if (mc.world == null || mc.player == null) return;
-        if (targetPos == null && secondPos == null) selfClickPos = null;
+        if ((targetPos == null || completed) && secondPos == null) selfClickPos = null;
         if (publicProgress >= 100) {
             if (!instantMine.get()) targetPos = null;
         }

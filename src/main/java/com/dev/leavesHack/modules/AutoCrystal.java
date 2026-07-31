@@ -290,9 +290,7 @@ public class AutoCrystal extends Module {
             return;
         }
         if (shouldPause()) return;
-        int crystalSlot = inventory.get()
-                ? InventoryUtil.findItemInventorySlot(Items.END_CRYSTAL)
-                : InventoryUtil.findItem(Items.END_CRYSTAL);
+        int crystalSlot = inventory.get() ? InventoryUtil.findItemInventorySlot(Items.END_CRYSTAL) : InventoryUtil.findItem(Items.END_CRYSTAL);
 
         if (crystalSlot == -1) {
             crystalPos = null;
@@ -446,7 +444,7 @@ public class AutoCrystal extends Module {
         if (preferMode.get() == PreferMode.PreferAnchor) {
             return AutoAnchor.INSTANCE.currentPos != null;
         }
-        return !usingPause.get() || checkPause(onlyMain.get());
+        return usingPause.get() && checkPause(onlyMain.get());
     }
     public boolean checkPause(boolean onlyMain) {
         return (mc.options.useKey.isPressed() || mc.player.isUsingItem()) && (!onlyMain || mc.player.getActiveHand() == Hand.MAIN_HAND);
