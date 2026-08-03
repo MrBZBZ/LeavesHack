@@ -29,6 +29,7 @@ import net.minecraft.entity.projectile.FireworkRocketEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.*;
+import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
@@ -44,10 +45,10 @@ import static com.dev.leavesHack.utils.rotation.Rotation.*;
 public class FireworkElytraFly extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     public final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
-            .name("Mode")
-            .description("运行模式")
-            .defaultValue(Mode.GrimDurability)
-            .build()
+        .name("Mode")
+        .description("运行模式")
+        .defaultValue(Mode.GrimDurability)
+        .build()
     );
     private final Setting<Double> spearDelay = sgGeneral.add(new DoubleSetting.Builder()
         .name("SpearDelay")
@@ -57,23 +58,23 @@ public class FireworkElytraFly extends Module {
         .build()
     );
     public final Setting<FireWorkMode> fireWorkMode = sgGeneral.add(new EnumSetting.Builder<FireWorkMode>()
-            .name("FireWorkMode")
-            .description("烟花使用模式")
-            .defaultValue(FireWorkMode.Auto)
-            .build()
+        .name("FireWorkMode")
+        .description("烟花使用模式")
+        .defaultValue(FireWorkMode.Auto)
+        .build()
     );
     private final Setting<Double> packetDealy = sgGeneral.add(new DoubleSetting.Builder()
-            .name("PacketDelay")
-            .description("发包延迟tick数")
-            .defaultValue(3)
-            .sliderMax(100)
-            .build()
+        .name("PacketDelay")
+        .description("发包延迟tick数")
+        .defaultValue(3)
+        .sliderMax(100)
+        .build()
     );
     public final Setting<Boolean> stand = sgGeneral.add(new BoolSetting.Builder()
-            .name("Stand")
-            .description("站飞")
-            .defaultValue(true)
-            .build()
+        .name("Stand")
+        .description("站飞")
+        .defaultValue(true)
+        .build()
     );
     public final Setting<Boolean> noSprint = sgGeneral.add(new BoolSetting.Builder()
         .name("NoSprint")
@@ -82,49 +83,56 @@ public class FireworkElytraFly extends Module {
         .build()
     );
     public final Setting<Boolean> releaseSneak = sgGeneral.add(new BoolSetting.Builder()
-            .name("ReleaseSneak")
-            .description("自动松开shift")
-            .defaultValue(true)
-            .build()
+        .name("ReleaseSneak")
+        .description("自动松开shift")
+        .defaultValue(true)
+        .build()
     );
     public final Setting<Boolean> pressSneak = sgGeneral.add(new BoolSetting.Builder()
-            .name("PressSneak")
-            .description("自动按下shift")
-            .defaultValue(true)
-            .build()
+        .name("PressSneak")
+        .description("自动按下shift")
+        .defaultValue(true)
+        .build()
     );
     public final Setting<Integer> releaseDelay = sgGeneral.add(new IntSetting.Builder()
-            .name("ReleaseDelay")
-            .description("shift延迟")
-            .defaultValue(100)
-            .sliderMax(1000)
-            .build()
+        .name("ReleaseDelay")
+        .description("shift延迟")
+        .defaultValue(100)
+        .sliderMax(1000)
+        .build()
     );
     private final Setting<Double> delay = sgGeneral.add(new DoubleSetting.Builder()
-            .name("FireWorkDelay")
-            .description("烟花操作延迟")
-            .defaultValue(1000)
-            .visible(() -> fireWorkMode.get() == FireWorkMode.Delay)
-            .sliderMax(3000)
-            .build()
+        .name("FireWorkDelay")
+        .description("烟花操作延迟")
+        .defaultValue(1000)
+        .visible(() -> fireWorkMode.get() == FireWorkMode.Delay)
+        .sliderMax(3000)
+        .build()
     );
     private final Setting<Boolean> checkFirework = sgGeneral.add(new BoolSetting.Builder()
-            .name("CheckFireWork")
-            .description("自动检查烟花")
-            .defaultValue(true)
-            .build()
+        .name("CheckFireWork")
+        .description("自动检查烟花")
+        .defaultValue(true)
+        .build()
     );
+    //    private final Setting<Integer> checkTime = sgGeneral.add(new IntSetting.Builder()
+//        .name("CheckTime")
+//        .description("烟花寿命")
+//        .defaultValue(35)
+//        .sliderRange(0, 50)
+//        .build()
+//    );
     public final Setting<Boolean> inventorySwap = sgGeneral.add(new BoolSetting.Builder()
-            .name("InventorySwap")
-            .description("背包鬼手")
-            .defaultValue(true)
-            .build()
+        .name("InventorySwap")
+        .description("背包鬼手")
+        .defaultValue(true)
+        .build()
     );
     public final Setting<Boolean> control = sgGeneral.add(new BoolSetting.Builder()
-            .name("Control")
-            .description("甲飞控制")
-            .defaultValue(true)
-            .build()
+        .name("Control")
+        .description("甲飞控制")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Double> flySpeed = sgGeneral.add(new DoubleSetting.Builder()
         .name("Speed")
@@ -135,11 +143,11 @@ public class FireworkElytraFly extends Module {
         .build()
     );
     private final Setting<Double> fallSpeed = sgGeneral.add(new DoubleSetting.Builder()
-            .name("FallSpeed")
-            .description("下落速度")
-            .defaultValue(0.02)
-            .sliderRange(0.0, 3.0)
-            .build()
+        .name("FallSpeed")
+        .description("下落速度")
+        .defaultValue(0.02)
+        .sliderRange(0.0, 3.0)
+        .build()
     );
     private final Setting<Boolean> horizontalNoGravity = sgGeneral.add(new BoolSetting.Builder()
         .name("HorizontalNoGravity")
@@ -148,10 +156,10 @@ public class FireworkElytraFly extends Module {
         .build()
     );
     private final Setting<Boolean> deBug = sgGeneral.add(new BoolSetting.Builder()
-            .name("DeBug")
-            .description("dev查bug的，没iq不要开")
-            .defaultValue(false)
-            .build()
+        .name("DeBug")
+        .description("dev查bug的，没iq不要开")
+        .defaultValue(false)
+        .build()
     );
     public static FireworkElytraFly INSTANCE;
     public FireworkElytraFly() {
@@ -162,6 +170,7 @@ public class FireworkElytraFly extends Module {
     public float pitch = rotationPitch;
     public boolean isUsingFirework = false;
     private final Timer fireworkTimer = new Timer();
+    private final Timer delayTimer = new Timer();
     private final Timer swapTimer = new Timer();
     private final Timer spearTimer = new Timer();
     public boolean isFallFlying = false;
@@ -176,6 +185,7 @@ public class FireworkElytraFly extends Module {
     public void onActivate() {
         if (noSprint.get()) mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.STOP_SPRINTING));
         hasSpear = false;
+        delayTimer.setMs(99999);
         spearTimer.setMs(99999);
         fireworkTimer.setMs(99999);
         packetDelayInt = 0;
@@ -217,7 +227,7 @@ public class FireworkElytraFly extends Module {
     }
     @EventHandler
     public void onTravel(TravelEvent event) {
-        if (!isFallFlying || !isUsingFirework) return;
+        if (!isFallFlying) return;
         if (isNoGravityActive) {
             mc.player.setNoGravity(savedNoGravity);
             isNoGravityActive = false;
@@ -301,7 +311,7 @@ public class FireworkElytraFly extends Module {
     public void onTick(TickEvent.Pre event){
         if (mc.currentScreen != null && deBug.get()) info("screen" + mc.currentScreen.getTitle() + " " + mc.currentScreen.getClass().getSimpleName() + " " + mc.currentScreen.getClass().getSuperclass().getSimpleName() + " " + mc.currentScreen.getTitle());
         if (mc.currentScreen != null && mc.currentScreen instanceof HandledScreen<?> && !(mc.currentScreen instanceof InventoryScreen || mc.currentScreen instanceof CreativeInventoryScreen)) return;
-        if (mc.player.isOnGround()) {
+        if (mc.player.isOnGround() || mc.player.isInFluid()) {
             shouldJump = true;
             return;
         }
@@ -321,8 +331,10 @@ public class FireworkElytraFly extends Module {
             }
         }
         isUsingFirework = hasFirework;
-        if (control.get() && isUsingFirework) {
+        if (control.get()) {
             Rotation.elytraSnapAt(yaw, pitch);
+        } else {
+            Rotation.rotation = false;
         }
         int elytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA);
 //        int armor = findChestplate();
@@ -461,6 +473,8 @@ public class FireworkElytraFly extends Module {
         return score;
     }
     public void offFirework() {
+        if (!delayTimer.passedMs(700)) return;
+        delayTimer.reset();
         if (!fireworkTimer.passedMs(delay.get()) && fireWorkMode.get() == FireWorkMode.Delay) return;
         int firework;
         if (mc.player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET) {
@@ -473,7 +487,6 @@ public class FireworkElytraFly extends Module {
             InventoryUtil.inventorySwap(firework, mc.player.getInventory().getSelectedSlot());
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, mc.player.getYaw(), mc.player.getPitch()));
             InventoryUtil.inventorySwap(firework, mc.player.getInventory().getSelectedSlot());
-            sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
             fireworkTimer.reset();
         } else if ((firework = InventoryUtil.findItem(Items.FIREWORK_ROCKET)) != -1) {
             int old = mc.player.getInventory().getSelectedSlot();

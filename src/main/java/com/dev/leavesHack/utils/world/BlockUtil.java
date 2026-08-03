@@ -73,10 +73,10 @@ public class BlockUtil {
         return true;
     }
     public static boolean canClick(BlockPos pos) {
-        return (mc.world.getBlockState(pos).isSolidBlock(mc.world, pos) || getBlock(pos) instanceof RedstoneTorchBlock || getBlock(pos) instanceof RedstoneBlock) && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || mc.player.isSneaking());
+        return (mc.world.getBlockState(pos).isSolid() || getBlock(pos) instanceof RedstoneTorchBlock || getBlock(pos) instanceof RedstoneBlock) && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || mc.player.isSneaking());
     }
     public static boolean canClick(BlockPos pos, boolean ignoreSneak) {
-        return (mc.world.getBlockState(pos).isSolidBlock(mc.world, pos) || getBlock(pos) instanceof RedstoneTorchBlock || getBlock(pos) instanceof RedstoneBlock) && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || (mc.player.isSneaking() || ignoreSneak));
+        return (mc.world.getBlockState(pos).isSolid() || getBlock(pos) instanceof RedstoneTorchBlock || getBlock(pos) instanceof RedstoneBlock) && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || (mc.player.isSneaking() || ignoreSneak));
     }
 
     public static boolean canPlace(BlockPos pos) {

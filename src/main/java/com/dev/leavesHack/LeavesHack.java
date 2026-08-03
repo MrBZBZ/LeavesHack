@@ -27,6 +27,7 @@ public class LeavesHack extends MeteorAddon {
         InventoryUtil.INSTANCE.hashCode();
         ModuleManager.INSTANCE.hashCode();
         // Modules
+        add(new FriendsManager());
         add(new ElytraGrimAccelerate());
         add(new Printer());
         add(new PlaceRender());

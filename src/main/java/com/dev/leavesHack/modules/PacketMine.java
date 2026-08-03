@@ -177,24 +177,24 @@ public class PacketMine extends Module {
             .sliderRange(0, 10)
             .build()
     );
-    private final Setting<Boolean> renderProgress = sgRender.add(new BoolSetting.Builder()
-            .name("RenderProgress")
-            .description("渲染进度")
-            .defaultValue(true)
-            .build()
-    );
-    private final Setting<SettingColor> targetColor = sgRender.add(new ColorSetting.Builder()
-            .name("TargetColor")
-            .description("主挖文本颜色")
-            .defaultValue(new SettingColor(255, 255, 255, 50))
-            .build()
-    );
-    private final Setting<SettingColor> secondColor = sgRender.add(new ColorSetting.Builder()
-            .name("SecondColor")
-            .description("副挖文本颜色")
-            .defaultValue(new SettingColor(255, 255, 255, 50))
-            .build()
-    );
+//    private final Setting<Boolean> renderProgress = sgRender.add(new BoolSetting.Builder()
+//            .name("RenderProgress")
+//            .description("渲染进度")
+//            .defaultValue(true)
+//            .build()
+//    );
+//    private final Setting<SettingColor> targetColor = sgRender.add(new ColorSetting.Builder()
+//            .name("TargetColor")
+//            .description("主挖文本颜色")
+//            .defaultValue(new SettingColor(255, 255, 255, 50))
+//            .build()
+//    );
+//    private final Setting<SettingColor> secondColor = sgRender.add(new ColorSetting.Builder()
+//            .name("SecondColor")
+//            .description("副挖文本颜色")
+//            .defaultValue(new SettingColor(255, 255, 255, 50))
+//            .build()
+//    );
     private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>()
             .name("ShapeMode")
             .defaultValue(ShapeMode.Both)
