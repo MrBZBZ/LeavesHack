@@ -95,7 +95,7 @@ public class ModuleList extends Module {
     private final Map<Module, ModuleEntry> moduleEntries = new HashMap<>();
 
     public ModuleList() {
-        super(LeavesHack.CATEGORY, "ModuleList", "模块列表");
+        super(LeavesHack.LEAVES_MISC, "ModuleList", "模块列表");
     }
 
     @EventHandler

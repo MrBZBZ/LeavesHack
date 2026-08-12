@@ -55,7 +55,7 @@ public class ElytraGrimAccelerate extends Module {
     private boolean isModifyingPacket = false;
 
     public ElytraGrimAccelerate() {
-        super(LeavesHack.CATEGORY, "ElytraGrimAccelerate", "GrimAC鞘翅加速");
+        super(LeavesHack.LEAVES_MISC, "ElytraGrimAccelerate", "GrimAC鞘翅加速");
     }
 
     @Override

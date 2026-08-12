@@ -32,7 +32,7 @@ import java.util.List;
 public class PistonCrystal extends LeavesModule {
     public static PistonCrystal INSTANCE;
     public PistonCrystal() {
-        super(LeavesHack.CATEGORY, "PistonCrystal", "活塞水晶");
+        super(LeavesHack.LEAVES_COMBAT, "PistonCrystal", "活塞水晶");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = settings.getDefaultGroup();

@@ -36,7 +36,7 @@ public class PacketLogger extends Module {
     private String lastLog = "";
     private int sameCount = 0;
     public PacketLogger() {
-        super(LeavesHack.CATEGORY, "PacketLogger", "数据包记录");
+        super(LeavesHack.LEAVES_MISC, "PacketLogger", "数据包记录");
     }
 
     private void log(String msg, Object... args) {

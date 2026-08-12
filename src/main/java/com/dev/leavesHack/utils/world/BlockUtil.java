@@ -82,6 +82,9 @@ public class BlockUtil {
     public static boolean canPlace(BlockPos pos) {
         return canPlace(pos, null);
     }
+    public static boolean canPlace(BlockPos pos, boolean ignoreCrystal) {
+        return canPlace(pos, null, ignoreCrystal);
+    }
     public static boolean clientCanPlace(BlockPos pos, boolean ignoreCrystal) {
         if (!canReplace(pos)) return false;
         return !hasEntity(pos, ignoreCrystal);
@@ -94,6 +97,11 @@ public class BlockUtil {
         if (getPlaceSide(pos, directionPredicate) == null) return false;
         if (!canReplace(pos)) return false;
         return !hasEntity(pos, false);
+    }
+    public static boolean canPlace(BlockPos pos, Predicate<Direction> directionPredicate, Boolean ignoreCrystal) {
+        if (getPlaceSide(pos, directionPredicate) == null) return false;
+        if (!canReplace(pos)) return false;
+        return !hasEntity(pos, ignoreCrystal);
     }
     public static boolean hasEntity(BlockPos pos, boolean ignoreCrystal) {
         for (Entity entity : getEntities(new Box(pos))) {

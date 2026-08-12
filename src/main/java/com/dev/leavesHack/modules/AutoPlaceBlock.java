@@ -65,7 +65,7 @@ public class AutoPlaceBlock extends Module {
         .build()
     );
     public AutoPlaceBlock() {
-        super(LeavesHack.CATEGORY, "AutoPlaceBlock", "自动铺方块");
+        super(LeavesHack.LEAVES_MISC, "AutoPlaceBlock", "自动铺方块");
     }
     @EventHandler
     private void onRender3d(Render3DEvent event) {

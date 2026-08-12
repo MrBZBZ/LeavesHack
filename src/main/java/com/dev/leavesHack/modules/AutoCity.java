@@ -28,7 +28,7 @@ import java.util.List;
 public class AutoCity extends Module {
     public static AutoCity INSTANCE;
     public AutoCity() {
-        super(LeavesHack.CATEGORY, "AutoCity", "自动挖角");
+        super(LeavesHack.LEAVES_COMBAT, "AutoCity", "自动挖角");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();

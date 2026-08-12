@@ -39,7 +39,7 @@ import static com.dev.leavesHack.utils.world.BlockUtil.getClosestPointToBox;
 public class Aura extends Module {
     public static Aura INSTANCE;
     public Aura() {
-        super(LeavesHack.CATEGORY, "Aura", "杀戮光环");
+        super(LeavesHack.LEAVES_COMBAT, "Aura", "杀戮光环");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();

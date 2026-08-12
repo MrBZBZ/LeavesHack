@@ -38,7 +38,7 @@ import java.util.UUID;
 public class AutoCrystal extends Module {
     public static AutoCrystal INSTANCE;
     public AutoCrystal() {
-        super(LeavesHack.CATEGORY, "AutoCrystal", "自动水晶");
+        super(LeavesHack.LEAVES_COMBAT, "AutoCrystal", "自动水晶");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = settings.getDefaultGroup();

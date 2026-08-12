@@ -1,5 +1,6 @@
 package com.dev.leavesHack;
 
+import com.dev.leavesHack.manager.DeathManager;
 import com.dev.leavesHack.manager.ModuleManager;
 import com.dev.leavesHack.modules.*;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
@@ -16,7 +17,8 @@ import org.slf4j.Logger;
 public class LeavesHack extends MeteorAddon {
     public static long initTime;
     public static final Logger LOG = LogUtils.getLogger();
-    public static final Category CATEGORY = new Category("LeavesHack");
+    public static final Category LEAVES_COMBAT = new Category("LeavesCombat");
+    public static final Category LEAVES_MISC = new Category("LeavesMisc");
     public static final HudGroup HUD_GROUP = new HudGroup("LeavesHack");
 
     @Override
@@ -26,7 +28,11 @@ public class LeavesHack extends MeteorAddon {
         Rotation.INSTANCE.hashCode();
         InventoryUtil.INSTANCE.hashCode();
         ModuleManager.INSTANCE.hashCode();
+        DeathManager.INSTANCE.hashCode();
+
         // Modules
+        add(new AutoOffHand());
+        add(new SelfTrap());
         add(new FriendsManager());
         add(new ElytraGrimAccelerate());
         add(new Printer());
@@ -62,7 +68,8 @@ public class LeavesHack extends MeteorAddon {
     }
     @Override
     public void onRegisterCategories() {
-        Modules.registerCategory(CATEGORY);
+        Modules.registerCategory(LEAVES_COMBAT);
+        Modules.registerCategory(LEAVES_MISC);
     }
 
     @Override

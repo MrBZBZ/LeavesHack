@@ -123,7 +123,7 @@ public class Printer extends Module {
         .build()
     );
     public Printer() {
-        super(LeavesHack.CATEGORY, "Printer", "打印机");
+        super(LeavesHack.LEAVES_MISC, "Printer", "打印机");
     }
     boolean hasSneak = false;
     private Timer shiftTimer = new Timer();

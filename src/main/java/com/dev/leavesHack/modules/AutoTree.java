@@ -27,7 +27,7 @@ import java.util.ArrayList;
 public class AutoTree extends Module {
     public static AutoTree INSTANCE;
     public AutoTree() {
-        super(LeavesHack.CATEGORY, "AutoTree", "自动树场");
+        super(LeavesHack.LEAVES_MISC, "AutoTree", "自动树场");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();

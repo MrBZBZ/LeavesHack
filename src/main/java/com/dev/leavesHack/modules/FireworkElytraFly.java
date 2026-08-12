@@ -163,7 +163,7 @@ public class FireworkElytraFly extends Module {
     );
     public static FireworkElytraFly INSTANCE;
     public FireworkElytraFly() {
-        super(LeavesHack.CATEGORY, "FireworkElytraFly", "烟花鞘翅飞行");
+        super(LeavesHack.LEAVES_COMBAT, "FireworkElytraFly", "烟花鞘翅飞行");
         INSTANCE = this;
     }
     public float yaw = rotationYaw;

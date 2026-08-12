@@ -61,7 +61,7 @@ public class Follower extends Module {
             .build()
     );
     public Follower() {
-        super(LeavesHack.CATEGORY, "Follower", "自动追人");
+        super(LeavesHack.LEAVES_COMBAT, "Follower", "自动追人");
         INSTANCE = this;
     }
     public PlayerEntity target;

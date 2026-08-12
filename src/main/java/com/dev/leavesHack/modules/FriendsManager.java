@@ -26,7 +26,7 @@ import java.util.List;
 public class FriendsManager extends Module {
     public static FriendsManager INSTANCE;
     public FriendsManager() {
-        super(LeavesHack.CATEGORY, "FriendsManager", "好友管理器");
+        super(LeavesHack.LEAVES_MISC, "FriendsManager", "好友管理器");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();

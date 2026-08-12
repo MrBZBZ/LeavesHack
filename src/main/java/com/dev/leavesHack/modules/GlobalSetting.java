@@ -7,7 +7,7 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 public class GlobalSetting extends Module {
     public static GlobalSetting INSTANCE;
     public GlobalSetting() {
-        super(LeavesHack.CATEGORY, "GlobalSetting", "全局设置");
+        super(LeavesHack.LEAVES_MISC, "GlobalSetting", "全局设置");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();

@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class PlaceRender extends Module {
     public PlaceRender() {
-        super(LeavesHack.CATEGORY, "PlaceRender", "放置渲染");
+        super(LeavesHack.LEAVES_MISC, "PlaceRender", "放置渲染");
     }
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<ShapeMode> shapeMode = sgRender.add(

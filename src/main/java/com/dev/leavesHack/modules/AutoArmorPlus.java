@@ -61,7 +61,7 @@ public class AutoArmorPlus extends Module {
         .build()
     );
     public AutoArmorPlus() {
-        super(LeavesHack.CATEGORY, "AutoArmorPlus", "自动穿甲与鞘翅切换");
+        super(LeavesHack.LEAVES_COMBAT, "AutoArmorPlus", "自动穿甲与鞘翅切换");
     }
     @Override
     public void onActivate() {

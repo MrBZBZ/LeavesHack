@@ -86,7 +86,7 @@ public class AutoRefreshTrade extends Module {
         .build()
     );
     public AutoRefreshTrade() {
-        super(LeavesHack.CATEGORY, "AutoRefreshTrade", "自动刷交易附魔书");
+        super(LeavesHack.LEAVES_MISC, "AutoRefreshTrade", "自动刷交易附魔书");
     }
     public BlockPos pos = null;
     public Timer timer = new Timer();

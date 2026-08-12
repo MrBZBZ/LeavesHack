@@ -21,7 +21,7 @@ import net.minecraft.util.math.Direction;
 
 public class ScaffoldPlus extends Module {
     public ScaffoldPlus() {
-        super(LeavesHack.CATEGORY, "Scaffold+", "自动搭路");
+        super(LeavesHack.LEAVES_MISC, "Scaffold+", "自动搭路");
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     private final SettingGroup sgRender = settings.createGroup("Render");

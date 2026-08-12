@@ -21,7 +21,7 @@ import net.minecraft.util.math.Vec3d;
 public class GlassFiller extends Module {
     public static GlassFiller INSTANCE;
     public GlassFiller() {
-        super(LeavesHack.CATEGORY, "GlassFiller", "玻璃塞脚");
+        super(LeavesHack.LEAVES_COMBAT, "GlassFiller", "玻璃塞脚");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();

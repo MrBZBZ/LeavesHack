@@ -70,7 +70,7 @@ public class AutoTorch extends Module {
         .build()
     );
     public AutoTorch() {
-        super(LeavesHack.CATEGORY, "AutoTorch", "自动放火把");
+        super(LeavesHack.LEAVES_MISC, "AutoTorch", "自动放火把");
         INSTANCE = this;
     }
     @EventHandler

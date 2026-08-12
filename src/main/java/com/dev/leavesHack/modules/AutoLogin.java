@@ -31,7 +31,7 @@ public class AutoLogin extends Module {
     }
 
     public AutoLogin() {
-        super(LeavesHack.CATEGORY, "AutoLogin", "自动登录");
+        super(LeavesHack.LEAVES_MISC, "AutoLogin", "自动登录");
         MeteorClient.EVENT_BUS.subscribe(new StaticListener());
         INSTANCE = this;
     }

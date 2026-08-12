@@ -41,7 +41,7 @@ import static com.dev.leavesHack.utils.entity.InventoryUtil.sendPacket;
 public class PacketMine extends Module {
     public static PacketMine INSTANCE;
     public PacketMine() {
-        super(LeavesHack.CATEGORY, "PacketMine+", "数据包挖掘");
+        super(LeavesHack.LEAVES_COMBAT, "PacketMine+", "数据包挖掘");
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
