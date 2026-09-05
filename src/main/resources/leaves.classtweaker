@@ -1,0 +1,7 @@
+classTweaker	v1	official
+
+# Direction#HORIZONTAL was renamed to BY_2D_DATA in the official mappings
+accessible	field	net/minecraft/core/Direction BY_2D_DATA [Lnet/minecraft/core/Direction;
+accessible	field	net/minecraft/client/player/LocalPlayer lastSentInput Lnet/minecraft/world/entity/player/Input;
+accessible	field	net/minecraft/world/entity/projectile/FireworkRocketEntity life I
+accessible	field	net/minecraft/world/entity/projectile/FireworkRocketEntity lifetime I

@@ -6,6 +6,10 @@ import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
@@ -14,24 +18,19 @@ import meteordevelopment.meteorclient.utils.entity.DamageUtils;
 import meteordevelopment.meteorclient.utils.entity.EntityUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.RespawnAnchorBlock;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.RespawnAnchorBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public class AutoAnchor extends LeavesModule {
     public static AutoAnchor INSTANCE;
@@ -191,8 +190,8 @@ public class AutoAnchor extends LeavesModule {
         .build()
     );
     private static final long ANCHOR_TTL = 600L;
-    public PlayerEntity target;
-    private final CopyOnWriteArrayList<PlayerEntity> targets = new CopyOnWriteArrayList<>();
+    public Player target;
+    private final CopyOnWriteArrayList<Player> targets = new CopyOnWriteArrayList<>();
     private final List<Anchor> anchors = new ArrayList<>();
     public BlockPos currentPos;
     public int dmg;
@@ -247,7 +246,7 @@ public class AutoAnchor extends LeavesModule {
             renderPosEntry.y += (currentPos.getY() - renderPosEntry.y) * renderSpeed.get();
             renderPosEntry.z += (currentPos.getZ() - renderPosEntry.z) * renderSpeed.get();
 
-            Box renderBox = new Box(
+            AABB renderBox = new AABB(
                 renderPosEntry.x, renderPosEntry.y, renderPosEntry.z,
                 renderPosEntry.x + 1.0, renderPosEntry.y + 1.0, renderPosEntry.z + 1.0
             );
@@ -280,7 +279,7 @@ public class AutoAnchor extends LeavesModule {
         BlockPos pos = currentPos;
         if (pos == null) return;
         if (getAnchor(pos).state != AnchorState.Air) return;
-        if (mc.player.getEyePos().distanceTo(pos.toCenterPos()) > range.get() || !BlockUtil.canPlace(pos)) {
+        if (mc.player.getEyePosition().distanceTo(pos.getCenter()) > range.get() || !BlockUtil.canPlace(pos)) {
             updatePos();
             return;
         }
@@ -328,7 +327,7 @@ public class AutoAnchor extends LeavesModule {
         if (a.state == AnchorState.Anchor) {
             doSwap(glow);
             BlockUtil.clickBlock(best, side, rotate.get());
-            mc.world.playSound(null, mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.AMBIENT, 5.0f, 1.0f);
+            mc.level.playSound(null, mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.RESPAWN_ANCHOR_CHARGE, SoundSource.AMBIENT, 5.0f, 1.0f);
             if (inventory.get()) {
                 doSwap(glow);
             } else {
@@ -356,7 +355,7 @@ public class AutoAnchor extends LeavesModule {
     private void updatePos() {
         if (target == null) return;
         if (preferHead.get()) {
-            BlockPos head = target.getBlockPos().up(2);
+            BlockPos head = target.blockPosition().above(2);
             if (placeDmgCheck(head)) {
                 if (BlockUtil.canPlace(head) || BlockUtil.getBlock(head) instanceof RespawnAnchorBlock) {
                     currentPos = head;
@@ -364,9 +363,9 @@ public class AutoAnchor extends LeavesModule {
                     return;
                 } else {
                     if (placeHelper.get()) {
-                        for (Direction dir : Direction.HORIZONTAL) {
-                            BlockPos temp = head.offset(dir);
-                            if (BlockUtil.canPlace(temp) && BlockUtil.isGrimDirection(temp.offset(dir), dir.getOpposite())) {
+                        for (Direction dir : Direction.BY_2D_DATA) {
+                            BlockPos temp = head.relative(dir);
+                            if (BlockUtil.canPlace(temp) && BlockUtil.isGrimDirection(temp.relative(dir), dir.getOpposite())) {
                                 placeHelper(temp);
                                 currentPos = head;
                                 dmg = (int) maxTargetDamage(head);
@@ -410,8 +409,8 @@ public class AutoAnchor extends LeavesModule {
     }
     private void updateTargets() {
         targets.clear();
-        List<PlayerEntity> enemies = CombatUtil.getEnemies(targetRange.get());
-        enemies.sort(Comparator.comparingDouble(p -> mc.player.squaredDistanceTo(p.getEntityPos())));
+        List<Player> enemies = CombatUtil.getEnemies(targetRange.get());
+        enemies.sort(Comparator.comparingDouble(p -> mc.player.distanceToSqr(p.position())));
         int count = Math.min(enemies.size(), maxTargets.get());
         for (int i = 0; i < count; i++) targets.add(enemies.get(i));
         target = targets.isEmpty() ? null : targets.get(0);
@@ -423,23 +422,23 @@ public class AutoAnchor extends LeavesModule {
         return inventory.get() ? InventoryUtil.findItemInventorySlot(item) : InventoryUtil.findItem(item);
     }
     private boolean inRangeToTargets(BlockPos pos) {
-        Vec3d center = pos.toCenterPos();
-        for (PlayerEntity p : targets) {
-            if (p.getEntityPos().add(0, 1, 0).distanceTo(center) < targetRadius.get()) return true;
+        Vec3 center = pos.getCenter();
+        for (Player p : targets) {
+            if (p.position().add(0, 1, 0).distanceTo(center) < targetRadius.get()) return true;
         }
         return false;
     }
     private double maxTargetDamage(BlockPos pos) {
         double max = -1;
-        for (PlayerEntity p : targets) {
-            double d = DamageUtils.anchorDamage(p, pos.toCenterPos());
+        for (Player p : targets) {
+            double d = DamageUtils.anchorDamage(p, pos.getCenter());
             if (d > max) max = d;
         }
         return max;
     }
     private boolean placeDmgCheck(BlockPos pos, double enemyDmg) {
         if (enemyDmg < minDamage.get()) return false;
-        double self = DamageUtils.anchorDamage(mc.player, pos.toCenterPos());
+        double self = DamageUtils.anchorDamage(mc.player, pos.getCenter());
         if (self > maxSelfDmg.get()) return false;
         if (self > 0 && enemyDmg / self < minRatio.get()) return false;
         return !noSuicide.get() || self <= EntityUtils.getTotalHealth(mc.player);
@@ -452,9 +451,9 @@ public class AutoAnchor extends LeavesModule {
         for (Anchor a : anchors) {
             if (a.pos.equals(pos) && now - a.time < ANCHOR_TTL) return a;
         }
-        BlockState state = mc.world.getBlockState(pos);
+        BlockState state = mc.level.getBlockState(pos);
         if (state.getBlock() == Blocks.RESPAWN_ANCHOR) {
-            int c = state.get(RespawnAnchorBlock.CHARGES);
+            int c = state.getValue(RespawnAnchorBlock.CHARGE);
             return new Anchor(pos, c < 1 ? AnchorState.Anchor : AnchorState.Loaded, c);
         }
         return new Anchor(pos, AnchorState.Air, 0);
@@ -466,7 +465,7 @@ public class AutoAnchor extends LeavesModule {
         return usingPause.get() && checkPause(onlyMain.get());
     }
     public boolean checkPause(boolean onlyMain) {
-        return (mc.options.useKey.isPressed() || mc.player.isUsingItem()) && (!onlyMain || mc.player.getActiveHand() == Hand.MAIN_HAND);
+        return (mc.options.keyUse.isDown() || mc.player.isUsingItem()) && (!onlyMain || mc.player.getUsedItemHand() == InteractionHand.MAIN_HAND);
     }
     private void doSwap(int slot) {
         if (!inventory.get()) {

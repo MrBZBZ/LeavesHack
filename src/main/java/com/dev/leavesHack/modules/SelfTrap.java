@@ -9,22 +9,21 @@ import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockPosX;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import java.util.ArrayList;
+import java.util.List;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.utils.entity.DamageUtils;
 import meteordevelopment.meteorclient.utils.entity.EntityUtils;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.EndCrystalEntity;
-import net.minecraft.item.Items;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-
-import java.util.ArrayList;
-import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public class SelfTrap extends LeavesModule {
     public static SelfTrap INSTANCE;
@@ -195,7 +194,7 @@ public class SelfTrap extends LeavesModule {
 
     @EventHandler
     public void onTick(TickEvent.Pre event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
         if (usingPause.get() && checkPause(onlyMain.get())) return;
 
         int block = inventory.get() ? InventoryUtil.findItemInventorySlot(Items.OBSIDIAN) : InventoryUtil.findItem(Items.OBSIDIAN);
@@ -207,12 +206,12 @@ public class SelfTrap extends LeavesModule {
             return;
         }
 
-        if (!allowNotOnGround.get() && !mc.player.isOnGround()) return;
+        if (!allowNotOnGround.get() && !mc.player.onGround()) return;
 
         if (moveDisable.get() || jumpDisable.get()) {
-            double dist = mc.player.squaredDistanceTo(startX, startY, startZ);
+            double dist = mc.player.distanceToSqr(startX, startY, startZ);
             if (moveDisable.get() && dist > 1.0) { toggle(); return; }
-            if (jumpDisable.get() && mc.player.input.playerInput.jump()) { toggle(); return; }
+            if (jumpDisable.get() && mc.player.input.keyPresses.jump()) { toggle(); return; }
         }
 
         if (!placeTimer.passedMs(delay.get())) return;
@@ -232,13 +231,13 @@ public class SelfTrap extends LeavesModule {
     private ArrayList<BlockPos> getSurList(BlockPos pos) {
         ArrayList<BlockPos> list = new ArrayList<>();
         if (head.get()) {
-            addUnique(list, pos.up(2));
+            addUnique(list, pos.above(2));
         }
         if (feet.get()) {
             addSurround(list, pos);
         }
         if (chest.get()) {
-            addSurround(list, pos.up());
+            addSurround(list, pos.above());
         }
         if (blockerExtend.get()) {
             addBlockerExtend(list);
@@ -247,8 +246,8 @@ public class SelfTrap extends LeavesModule {
     }
 
     private void addSurround(ArrayList<BlockPos> list, BlockPos pos) {
-        for (Direction dir : Direction.HORIZONTAL) {
-            BlockPos target = pos.offset(dir);
+        for (Direction dir : Direction.BY_2D_DATA) {
+            BlockPos target = pos.relative(dir);
             addUnique(list, target);
             if (selfIntersectPos(target) && extend.get()) {
                 addExtend(list, target);
@@ -257,12 +256,12 @@ public class SelfTrap extends LeavesModule {
     }
 
     private void addExtend(ArrayList<BlockPos> list, BlockPos pos) {
-        for (Direction dir : Direction.HORIZONTAL) {
-            BlockPos target = pos.offset(dir);
+        for (Direction dir : Direction.BY_2D_DATA) {
+            BlockPos target = pos.relative(dir);
             addUnique(list, target);
             if (selfIntersectPos(target)) {
-                for (Direction dir2 : Direction.HORIZONTAL) {
-                    addUnique(list, target.offset(dir2));
+                for (Direction dir2 : Direction.BY_2D_DATA) {
+                    addUnique(list, target.relative(dir2));
                 }
             }
         }
@@ -277,10 +276,10 @@ public class SelfTrap extends LeavesModule {
                     mc.player.getY() + 0.5,
                     mc.player.getZ() + z
                 );
-                for (Direction dir : Direction.HORIZONTAL) {
-                    BlockPos surround = base.offset(dir);
-                    for (Direction dir2 : Direction.HORIZONTAL) {
-                        BlockPos target = surround.offset(dir2);
+                for (Direction dir : Direction.BY_2D_DATA) {
+                    BlockPos surround = base.relative(dir);
+                    for (Direction dir2 : Direction.BY_2D_DATA) {
+                        BlockPos target = surround.relative(dir2);
                         if (BlockUtil.canPlace(target, null))
                             addUnique(list, target);
                     }
@@ -295,7 +294,7 @@ public class SelfTrap extends LeavesModule {
 
     private int tryPlaceBlock(BlockPos pos, int block) {
         if (pos == null || placedPositions.contains(pos)) return 0;
-        if (mc.player.getEyePos().distanceTo(pos.toCenterPos()) > range.get()) return 0;
+        if (mc.player.getEyePosition().distanceTo(pos.getCenter()) > range.get()) return 0;
         if (!BlockUtil.canPlace(pos, true)) return 0;
         if (BlockUtil.hasCrystal(pos) && attack.get()) {
             if (!attackCrystals(pos)) return 0;
@@ -325,7 +324,7 @@ public class SelfTrap extends LeavesModule {
     private BlockPos findHelperPos(BlockPos pos) {
         for (Direction dir : Direction.values()) {
             if (dir == Direction.UP) continue;
-            BlockPos neighbor = pos.offset(dir);
+            BlockPos neighbor = pos.relative(dir);
             if (BlockUtil.isGrimDirection(neighbor, dir.getOpposite()) && BlockUtil.canPlace(neighbor, null)) {
                 return neighbor;
             }
@@ -334,9 +333,9 @@ public class SelfTrap extends LeavesModule {
     }
 
     private boolean attackCrystals(BlockPos pos) {
-        for (Entity entity : BlockUtil.getEndCrystals(new Box(pos))) {
-            if (!entity.isAlive() || !(entity instanceof EndCrystalEntity crystal)) continue;
-            float self = DamageUtils.crystalDamage(mc.player, entity.getEntityPos(), false, crystal.getBlockPos().down());
+        for (Entity entity : BlockUtil.getEndCrystals(new AABB(pos))) {
+            if (!entity.isAlive() || !(entity instanceof EndCrystal crystal)) continue;
+            float self = DamageUtils.crystalDamage(mc.player, entity.position(), false, crystal.blockPosition().below());
             if (antiSuicide.get() && self >= EntityUtils.getTotalHealth(mc.player)) return false;
             CombatUtil.attackCrystal(entity, rotate.get(), false);
         }
@@ -344,11 +343,11 @@ public class SelfTrap extends LeavesModule {
     }
 
     private BlockPos getPlayerPos() {
-        return new BlockPosX(mc.player.getEntityPos(), true);
+        return new BlockPosX(mc.player.position(), true);
     }
 
     public boolean selfIntersectPos(BlockPos pos) {
-        return mc.player.getBoundingBox().intersects(new Box(pos));
+        return mc.player.getBoundingBox().intersects(new AABB(pos));
     }
 
     private void doSwap(int slot) {
@@ -364,24 +363,24 @@ public class SelfTrap extends LeavesModule {
     @EventHandler(priority = -1)
     public void onMove(MoveEvent event) {
         if (mc.player == null || !center.get() || !isActive()) return;
-        if (mc.options.sneakKey.isPressed()) return;
+        if (mc.options.keyShift.isDown()) return;
 
         BlockPos blockPos = getPlayerPos();
         double px = mc.player.getX() - blockPos.getX() - 0.5;
         double pz = mc.player.getZ() - blockPos.getZ() - 0.5;
 
         if (Math.abs(px) <= 0.2 && Math.abs(pz) <= 0.2) {
-            if (shouldCenter && (mc.player.isOnGround() || isMoving())) {
+            if (shouldCenter && (mc.player.onGround() || isMoving())) {
                 event.setX(0);
                 event.setZ(0);
                 shouldCenter = false;
             }
         } else {
             if (shouldCenter) {
-                Vec3d centerPos = blockPos.toCenterPos();
-                float yaw = getRotationTo(mc.player.getEntityPos(), centerPos);
+                Vec3 centerPos = blockPos.getCenter();
+                float yaw = getRotationTo(mc.player.position(), centerPos);
                 float yawRad = (float) Math.toRadians(yaw);
-                double dist = mc.player.getEntityPos().distanceTo(new Vec3d(centerPos.x, mc.player.getY(), centerPos.z));
+                double dist = mc.player.position().distanceTo(new Vec3(centerPos.x, mc.player.getY(), centerPos.z));
                 double speed = Math.min(0.2873, dist);
                 double x = -Math.sin(yawRad) * speed;
                 double z = Math.cos(yawRad) * speed;
@@ -391,20 +390,20 @@ public class SelfTrap extends LeavesModule {
         }
     }
 
-    private static float getRotationTo(Vec3d from, Vec3d to) {
+    private static float getRotationTo(Vec3 from, Vec3 to) {
         double diffX = to.x - from.x;
         double diffZ = to.z - from.z;
         return (float) (Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0);
     }
 
     private boolean isMoving() {
-        return mc.options.forwardKey.isPressed() || mc.options.backKey.isPressed()
-            || mc.options.leftKey.isPressed() || mc.options.rightKey.isPressed();
+        return mc.options.keyUp.isDown() || mc.options.keyDown.isDown()
+            || mc.options.keyLeft.isDown() || mc.options.keyRight.isDown();
     }
 
     private boolean checkPause(boolean onlyMain) {
-        return (mc.options.useKey.isPressed() || mc.player.isUsingItem())
-            && (!onlyMain || mc.player.getActiveHand() == Hand.MAIN_HAND);
+        return (mc.options.keyUse.isDown() || mc.player.isUsingItem())
+            && (!onlyMain || mc.player.getUsedItemHand() == InteractionHand.MAIN_HAND);
     }
 
 }

@@ -1,24 +1,24 @@
 package com.dev.leavesHack.asm.accessors;
 
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(LivingEntity.class)
 public interface ILivingEntity {
 
-    @Accessor("jumpingCooldown")
+    @Accessor("noJumpDelay")
     int getLastJumpCooldown();
 
-    @Accessor("jumpingCooldown")
+    @Accessor("noJumpDelay")
     void setLastJumpCooldown(int val);
 
-    @Accessor("leaningPitch")
+    @Accessor("swimAmount")
     float getLeaningPitch();
 
-    @Accessor("leaningPitch")
+    @Accessor("swimAmount")
     void setLeaningPitch(float val);
 
-    @Accessor("lastLeaningPitch")
+    @Accessor("swimAmountO")
     void setLastLeaningPitch(float val);
 }

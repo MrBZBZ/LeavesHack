@@ -6,10 +6,20 @@ import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-
-import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket;
-import net.minecraft.network.packet.c2s.play.*;
-import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.network.protocol.common.ServerboundPongPacket;
+import net.minecraft.network.protocol.game.ServerboundAcceptTeleportationPacket;
+import net.minecraft.network.protocol.game.ServerboundClientCommandPacket;
+import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
+import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
+import net.minecraft.network.protocol.game.ServerboundSwingPacket;
+import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
+import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
+import net.minecraft.world.phys.BlockHitResult;
 
 public class PacketLogger extends Module {
 
@@ -47,33 +57,33 @@ public class PacketLogger extends Module {
     @EventHandler
     private void onSend(PacketEvent.Send event) {
 
-        if (event.packet instanceof PlayerMoveC2SPacket.Full packet && moveFull.get()) {
+        if (event.packet instanceof ServerboundMovePlayerPacket.PosRot packet && moveFull.get()) {
             StringBuilder b = new StringBuilder("PlayerMove Full - ");
-            if (packet.changesPosition()) {
+            if (packet.hasPosition()) {
                 b.append("x: ").append(packet.getX(0)).append(", y: ").append(packet.getY(0)).append(", z: ").append(packet.getZ(0)).append(" ");
             }
-            if (packet.changesLook()) {
-                b.append("yaw: ").append(packet.getYaw(0)).append(", pitch: ").append(packet.getPitch(0)).append(" ");
+            if (packet.hasRotation()) {
+                b.append("yaw: ").append(packet.getYRot(0)).append(", pitch: ").append(packet.getXRot(0)).append(" ");
             }
             b.append("onground: ").append(packet.isOnGround());
             log(b.toString());
         }
 
-        if (event.packet instanceof PlayerMoveC2SPacket.PositionAndOnGround packet && movePos.get()) {
+        if (event.packet instanceof ServerboundMovePlayerPacket.Pos packet && movePos.get()) {
             log("PlayerMove PosGround - x: %s y: %s z: %s onground: %s",
                 packet.getX(0), packet.getY(0), packet.getZ(0), packet.isOnGround());
         }
 
-        if (event.packet instanceof PlayerMoveC2SPacket.LookAndOnGround packet && moveLook.get()) {
+        if (event.packet instanceof ServerboundMovePlayerPacket.Rot packet && moveLook.get()) {
             log("PlayerMove LookGround - yaw: %s pitch: %s onground: %s",
-                packet.getYaw(0), packet.getPitch(0), packet.isOnGround());
+                packet.getYRot(0), packet.getXRot(0), packet.isOnGround());
         }
 
-        if (event.packet instanceof PlayerMoveC2SPacket.OnGroundOnly packet && moveGround.get()) {
+        if (event.packet instanceof ServerboundMovePlayerPacket.StatusOnly packet && moveGround.get()) {
             log("PlayerMove Ground - onground: %s", packet.isOnGround());
         }
 
-        if (event.packet instanceof PlayerActionC2SPacket packet && playerAction.get()) {
+        if (event.packet instanceof ServerboundPlayerActionPacket packet && playerAction.get()) {
             if (packet.getDirection() != null) {
                 log("PlayerAction - %s pos: %s",
                     packet.getAction().name(),
@@ -81,51 +91,51 @@ public class PacketLogger extends Module {
             }
         }
 
-        if (event.packet instanceof UpdateSelectedSlotC2SPacket packet && updateSlot.get()) {
-            log("UpdateSlot - %d", packet.getSelectedSlot());
+        if (event.packet instanceof ServerboundSetCarriedItemPacket packet && updateSlot.get()) {
+            log("UpdateSlot - %d", packet.getSlot());
         }
 
-        if (event.packet instanceof HandSwingC2SPacket packet && handSwing.get()) {
+        if (event.packet instanceof ServerboundSwingPacket packet && handSwing.get()) {
             log("HandSwing - %s", packet.getHand());
         }
 
-        if (event.packet instanceof CommonPongC2SPacket packet && pong.get()) {
-            log("Pong - %d", packet.getParameter());
+        if (event.packet instanceof ServerboundPongPacket packet && pong.get()) {
+            log("Pong - %d", packet.getId());
         }
 
-        if (event.packet instanceof PlayerInteractEntityC2SPacket && interactEntity.get()) {
+        if (event.packet instanceof ServerboundInteractPacket && interactEntity.get()) {
             log("InteractEntity");
         }
 
-        if (event.packet instanceof PlayerInteractBlockC2SPacket packet && interactBlock.get()) {
-            BlockHitResult r = packet.getBlockHitResult();
+        if (event.packet instanceof ServerboundUseItemOnPacket packet && interactBlock.get()) {
+            BlockHitResult r = packet.getHitResult();
             log("InteractBlock - %s %s",
                 r.getBlockPos().toShortString(),
-                r.getSide());
+                r.getDirection());
         }
 
-        if (event.packet instanceof PlayerInteractItemC2SPacket packet && interactItem.get()) {
+        if (event.packet instanceof ServerboundUseItemPacket packet && interactItem.get()) {
             log("InteractItem - %s", packet.getHand());
         }
 
-        if (event.packet instanceof CloseHandledScreenC2SPacket packet && closeScreen.get()) {
-            log("CloseScreen - %s", packet.getSyncId());
+        if (event.packet instanceof ServerboundContainerClosePacket packet && closeScreen.get()) {
+            log("CloseScreen - %s", packet.getContainerId());
         }
 
-        if (event.packet instanceof ClientCommandC2SPacket packet && command.get()) {
-            log("ClientCommand - %s", packet.getMode());
+        if (event.packet instanceof ServerboundPlayerCommandPacket packet && command.get()) {
+            log("ClientCommand - %s", packet.getAction());
         }
 
-        if (event.packet instanceof ClientStatusC2SPacket packet && status.get()) {
-            log("ClientStatus - %s", packet.getMode());
+        if (event.packet instanceof ServerboundClientCommandPacket packet && status.get()) {
+            log("ClientStatus - %s", packet.getAction());
         }
 
-        if (event.packet instanceof ClickSlotC2SPacket packet && clickSlot.get()) {
-            log("ClickSlot - slot:%s button:%s", packet.slot(), packet.button());
+        if (event.packet instanceof ServerboundContainerClickPacket packet && clickSlot.get()) {
+            log("ClickSlot - slot:%s button:%s", packet.slotNum(), packet.buttonNum());
         }
 
-        if (event.packet instanceof TeleportConfirmC2SPacket packet && teleportConfirm.get()) {
-            log("TeleportConfirm - %s", packet.getTeleportId());
+        if (event.packet instanceof ServerboundAcceptTeleportationPacket packet && teleportConfirm.get()) {
+            log("TeleportConfirm - %s", packet.getId());
         }
     }
     private void logDedup(String msg, Object... args) {

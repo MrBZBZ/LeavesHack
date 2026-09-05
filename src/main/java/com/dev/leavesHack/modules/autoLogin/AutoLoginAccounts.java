@@ -1,11 +1,12 @@
 package com.dev.leavesHack.modules.autoLogin;
 
-import meteordevelopment.meteorclient.systems.System;
-import meteordevelopment.meteorclient.systems.Systems;
-import net.minecraft.nbt.*;
-
 import java.util.ArrayList;
 import java.util.List;
+import meteordevelopment.meteorclient.systems.System;
+import meteordevelopment.meteorclient.systems.Systems;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 
 public class AutoLoginAccounts extends System<AutoLoginAccounts> {
 
@@ -34,12 +35,12 @@ public class AutoLoginAccounts extends System<AutoLoginAccounts> {
     }
 
     @Override
-    public NbtCompound toTag() {
-        NbtCompound tag = new NbtCompound();
-        NbtList list = new NbtList();
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
+        ListTag list = new ListTag();
 
         for (AutoLoginAccount acc : accounts) {
-            NbtCompound t = new NbtCompound();
+            CompoundTag t = new CompoundTag();
             t.putString("username", acc.username.get());
             t.putString("ip", acc.serverIp.get());
             t.putString("password", acc.password.get());
@@ -51,18 +52,18 @@ public class AutoLoginAccounts extends System<AutoLoginAccounts> {
     }
 
     @Override
-    public AutoLoginAccounts fromTag(NbtCompound tag) {
+    public AutoLoginAccounts fromTag(CompoundTag tag) {
         accounts.clear();
 
-        NbtList list = tag.getListOrEmpty("accounts");
+        ListTag list = tag.getListOrEmpty("accounts");
 
-        for (NbtElement e : list) {
-            NbtCompound t = (NbtCompound) e;
+        for (Tag e : list) {
+            CompoundTag t = (CompoundTag) e;
 
             AutoLoginAccount acc = new AutoLoginAccount();
-            acc.username.set(t.getString("username", ""));
-            acc.serverIp.set(t.getString("ip", ""));
-            acc.password.set(t.getString("password", ""));
+            acc.username.set(t.getStringOr("username", ""));
+            acc.serverIp.set(t.getStringOr("ip", ""));
+            acc.password.set(t.getStringOr("password", ""));
 
             accounts.add(acc);
         }

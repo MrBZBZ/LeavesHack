@@ -10,14 +10,14 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.SlabBlock;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.phys.AABB;
 
 public class ScaffoldPlus extends Module {
     public ScaffoldPlus() {
@@ -60,15 +60,15 @@ public class ScaffoldPlus extends Module {
     );
     @EventHandler
     private void onRender3d(Render3DEvent event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
         if (mc.player.isUsingItem() && usingPause.get()) return;
-        ItemStack stack = mc.player.getInventory().getStack(mc.player.getInventory().getSelectedSlot());
-        BlockPos pos = mc.player.getBlockPos();
-        if (GlobalSetting.INSTANCE.moveFix.get() && rotate.get()) Rotation.snapAt(pos.toCenterPos());
+        ItemStack stack = mc.player.getInventory().getItem(mc.player.getInventory().getSelectedSlot());
+        BlockPos pos = mc.player.blockPosition();
+        if (GlobalSetting.INSTANCE.moveFix.get() && rotate.get()) Rotation.snapAt(pos.getCenter());
         boolean slabMode = BlockUtil.getBlock(pos) instanceof SlabBlock;
         for (Direction i : Direction.values()) {
             if (i == Direction.UP || i == Direction.DOWN) continue;
-            if (BlockUtil.getBlock(pos.offset(i)) instanceof SlabBlock) {
+            if (BlockUtil.getBlock(pos.relative(i)) instanceof SlabBlock) {
                 slabMode = true;
                 break;
             }
@@ -76,16 +76,16 @@ public class ScaffoldPlus extends Module {
         int block;
         block = slabMode ? InventoryUtil.findSlabBlock() : InventoryUtil.findBlock();
         if (slabMode){
-            if (stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock && !BlockUtil.shiftBlocks.contains(Block.getBlockFromItem(stack.getItem())) && ((BlockItem) stack.getItem()).getBlock() != Blocks.COBWEB) {
+            if (stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock && !BlockUtil.shiftBlocks.contains(Block.byItem(stack.getItem())) && ((BlockItem) stack.getItem()).getBlock() != Blocks.COBWEB) {
                 block = mc.player.getInventory().getSelectedSlot();
             }
         }else {
-            if (stack.getItem() instanceof BlockItem && !BlockUtil.shiftBlocks.contains(Block.getBlockFromItem(stack.getItem())) && ((BlockItem) stack.getItem()).getBlock() != Blocks.COBWEB) {
+            if (stack.getItem() instanceof BlockItem && !BlockUtil.shiftBlocks.contains(Block.byItem(stack.getItem())) && ((BlockItem) stack.getItem()).getBlock() != Blocks.COBWEB) {
                 block = mc.player.getInventory().getSelectedSlot();
             }
         }
         if (block == -1) return;
-        BlockPos placePos = mc.player.getBlockPos().down();
+        BlockPos placePos = mc.player.blockPosition().below();
         if (!slabMode) {
             if (BlockUtil.clientCanPlace(placePos, false)) {
                 int old = mc.player.getInventory().getSelectedSlot();
@@ -94,10 +94,10 @@ public class ScaffoldPlus extends Module {
                     BlockPos bestPos = null;
                     for (Direction i : Direction.values()) {
                         if (i == Direction.UP) continue;
-                        if (BlockUtil.canPlace(placePos.offset(i))) {
-                            if (bestPos == null || mc.player.squaredDistanceTo(placePos.offset(i).toCenterPos()) < distance) {
-                                bestPos = placePos.offset(i);
-                                distance = mc.player.squaredDistanceTo(placePos.offset(i).toCenterPos());
+                        if (BlockUtil.canPlace(placePos.relative(i))) {
+                            if (bestPos == null || mc.player.distanceToSqr(placePos.relative(i).getCenter()) < distance) {
+                                bestPos = placePos.relative(i);
+                                distance = mc.player.distanceToSqr(placePos.relative(i).getCenter());
                             }
                         }
                     }
@@ -109,11 +109,11 @@ public class ScaffoldPlus extends Module {
                 }
                 Direction side = BlockUtil.getPlaceSide(placePos, null);
                 Direction slabSide = null;
-                if (mc.player.getInventory().getStack(block).getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock) {
+                if (mc.player.getInventory().getItem(block).getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock) {
                     slabSide = Direction.UP;
                 }
                 if (side != null) {
-                    event.renderer.box(new Box(placePos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
+                    event.renderer.box(new AABB(placePos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
                     InventoryUtil.switchToSlot(block);
                     BlockUtil.placeSlabBlock(placePos, side, slabSide, rotate.get());
                     InventoryUtil.switchToSlot(old);
@@ -122,8 +122,8 @@ public class ScaffoldPlus extends Module {
         } else {
             placePos = pos;
             if (BlockUtil.getBlock(pos) instanceof SlabBlock) {
-                Direction face = mc.player.getHorizontalFacing();
-                placePos = pos.offset(face);
+                Direction face = mc.player.getDirection();
+                placePos = pos.relative(face);
             } else {
                 if (BlockUtil.clientCanPlace(placePos, false)) {
                     if (BlockUtil.getPlaceSide(placePos, null) == null) {
@@ -131,10 +131,10 @@ public class ScaffoldPlus extends Module {
                         BlockPos bestPos = null;
                         for (Direction i : Direction.values()) {
                             if (i == Direction.UP) continue;
-                            if (BlockUtil.canPlace(placePos.offset(i))) {
-                                if (bestPos == null || mc.player.squaredDistanceTo(placePos.offset(i).toCenterPos()) < distance) {
-                                    bestPos = placePos.offset(i);
-                                    distance = mc.player.squaredDistanceTo(placePos.offset(i).toCenterPos());
+                            if (BlockUtil.canPlace(placePos.relative(i))) {
+                                if (bestPos == null || mc.player.distanceToSqr(placePos.relative(i).getCenter()) < distance) {
+                                    bestPos = placePos.relative(i);
+                                    distance = mc.player.distanceToSqr(placePos.relative(i).getCenter());
                                 }
                             }
                         }
@@ -149,7 +149,7 @@ public class ScaffoldPlus extends Module {
             int old = mc.player.getInventory().getSelectedSlot();
             Direction side = BlockUtil.getPlaceSide(placePos, null);
             if (side != null && !(BlockUtil.getBlock(placePos) instanceof SlabBlock)) {
-                event.renderer.box(new Box(placePos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
+                event.renderer.box(new AABB(placePos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
                 InventoryUtil.switchToSlot(block);
                 BlockUtil.placeSlabBlock(placePos, side, Direction.DOWN, rotate.get());
                 InventoryUtil.switchToSlot(old);

@@ -1,12 +1,12 @@
 package com.dev.leavesHack.asm.accessors;
 
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.client.network.PendingUpdateManager;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.multiplayer.prediction.BlockStatePredictionHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(ClientWorld.class)
+@Mixin(ClientLevel.class)
 public interface IClientWorld {
-    @Invoker("getPendingUpdateManager")
-    PendingUpdateManager invokeGetPendingUpdateManager();
+    @Invoker("getBlockStatePredictionHandler")
+    BlockStatePredictionHandler invokeGetPendingUpdateManager();
 }

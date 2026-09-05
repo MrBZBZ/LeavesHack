@@ -7,6 +7,10 @@ import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.spear.SpearUtil;
+import java.awt.*;
+import java.util.Set;
+import java.util.TimerTask;
+import java.util.function.Predicate;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
@@ -15,24 +19,22 @@ import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.Tameable;
-import net.minecraft.entity.mob.EndermanEntity;
-import net.minecraft.entity.mob.ZombifiedPiglinEntity;
-import net.minecraft.entity.passive.WolfEntity;
-import net.minecraft.item.*;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
-import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.util.math.Vec3d;
-
-import java.awt.*;
-import java.util.Set;
-import java.util.TimerTask;
-import java.util.function.Predicate;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.network.protocol.game.ServerboundSwingPacket;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.animal.wolf.Wolf;
+import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.monster.zombie.ZombifiedPiglin;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.MaceItem;
+import net.minecraft.world.item.TridentItem;
+import net.minecraft.world.phys.Vec3;
 
 import static com.dev.leavesHack.utils.world.BlockUtil.getClosestPointToBox;
 
@@ -183,7 +185,7 @@ public class Aura extends Module {
     public void onPacket(PacketEvent.Send event) {
         if (reset.get()) {
             Packet<?> packet = event.packet;
-            if (packet instanceof HandSwingC2SPacket) {
+            if (packet instanceof ServerboundSwingPacket) {
                 attack = false;
                 tick.reset();
             }
@@ -191,7 +193,7 @@ public class Aura extends Module {
     }
     @EventHandler
     public void onTick(TickEvent.Pre event) {
-        if (mc.player ==  null || mc.world == null) return;
+        if (mc.player ==  null || mc.level == null) return;
         target = getTarget(targetRange.get());
         if (target == null) {
             attack = false;
@@ -202,7 +204,7 @@ public class Aura extends Module {
             return;
         }
         if (GlobalSetting.INSTANCE.moveFix.get() && rotate.get()) {
-            Vec3d hitVec = getAttackVec(target);
+            Vec3 hitVec = getAttackVec(target);
             Rotation.snapAt(hitVec);
         }
         doAura();
@@ -220,10 +222,10 @@ public class Aura extends Module {
         if (autoSwitch.get() != SwitchMode.None && !itemInHand()) {
             Predicate<ItemStack> predicate = switch (weapon.get()) {
                 case Axe -> stack -> stack.getItem() instanceof AxeItem;
-                case Sword -> stack -> (stack.isIn(ItemTags.SWORDS) && !SpearUtil.isSpear(mc.player.getMainHandStack()));
+                case Sword -> stack -> (stack.is(ItemTags.SWORDS) && !SpearUtil.isSpear(mc.player.getMainHandItem()));
                 case Mace -> stack -> stack.getItem() instanceof MaceItem;
                 case Trident -> stack -> stack.getItem() instanceof TridentItem;
-                case All -> stack -> stack.getItem() instanceof AxeItem || stack.isIn(ItemTags.SWORDS) || stack.getItem() instanceof MaceItem || stack.getItem() instanceof TridentItem;
+                case All -> stack -> stack.getItem() instanceof AxeItem || stack.is(ItemTags.SWORDS) || stack.getItem() instanceof MaceItem || stack.getItem() instanceof TridentItem;
                 default -> o -> true;
             };
             FindItemResult weaponResult = InvUtils.findInHotbar(predicate);
@@ -248,12 +250,12 @@ public class Aura extends Module {
                 public void run() {
                     mc.execute(() -> {
                         if (rotate.get()) {
-                            Vec3d hitVec = getAttackVec(target);
+                            Vec3 hitVec = getAttackVec(target);
                             Rotation.snapAt(hitVec);
                         }
-                        mc.interactionManager.attackEntity(mc.player, target);
-                        //mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
-                        mc.player.resetTicksSinceLastAttack();
+                        mc.gameMode.attack(mc.player, target);
+                        //mc.getNetworkHandler().sendPacket(ServerboundInteractPacket.attack(target, mc.player.isSneaking()));
+                        mc.player.resetOnlyAttackStrengthTicker();
                         EntityUtil.attackSwingHand();
                         if (rotate.get()) {
                             Rotation.snapBack();
@@ -269,12 +271,12 @@ public class Aura extends Module {
             }, delay);
         } else {
             if (rotate.get()) {
-                Vec3d hitVec = getAttackVec(target);
+                Vec3 hitVec = getAttackVec(target);
                 Rotation.snapAt(hitVec);
             }
-            mc.interactionManager.attackEntity(mc.player, target);
-//            mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
-            mc.player.resetTicksSinceLastAttack();
+            mc.gameMode.attack(mc.player, target);
+//            mc.getNetworkHandler().sendPacket(ServerboundInteractPacket.attack(target, mc.player.isSneaking()));
+            mc.player.resetOnlyAttackStrengthTicker();
             EntityUtil.attackSwingHand();
             tick.reset();
             if (rotate.get()) {
@@ -285,11 +287,11 @@ public class Aura extends Module {
     }
     private boolean itemInHand() {
         return switch (weapon.get()) {
-            case Axe -> mc.player.getMainHandStack().getItem() instanceof AxeItem;
-            case Sword -> (mc.player.getMainHandStack().isIn(ItemTags.SWORDS) && !SpearUtil.isSpear(mc.player.getMainHandStack()));
-            case Mace -> mc.player.getMainHandStack().getItem() instanceof MaceItem;
-            case Trident -> mc.player.getMainHandStack().getItem() instanceof TridentItem;
-            case All -> mc.player.getMainHandStack().getItem() instanceof AxeItem || mc.player.getMainHandStack().isIn(ItemTags.SWORDS) || mc.player.getMainHandStack().getItem() instanceof MaceItem || mc.player.getMainHandStack().getItem() instanceof TridentItem;
+            case Axe -> mc.player.getMainHandItem().getItem() instanceof AxeItem;
+            case Sword -> (mc.player.getMainHandItem().is(ItemTags.SWORDS) && !SpearUtil.isSpear(mc.player.getMainHandItem()));
+            case Mace -> mc.player.getMainHandItem().getItem() instanceof MaceItem;
+            case Trident -> mc.player.getMainHandItem().getItem() instanceof TridentItem;
+            case All -> mc.player.getMainHandItem().getItem() instanceof AxeItem || mc.player.getMainHandItem().is(ItemTags.SWORDS) || mc.player.getMainHandItem().getItem() instanceof MaceItem || mc.player.getMainHandItem().getItem() instanceof TridentItem;
             default -> true;
         };
     }
@@ -297,7 +299,7 @@ public class Aura extends Module {
     private boolean check() {
         if (attack) return false;
         if (!CombatUtil.isValid(target, attackRange.get())) return false;
-        if (!mc.player.canSee(target) && mc.player.distanceTo(target) > wallRange.get()) return false;
+        if (!mc.player.hasLineOfSight(target) && mc.player.distanceTo(target) > wallRange.get()) return false;
         if (!tick.passedMs(cooldown.get() * 1000)) {
             return false;
         }
@@ -309,19 +311,19 @@ public class Aura extends Module {
     private Entity getTarget(double range) {
         Entity target = null;
         double distance = range;
-        for (Entity entity : mc.world.getEntities()) {
+        for (Entity entity : mc.level.entitiesForRendering()) {
             if (!entities.get().contains(entity.getType())) continue;
             if (ignoreNamed.get() && entity.hasCustomName()) continue;
             if (ignoreTamed.get()) {
-                if (entity instanceof Tameable tameable
+                if (entity instanceof OwnableEntity tameable
                     && tameable.getOwner() != null
                     && tameable.getOwner().equals(mc.player)
                 ) continue;
             }
             if (ignorePassive.get()) {
-                if (entity instanceof EndermanEntity enderman && !enderman.isAngry()) continue;
-                if (entity instanceof ZombifiedPiglinEntity piglin && !piglin.isAttacking()) continue;
-                if (entity instanceof WolfEntity wolf && !wolf.isAttacking()) continue;
+                if (entity instanceof EnderMan enderman && !enderman.isAngry()) continue;
+                if (entity instanceof ZombifiedPiglin piglin && !piglin.isAggressive()) continue;
+                if (entity instanceof Wolf wolf && !wolf.isAggressive()) continue;
             }
             if (!CombatUtil.isValid(entity,targetRange.get())) continue;
             if (target == null) {
@@ -336,8 +338,8 @@ public class Aura extends Module {
         }
         return target;
     }
-    private Vec3d getAttackVec(Entity entity) {
-        return getClosestPointToBox(mc.player.getEyePos(), entity.getBoundingBox());
+    private Vec3 getAttackVec(Entity entity) {
+        return getClosestPointToBox(mc.player.getEyePosition(), entity.getBoundingBox());
     }
     public enum Weapon {
         Sword,

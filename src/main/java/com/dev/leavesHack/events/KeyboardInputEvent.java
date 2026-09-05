@@ -1,6 +1,6 @@
 package com.dev.leavesHack.events;
 
-import net.minecraft.util.PlayerInput;
+import net.minecraft.world.entity.player.Input;
 
 public class KeyboardInputEvent {
 
@@ -20,8 +20,8 @@ public class KeyboardInputEvent {
         this.sprint = sprint;
     }
 
-    public PlayerInput toNewInput() {
-        return new PlayerInput(
+    public Input toNewInput() {
+        return new Input(
             this.forward > 0,
             this.forward < 0,
             this.strafe > 0,

@@ -7,17 +7,16 @@ package com.dev.leavesHack.utils.skid;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.TextureFormat;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import meteordevelopment.meteorclient.renderer.MeshBuilder;
 import meteordevelopment.meteorclient.renderer.Texture;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.*;
 import org.lwjgl.system.MemoryStack;
-
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class FontFix {

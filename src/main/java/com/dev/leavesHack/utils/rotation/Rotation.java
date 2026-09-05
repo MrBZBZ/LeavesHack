@@ -7,12 +7,12 @@ import com.dev.leavesHack.utils.entity.MoveFixUtil;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 public class Rotation {
@@ -35,9 +35,9 @@ public class Rotation {
             targetYaw = yaw;
         } else {
             if (GlobalSetting.INSTANCE.grimRotation.get()) {
-                sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround(), mc.player.horizontalCollision));
+                sendPacket(new ServerboundMovePlayerPacket.PosRot(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.onGround(), mc.player.horizontalCollision));
             } else {
-                sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, mc.player.isOnGround(), mc.player.horizontalCollision));
+                sendPacket(new ServerboundMovePlayerPacket.Rot(yaw, pitch, mc.player.onGround(), mc.player.horizontalCollision));
             }
         }
     }
@@ -49,17 +49,17 @@ public class Rotation {
     public static void snapBack() {
         if (!GlobalSetting.INSTANCE.snapBack.get()) return;
         if (GlobalSetting.INSTANCE.moveFix.get()) return;
-        sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), rotationYaw, rotationPitch, mc.player.isOnGround(), mc.player.horizontalCollision));
+        sendPacket(new ServerboundMovePlayerPacket.PosRot(mc.player.getX(), mc.player.getY(), mc.player.getZ(), rotationYaw, rotationPitch, mc.player.onGround(), mc.player.horizontalCollision));
     }
     public static void sendPacket(Packet<?> packet) {
-        mc.getNetworkHandler().sendPacket(packet);
+        mc.getConnection().send(packet);
     }
-    public static void snapAt(Vec3d directionVec) {
+    public static void snapAt(Vec3 directionVec) {
         float[] angle = getRotation(directionVec);
         snapAt((angle[0]), angle[1]);
     }
-    public static void snapAt(Box box) {
-        snapAt(getClosestPointToEye(mc.player.getEyePos(), box));
+    public static void snapAt(AABB box) {
+        snapAt(getClosestPointToEye(mc.player.getEyePosition(), box));
     }
     @EventHandler
     public void onKeyInput(KeyboardInputEvent event) {
@@ -70,19 +70,19 @@ public class Rotation {
     public void onPacketSend(PacketEvent.Send event) {
         if (mc.player == null || event.isCancelled()) return;
         //BadPacketJ Disabler
-        if (event.packet instanceof PlayerInteractItemC2SPacket packet && rotation) {
+        if (event.packet instanceof ServerboundUseItemPacket packet && rotation) {
             ((IPlayerInterectItemC2SPacket) packet).setYaw(targetYaw);
             ((IPlayerInterectItemC2SPacket) packet).setPitch(targetPitch);
         }
-        if (event.packet instanceof PlayerMoveC2SPacket packet) {
-            if (packet.changesLook()) {
-                lastYaw = packet.getYaw(lastYaw);
-                lastPitch = packet.getPitch(lastPitch);
+        if (event.packet instanceof ServerboundMovePlayerPacket packet) {
+            if (packet.hasRotation()) {
+                lastYaw = packet.getYRot(lastYaw);
+                lastPitch = packet.getXRot(lastPitch);
             }
             lastGround = packet.isOnGround();
         }
     }
-    public static Vec3d getClosestPointToEye(Vec3d eyePos, Box box) {
+    public static Vec3 getClosestPointToEye(Vec3 eyePos, AABB box) {
         double x = eyePos.x;
         double y = eyePos.y;
         double z = eyePos.z;
@@ -96,19 +96,19 @@ public class Rotation {
         if (eyePos.z < box.minZ) z = box.minZ;
         else if (eyePos.z > box.maxZ) z = box.maxZ;
 
-        return new Vec3d(x, y, z);
+        return new Vec3(x, y, z);
     }
-    public static float[] getRotation(Vec3d eyesPos, Vec3d vec) {
+    public static float[] getRotation(Vec3 eyesPos, Vec3 vec) {
         double diffX = vec.x - eyesPos.x;
         double diffY = vec.y - eyesPos.y;
         double diffZ = vec.z - eyesPos.z;
         double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
         float yaw = (float) Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0f;
         float pitch = (float) (-Math.toDegrees(Math.atan2(diffY, diffXZ)));
-        return new float[]{MathHelper.wrapDegrees(yaw), MathHelper.wrapDegrees(pitch)};
+        return new float[]{Mth.wrapDegrees(yaw), Mth.wrapDegrees(pitch)};
     }
-    public static float[] getRotation(Vec3d vec) {
-        Vec3d eyesPos = mc.player.getEyePos();
+    public static float[] getRotation(Vec3 vec) {
+        Vec3 eyesPos = mc.player.getEyePosition();
         return getRotation(eyesPos, vec);
     }
 }

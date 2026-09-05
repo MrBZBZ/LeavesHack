@@ -5,7 +5,7 @@
   "client": [
     "accessors.IClientWorld",
     "mixin.MixinClientPlayerEntity",
-    "mixin.MixinGameRenderer",
+    "mixin.MixinCamera",
     "mixin.MixinInGameHud",
     "mixin.MixinKeyboardInput",
     "mixin.MixinPlayerEntityRenderer"

@@ -7,10 +7,10 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket;
-import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.network.protocol.game.ServerboundAcceptTeleportationPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.world.phys.Vec3;
 
 public class ElytraGrimAccelerate extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -49,7 +49,7 @@ public class ElytraGrimAccelerate extends Module {
 
     private boolean working = false;
     private long lastWorkingTick = 0;
-    private Vec3d vec3d = Vec3d.ZERO;
+    private Vec3 vec3d = Vec3.ZERO;
     private int tickCounter = 0;
     // 防止递归的标志
     private boolean isModifyingPacket = false;
@@ -63,7 +63,7 @@ public class ElytraGrimAccelerate extends Module {
         working = false;
         lastWorkingTick = 0;
         tickCounter = 0;
-        vec3d = Vec3d.ZERO;
+        vec3d = Vec3.ZERO;
         isModifyingPacket = false;
     }
 
@@ -75,18 +75,18 @@ public class ElytraGrimAccelerate extends Module {
 
     @EventHandler
     public void onTick(TickEvent.Pre event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
 
         tickCounter++;
 
         // 检查玩家是否正在鞘翅飞行
-        if (!mc.player.isGliding()) {
+        if (!mc.player.isFallFlying()) {
             working = false;
             return;
         }
 
         // 获取当前速度
-        vec3d = mc.player.getVelocity();
+        vec3d = mc.player.getDeltaMovement();
         double horizontalSpeed = Math.sqrt(vec3d.x * vec3d.x + vec3d.z * vec3d.z);
 
         // 检查是否在移动
@@ -97,7 +97,7 @@ public class ElytraGrimAccelerate extends Module {
         // Pre-tick modify: 设置加速标志
         if (horizontalSpeed < minAccelerateVelocity.get() && !working) {
             working = true;
-            lastWorkingTick = mc.player.getEntityWorld().getTime();
+            lastWorkingTick = mc.player.level().getGameTime();
         }
 
         // 速度过高时停止加速
@@ -113,8 +113,8 @@ public class ElytraGrimAccelerate extends Module {
         if (isModifyingPacket) return;
 
         // 处理移动包
-        if (event.packet instanceof PlayerMoveC2SPacket packet) {
-            if (!mc.player.isGliding()) return;
+        if (event.packet instanceof ServerboundMovePlayerPacket packet) {
+            if (!mc.player.isFallFlying()) return;
 
             double horizontalSpeed = Math.sqrt(vec3d.x * vec3d.x + vec3d.z * vec3d.z);
 
@@ -130,7 +130,7 @@ public class ElytraGrimAccelerate extends Module {
         }
 
         // 检测服务器回退包
-        if (event.packet instanceof TeleportConfirmC2SPacket) {
+        if (event.packet instanceof ServerboundAcceptTeleportationPacket) {
             // 服务器要求回退，停止加速
             if (working) {
                 working = false;
@@ -142,13 +142,13 @@ public class ElytraGrimAccelerate extends Module {
     /**
      * 修改数据包为虚假位置
      */
-    private void modifyPacket(PlayerMoveC2SPacket packet) {
+    private void modifyPacket(ServerboundMovePlayerPacket packet) {
         if (mc.player == null) return;
 
-        Vec3d pos = mc.player.getEntityPos();
-        float yaw = mc.player.getYaw();
-        float pitch = mc.player.getPitch();
-        boolean onGround = mc.player.isOnGround();
+        Vec3 pos = mc.player.position();
+        float yaw = mc.player.getYRot();
+        float pitch = mc.player.getXRot();
+        boolean onGround = mc.player.onGround();
 
         double fakeX, fakeY, fakeZ;
 
@@ -180,14 +180,14 @@ public class ElytraGrimAccelerate extends Module {
         if (mc.player == null || !isActive()) return;
 
         // 处理服务器速度更新包
-        if (event.packet instanceof EntityVelocityUpdateS2CPacket packet) {
+        if (event.packet instanceof ClientboundSetEntityMotionPacket packet) {
             if (!filterVelocity.get()) return;
-            if (packet.getEntityId() != mc.player.getId()) return;
-            if (!mc.player.isGliding()) return;
+            if (packet.id() != mc.player.getId()) return;
+            if (!mc.player.isFallFlying()) return;
 
             // 获取服务器发送的速度
-            double velX = packet.getVelocity().x / 8000.0;
-            double velZ = packet.getVelocity().z / 8000.0;
+            double velX = packet.movement().x / 8000.0;
+            double velZ = packet.movement().z / 8000.0;
             double horizontalLengthSquared = velX * velX + velZ * velZ;
             info("服务器速度: " + horizontalLengthSquared);
 

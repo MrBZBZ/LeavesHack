@@ -1,7 +1,7 @@
 package com.dev.leavesHack.utils.entity;
 
 import com.dev.leavesHack.events.KeyboardInputEvent;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
@@ -17,7 +17,7 @@ public class MoveFixUtil {
                 Math.max(Math.abs(forward), Math.abs(strafe));
 
         double angleDifference =
-                MathHelper.wrapDegrees(
+                Mth.wrapDegrees(
                         getDirection(forward, strafe) - yaw
                 );
 
@@ -51,7 +51,7 @@ public class MoveFixUtil {
     }
 
     private static float getDirection(float forward, float strafe) {
-        float yaw = mc.player.getYaw();
+        float yaw = mc.player.getYRot();
         boolean isMovingForward = forward > 0;
         boolean isMovingBack = forward < 0;
         boolean isMovingRight = strafe > 0;

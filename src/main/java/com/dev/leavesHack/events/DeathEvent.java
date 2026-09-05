@@ -1,20 +1,20 @@
 package com.dev.leavesHack.events;
 
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 
 public class DeathEvent {
     private DeathEvent() {
     }
 
     private static final DeathEvent INSTANCE = new DeathEvent();
-    private PlayerEntity player;
+    private Player player;
 
-    public static DeathEvent get(PlayerEntity player) {
+    public static DeathEvent get(Player player) {
         INSTANCE.player = player;
         return INSTANCE;
     }
 
-    public PlayerEntity getPlayer() {
+    public Player getPlayer() {
         return player;
     }
 }

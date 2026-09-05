@@ -5,28 +5,27 @@ import com.dev.leavesHack.utils.world.BlockUtil;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMaps;
+import java.util.Set;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.SlabBlock;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
-import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.screen.slot.SlotActionType;
-
-import java.util.Set;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SlabBlock;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
@@ -40,14 +39,14 @@ public class InventoryUtil {
     static int lastSelect = -1;
     @EventHandler
     public void onPacketSend(PacketEvent.Send event) {
-        if (event.packet instanceof UpdateSelectedSlotC2SPacket packet) {
-            if (GlobalSetting.INSTANCE.noBadPackets.get() && packet.getSelectedSlot() == serverSlot) {
+        if (event.packet instanceof ServerboundSetCarriedItemPacket packet) {
+            if (GlobalSetting.INSTANCE.noBadPackets.get() && packet.getSlot() == serverSlot) {
                 event.cancel();
             }
-            serverSlot = packet.getSelectedSlot();
+            serverSlot = packet.getSlot();
         }
     }
-//    public static int getEquipmentLevel(PlayerEntity player, RegistryKey<Enchantment> enchantmentKey) {
+//    public static int getEquipmentLevel(Player player, ResourceKey<Enchantment> enchantmentKey) {
 //        int maxLevel = 0;
 //        for (ItemStack stack : player.getArmorItems()) {
 //            if (!stack.isEmpty()) {
@@ -59,30 +58,30 @@ public class InventoryUtil {
 //        }
 //        return maxLevel;
 //    }
-    public static boolean hasEnchantment(ItemStack itemStack, RegistryKey<Enchantment> enchantment) {
+    public static boolean hasEnchantment(ItemStack itemStack, ResourceKey<Enchantment> enchantment) {
         return getEnchantmentLevel(itemStack, enchantment) > 0;
     }
-    public static int getEnchantmentLevel(ItemStack itemStack, RegistryKey<Enchantment> enchantment) {
+    public static int getEnchantmentLevel(ItemStack itemStack, ResourceKey<Enchantment> enchantment) {
         if (itemStack.isEmpty()) return 0;
-        Object2IntMap<RegistryEntry<Enchantment>> itemEnchantments = new Object2IntArrayMap<>();
+        Object2IntMap<Holder<Enchantment>> itemEnchantments = new Object2IntArrayMap<>();
         getEnchantments(itemStack, itemEnchantments);
         return getEnchantmentLevel(itemEnchantments, enchantment);
     }
-    public static int getEnchantmentLevel(Object2IntMap<RegistryEntry<Enchantment>> itemEnchantments, RegistryKey<Enchantment> enchantment) {
-        for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : Object2IntMaps.fastIterable(itemEnchantments)) {
-            if (entry.getKey().matchesKey(enchantment)) return entry.getIntValue();
+    public static int getEnchantmentLevel(Object2IntMap<Holder<Enchantment>> itemEnchantments, ResourceKey<Enchantment> enchantment) {
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : Object2IntMaps.fastIterable(itemEnchantments)) {
+            if (entry.getKey().is(enchantment)) return entry.getIntValue();
         }
         return 0;
     }
-    public static void getEnchantments(ItemStack itemStack, Object2IntMap<RegistryEntry<Enchantment>> enchantments) {
+    public static void getEnchantments(ItemStack itemStack, Object2IntMap<Holder<Enchantment>> enchantments) {
         enchantments.clear();
 
         if (!itemStack.isEmpty()) {
-            Set<Object2IntMap.Entry<RegistryEntry<Enchantment>>> itemEnchantments = itemStack.getItem() == Items.ENCHANTED_BOOK
-                ? itemStack.getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT).getEnchantmentEntries()
-                : itemStack.getEnchantments().getEnchantmentEntries();
+            Set<Object2IntMap.Entry<Holder<Enchantment>>> itemEnchantments = itemStack.getItem() == Items.ENCHANTED_BOOK
+                ? itemStack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY).entrySet()
+                : itemStack.getEnchantments().entrySet();
 
-            for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : itemEnchantments) {
+            for (Object2IntMap.Entry<Holder<Enchantment>> entry : itemEnchantments) {
                 enchantments.put(entry.getKey(), entry.getIntValue());
             }
         }
@@ -101,11 +100,11 @@ public class InventoryUtil {
             switchToSlot(slot - 36);
             return;
         }
-        mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, slot, selectedSlot, SlotActionType.SWAP, mc.player);
+        mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, slot, selectedSlot, ContainerInput.SWAP, mc.player);
     }
     public static int findItemInventorySlot(Item item) {
         for (int i = 0; i < 45; ++i) {
-            ItemStack stack = mc.player.getInventory().getStack(i);
+            ItemStack stack = mc.player.getInventory().getItem(i);
             if (stack.getItem() == item) return i < 9 ? i + 36 : i;
         }
         return -1;
@@ -113,7 +112,7 @@ public class InventoryUtil {
     public static int findBlock() {
         for (int i = 0; i < 9; ++i) {
             ItemStack stack = getStackInSlot(i);
-            if (stack.getItem() instanceof BlockItem && !BlockUtil.shiftBlocks.contains(Block.getBlockFromItem(stack.getItem())) && ((BlockItem) stack.getItem()).getBlock() != Blocks.COBWEB)
+            if (stack.getItem() instanceof BlockItem && !BlockUtil.shiftBlocks.contains(Block.byItem(stack.getItem())) && ((BlockItem) stack.getItem()).getBlock() != Blocks.COBWEB)
                 return i;
         }
         return -1;
@@ -131,11 +130,11 @@ public class InventoryUtil {
         return -1;
     }
     public static ItemStack getStackInSlot(int i) {
-        return mc.player.getInventory().getStack(i);
+        return mc.player.getInventory().getItem(i);
     }
     public static void switchToSlot(int slot) {
         if (GlobalSetting.INSTANCE.clientSwitch.get()) mc.player.getInventory().setSelectedSlot(slot);
-        sendPacket(new UpdateSelectedSlotC2SPacket(slot));
+        sendPacket(new ServerboundSetCarriedItemPacket(slot));
     }
     public enum MineSwitchMode {
         Delay,
@@ -145,7 +144,7 @@ public class InventoryUtil {
     public static int findItem(Item input) {
         for (int i = 0; i < 9; ++i) {
             Item item = getStackInSlot(i).getItem();
-            if (Item.getRawId(item) != Item.getRawId(input)) continue;
+            if (Item.getId(item) != Item.getId(input)) continue;
             return i;
         }
         return -1;
@@ -177,7 +176,7 @@ public class InventoryUtil {
         return -1;
     }
     public static void sendPacket(Packet<?> packet) {
-        mc.getNetworkHandler().sendPacket(packet);
+        mc.getConnection().send(packet);
     }
 
     public static int findBlock(Block block) {

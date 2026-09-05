@@ -1,13 +1,15 @@
 plugins {
     alias(libs.plugins.fabric.loom)
 }
+
 loom {
-    accessWidenerPath = file("src/main/resources/leaves.accesswidener")
+    accessWidenerPath = file("src/main/resources/leaves.classtweaker")
 }
+
 base {
-    archivesName = properties["archives_base_name"] as String
+    archivesName = providers.gradleProperty("archives_base_name").get()
     version = libs.versions.mod.version.get()
-    group = properties["maven_group"] as String
+    group = providers.gradleProperty("maven_group").get()
 }
 
 repositories {
@@ -28,21 +30,50 @@ repositories {
 dependencies {
     // Fabric
     minecraft(libs.minecraft)
-    mappings(variantOf(libs.yarn) { classifier("v2") })
-    modImplementation(libs.fabric.loader)
+    implementation(libs.fabric.loader)
 
     // Meteor
-    modImplementation(libs.meteor.client)
-    // Litematica dependencies
-    modCompileOnly("maven.modrinth:malilib:0.27.10")
-    modCompileOnly("maven.modrinth:litematica:0.26.6")
+    implementation(libs.meteor.client)
+
+    // Litematica (compile-time only: Printer reads its schematic world)
+    compileOnly(libs.malilib)
+    compileOnly(libs.litematica)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(libs.versions.jdk.get().toInt())
+    }
+}
+
+// Minecraft 26.1.2 -> "~26.1", so the addon keeps loading on 26.1.x patches.
+fun toMinecraftCompat(version: String): String {
+    val stable = Regex("""^(\d{2})\.([1-9]\d*)(?:\.(\d+))?$""")
+    stable.matchEntire(version)?.let {
+        val (year, drop, _) = it.destructured
+        return "~$year.$drop"
+    }
+
+    val pre = Regex("""^(\d{2})\.([1-9]\d*)-pre[-.](\d+)$""")
+    pre.matchEntire(version)?.let {
+        return version.replace("-pre-", "-pre.")
+    }
+
+    val rc = Regex("""^(\d{2})\.([1-9]\d*)-rc[-.](\d+)$""")
+    rc.matchEntire(version)?.let {
+        return version.replace("-rc-", "-rc.")
+    }
+
+    return version
 }
 
 tasks {
     processResources {
         val propertyMap = mapOf(
             "version" to project.version,
-            "mc_version" to libs.versions.minecraft.get()
+            "minecraft_version" to toMinecraftCompat(libs.versions.minecraft.get()),
+            "jdk_version" to libs.versions.jdk.get(),
+            "loader_version" to libs.versions.fabric.loader.get()
         )
 
         inputs.properties(propertyMap)
@@ -62,14 +93,8 @@ tasks {
         }
     }
 
-    java {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
-
-    withType<JavaCompile> {
+    withType<JavaCompile>().configureEach {
         options.encoding = "UTF-8"
-        options.release = 21
         options.compilerArgs.add("-Xlint:deprecation")
         options.compilerArgs.add("-Xlint:unchecked")
     }

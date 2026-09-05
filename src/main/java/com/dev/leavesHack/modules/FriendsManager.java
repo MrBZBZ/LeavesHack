@@ -2,6 +2,12 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.asm.accessors.IFriend;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.*;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
@@ -15,13 +21,6 @@ import meteordevelopment.meteorclient.systems.friends.Friend;
 import meteordevelopment.meteorclient.systems.friends.Friends;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-
-import javax.swing.*;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
 
 public class FriendsManager extends Module {
     public static FriendsManager INSTANCE;
@@ -146,7 +145,7 @@ public class FriendsManager extends Module {
         if (deBug.get()) {
             info("执行: " + command);
         }
-        mc.player.networkHandler.sendChatMessage(command);
+        mc.player.connection.sendChat(command);
     }
     @Override
     public WWidget getWidget(GuiTheme theme) {

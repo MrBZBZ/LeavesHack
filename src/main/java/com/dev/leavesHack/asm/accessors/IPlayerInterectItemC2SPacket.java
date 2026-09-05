@@ -1,17 +1,17 @@
 package com.dev.leavesHack.asm.accessors;
 
-import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
+import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(PlayerInteractItemC2SPacket.class)
+@Mixin(ServerboundUseItemPacket.class)
 public interface IPlayerInterectItemC2SPacket {
     @Mutable
-    @Accessor("yaw")
+    @Accessor("yRot")
     void setYaw(float yaw);
 
     @Mutable
-    @Accessor("pitch")
+    @Accessor("xRot")
     void setPitch(float pitch);
 }
