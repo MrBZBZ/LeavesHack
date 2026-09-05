@@ -13,13 +13,13 @@ import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.TorchBlock;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.LightType;
-import net.minecraft.world.RaycastContext;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.block.TorchBlock;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 public class AutoTorch extends Module {
     public static AutoTorch INSTANCE;
@@ -76,7 +76,7 @@ public class AutoTorch extends Module {
     @EventHandler
     private void onRender3d(Render3DEvent event) {
         for (BlockPos pos : BlockUtil.getSphere(renderRange.get())) {
-            if (mc.world.getLightLevel(LightType.BLOCK, pos) <= checkLightLevel.get() && BlockUtil.canPlace(pos)) {
+            if (mc.level.getBrightness(LightLayer.BLOCK, pos) <= checkLightLevel.get() && BlockUtil.canPlace(pos)) {
                 Color color = new Color(255, 0, 0, 255);
                 event.renderer.line(
                         pos.getX(), pos.getY(), pos.getZ(),
@@ -99,8 +99,8 @@ public class AutoTorch extends Module {
         for (BlockPos pos : BlockUtil.getSphere(range.get())) {
             if (counts >= 1) break;
             if (throughWall.get() && behindWall(pos)) continue;
-            if (!(BlockUtil.getBlock(pos) instanceof TorchBlock) && !(BlockUtil.getBlock(pos.down()) instanceof TorchBlock) && mc.world.isAir(pos) && !mc.world.isAir(pos.down()) && !mc.world.getBlockState(pos.down()).isReplaceable() && !BlockUtil.hasPlayerEntity(pos) && !BlockUtil.hasEntity(pos,false)) {
-                if (mc.world.getLightLevel(LightType.BLOCK, pos)  > checkLightLevel.get()) continue;
+            if (!(BlockUtil.getBlock(pos) instanceof TorchBlock) && !(BlockUtil.getBlock(pos.below()) instanceof TorchBlock) && mc.level.isEmptyBlock(pos) && !mc.level.isEmptyBlock(pos.below()) && !mc.level.getBlockState(pos.below()).canBeReplaced() && !BlockUtil.hasPlayerEntity(pos) && !BlockUtil.hasEntity(pos,false)) {
+                if (mc.level.getBrightness(LightLayer.BLOCK, pos)  > checkLightLevel.get()) continue;
                 Direction side = BlockUtil.getPlaceSide(pos, null);
                 if (side != null && side != Direction.UP) {
                     InventoryUtil.switchToSlot(slot);
@@ -115,8 +115,8 @@ public class AutoTorch extends Module {
         placeTimer.reset();
     }
     public boolean behindWall(BlockPos pos) {
-        Vec3d testVec = new Vec3d(pos.getX() + 0.5, pos.getY() + 2 * 0.85, pos.getZ() + 0.5);
-        HitResult result = mc.world.raycast(new RaycastContext(mc.player.getEyePos(), testVec, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player));
+        Vec3 testVec = new Vec3(pos.getX() + 0.5, pos.getY() + 2 * 0.85, pos.getZ() + 0.5);
+        HitResult result = mc.level.clip(new ClipContext(mc.player.getEyePosition(), testVec, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player));
         return result != null && result.getType() != HitResult.Type.MISS;
     }
 }

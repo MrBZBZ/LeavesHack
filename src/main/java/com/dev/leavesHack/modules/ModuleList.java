@@ -1,6 +1,9 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.renderer.Renderer2D;
 import meteordevelopment.meteorclient.renderer.text.TextRenderer;
@@ -9,10 +12,6 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class ModuleList extends Module {
 

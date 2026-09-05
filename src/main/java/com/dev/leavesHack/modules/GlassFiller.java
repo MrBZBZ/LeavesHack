@@ -10,13 +10,13 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Items;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public class GlassFiller extends Module {
     public static GlassFiller INSTANCE;
@@ -80,18 +80,18 @@ public class GlassFiller extends Module {
             .build()
     );
     private Timer glassTimer = new Timer();
-    private PlayerEntity target;
+    private Player target;
     @EventHandler
     private void onTick(TickEvent.Pre event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
         update();
     }
 
-    public boolean isPhased(PlayerEntity player) {
-        return mc.world.canCollide(player,player.getBoundingBox());
+    public boolean isPhased(Player player) {
+        return mc.level.collidesWithSuffocatingBlock(player,player.getBoundingBox());
     }
     public boolean checkPause(boolean onlyMain) {
-        return mc.options.useKey.isPressed() && (!onlyMain || mc.player.getActiveHand() == Hand.MAIN_HAND);
+        return mc.options.keyUse.isDown() && (!onlyMain || mc.player.getUsedItemHand() == InteractionHand.MAIN_HAND);
     }
 
     public void update() {
@@ -106,8 +106,8 @@ public class GlassFiller extends Module {
         if (AutoCrystal.INSTANCE.crystalPos != null || AutoAnchor.INSTANCE.currentPos != null) {
             return;
         }
-        Box boundingBox = target.getBoundingBox().shrink(0.01, 0.1, 0.01);
-        int feetY = target.getBlockPos().getY();
+        AABB boundingBox = target.getBoundingBox().contract(0.01, 0.1, 0.01);
+        int feetY = target.blockPosition().getY();
         int minX = (int) Math.floor(boundingBox.minX);
         int maxX = (int) Math.floor(boundingBox.maxX);
         int minZ = (int) Math.floor(boundingBox.minZ);
@@ -125,18 +125,18 @@ public class GlassFiller extends Module {
                         if (Math.abs(offsetX) + Math.abs(offsetZ) != 1) {
                             continue;
                         }
-                        BlockPos pos = feetPos.add(offsetX, 0, offsetZ);
+                        BlockPos pos = feetPos.offset(offsetX, 0, offsetZ);
                         if (!BlockUtil.clientCanPlace(pos, false)) continue;
                         Direction side = BlockUtil.getPlaceSide(pos, null);
                         if (side == null) continue;
                         if (notInPlaceBlockRange(pos)) continue;
                         doSwap(slot);
-                        Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
+                        Vec3 directionVec = new Vec3(pos.getX() + 0.5 + side.getUnitVec3i().getX() * 0.5, pos.getY() + 0.5 + side.getUnitVec3i().getY() * 0.5, pos.getZ() + 0.5 + side.getUnitVec3i().getZ() * 0.5);
                         if (rotate.get()) {
                             Rotation.snapAt(directionVec);
                         }
                         // In 1.21.11, clickBlock already adds to placeList internally
-                        BlockUtil.clickBlock(pos.offset(side), side.getOpposite(), false);
+                        BlockUtil.clickBlock(pos.relative(side), side.getOpposite(), false);
                         glassTimer.reset();
                         if (rotate.get()) {
                             Rotation.snapBack();
@@ -153,11 +153,11 @@ public class GlassFiller extends Module {
     }
     private boolean notInPlaceBlockRange(BlockPos pos) {
         Direction side = BlockUtil.getClickSide(pos);
-        if (mc.player.getEyePos().distanceTo(pos.toCenterPos().add(0, -0.5, 0)) > placeRange.get()) {
+        if (mc.player.getEyePosition().distanceTo(pos.getCenter().add(0, -0.5, 0)) > placeRange.get()) {
             return true;
         }
         return side == null ||
-                !(pos.toCenterPos().add(new Vec3d(side.getVector().getX() * 0.5, side.getVector().getY() * 0.5, side.getVector().getZ() * 0.5)).distanceTo(mc.player.getEyePos())
+                !(pos.getCenter().add(new Vec3(side.getUnitVec3i().getX() * 0.5, side.getUnitVec3i().getY() * 0.5, side.getUnitVec3i().getZ() * 0.5)).distanceTo(mc.player.getEyePosition())
                         <= placeRange.get());
     }
     private void doSwap(int slot) {

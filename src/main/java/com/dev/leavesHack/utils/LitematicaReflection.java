@@ -1,9 +1,8 @@
 package com.dev.leavesHack.utils;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-
 import java.lang.reflect.Method;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class LitematicaReflection {
 

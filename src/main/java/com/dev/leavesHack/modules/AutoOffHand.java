@@ -7,10 +7,10 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.entity.EntityUtils;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.Items;
-import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.item.Items;
 
 public class AutoOffHand extends Module {
     public static AutoOffHand INSTANCE;
@@ -75,26 +75,26 @@ public class AutoOffHand extends Module {
     public void onTick(TickEvent.Pre event) {
         if (isHandledScreenOpen()) return;
         int totem = InventoryUtil.findItemInventorySlot(Items.TOTEM_OF_UNDYING);
-        boolean hasTotem = mc.player.getInventory().getStack(mainSlot.get()).getItem() == Items.TOTEM_OF_UNDYING;
+        boolean hasTotem = mc.player.getInventory().getItem(mainSlot.get()).getItem() == Items.TOTEM_OF_UNDYING;
         int checkSlot = gapMode.get() == GapMode.MainHand ? 40 : mc.player.getInventory().getSelectedSlot();
-        boolean hasGap = mc.player.getInventory().getStack(checkSlot).getItem() == Items.ENCHANTED_GOLDEN_APPLE || mc.player.getInventory().getStack(checkSlot).getItem() == Items.GOLDEN_APPLE;
+        boolean hasGap = mc.player.getInventory().getItem(checkSlot).getItem() == Items.ENCHANTED_GOLDEN_APPLE || mc.player.getInventory().getItem(checkSlot).getItem() == Items.GOLDEN_APPLE;
         int gap = InventoryUtil.findItemInventorySlot(Items.ENCHANTED_GOLDEN_APPLE);
         if (gap == -1) {
             gap = InventoryUtil.findItemInventorySlot(Items.GOLDEN_APPLE);
         }
         if (useGap.get() && gap != -1 && gapMode.get() == GapMode.OffHand) {
-            if (mc.options.useKey.isPressed() && oldSlot != -1) {
+            if (mc.options.keyUse.isDown() && oldSlot != -1) {
                 if (!hasTotem && totem != -1) {
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, totem, mainSlot.get(), SlotActionType.SWAP, mc.player);
+                    mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, totem, mainSlot.get(), ContainerInput.SWAP, mc.player);
                 }
             }
-            if (mc.options.useKey.isPressed() && checkItem() && !hasGap) {
-                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, gap, 40, SlotActionType.SWAP, mc.player);
+            if (mc.options.keyUse.isDown() && checkItem() && !hasGap) {
+                mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, gap, 40, ContainerInput.SWAP, mc.player);
                 InventoryUtil.switchToSlot(mc.player.getInventory().getSelectedSlot());
                 totem = InventoryUtil.findItemInventorySlot(Items.TOTEM_OF_UNDYING);
                 if (autoMain.get() && EntityUtils.getTotalHealth(mc.player) <= checkHealth.get()) {
                     if (!hasTotem && totem != -1) {
-                        mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, totem, mainSlot.get(), SlotActionType.SWAP, mc.player);
+                        mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, totem, mainSlot.get(), ContainerInput.SWAP, mc.player);
                     }
                     if (oldSlot == -1) {
                         oldSlot = mc.player.getInventory().getSelectedSlot();
@@ -102,57 +102,57 @@ public class AutoOffHand extends Module {
                     }
                 }
             } else {
-                if (autoMain.get() && oldSlot != -1 && !mc.options.useKey.isPressed()) {
+                if (autoMain.get() && oldSlot != -1 && !mc.options.keyUse.isDown()) {
                     mc.player.getInventory().setSelectedSlot(oldSlot);
                     oldSlot = -1;
                 }
-                if (!mc.options.useKey.isPressed() && totem != -1) {
-                    if (mc.player.getInventory().getStack(40).getItem() != Items.TOTEM_OF_UNDYING) {
-                        mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, totem, 40, SlotActionType.SWAP, mc.player);
+                if (!mc.options.keyUse.isDown() && totem != -1) {
+                    if (mc.player.getInventory().getItem(40).getItem() != Items.TOTEM_OF_UNDYING) {
+                        mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, totem, 40, ContainerInput.SWAP, mc.player);
                         oldSlot = -1;
                     }
                 }
             }
         } else if (useGap.get() && gap != -1 && gapMode.get() == GapMode.MainHand) {
             if (totem != -1) {
-                if (mc.player.getInventory().getStack(40).getItem() != Items.TOTEM_OF_UNDYING) {
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, totem, 40, SlotActionType.SWAP, mc.player);
+                if (mc.player.getInventory().getItem(40).getItem() != Items.TOTEM_OF_UNDYING) {
+                    mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, totem, 40, ContainerInput.SWAP, mc.player);
                 }
             }
-            if (oldSlot == -1 && mc.options.useKey.isPressed() && checkItem() && !hasGap) {
+            if (oldSlot == -1 && mc.options.keyUse.isDown() && checkItem() && !hasGap) {
                 oldSlot = mc.player.getInventory().getSelectedSlot();
                 swapSlot = gap;
-                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, gap, oldSlot, SlotActionType.SWAP, mc.player);
+                mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, gap, oldSlot, ContainerInput.SWAP, mc.player);
                 InventoryUtil.switchToSlot(mc.player.getInventory().getSelectedSlot());
             }
-            if (oldSlot != -1 && !mc.options.useKey.isPressed()) {
-                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, swapSlot, oldSlot, SlotActionType.SWAP, mc.player);
+            if (oldSlot != -1 && !mc.options.keyUse.isDown()) {
+                mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, swapSlot, oldSlot, ContainerInput.SWAP, mc.player);
                 InventoryUtil.switchToSlot(mc.player.getInventory().getSelectedSlot());
                 oldSlot = -1;
                 swapSlot = -1;
             }
         } else {
             if (totem != -1) {
-                if (mc.player.getInventory().getStack(40).getItem() != Items.TOTEM_OF_UNDYING) {
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, totem, 40, SlotActionType.SWAP, mc.player);
+                if (mc.player.getInventory().getItem(40).getItem() != Items.TOTEM_OF_UNDYING) {
+                    mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, totem, 40, ContainerInput.SWAP, mc.player);
                 }
             }
         }
     }
     private boolean checkItem() {
-        if (pickaxe.get() && mc.player.getInventory().getStack(mc.player.getInventory().getSelectedSlot()).isIn(ItemTags.PICKAXES)) {
+        if (pickaxe.get() && mc.player.getInventory().getItem(mc.player.getInventory().getSelectedSlot()).is(ItemTags.PICKAXES)) {
             return true;
         }
-        if (sword.get() && mc.player.getInventory().getStack(mc.player.getInventory().getSelectedSlot()).isIn(ItemTags.SWORDS)) {
+        if (sword.get() && mc.player.getInventory().getItem(mc.player.getInventory().getSelectedSlot()).is(ItemTags.SWORDS)) {
             return true;
         }
-        if (whenTotem.get() && mc.player.getInventory().getStack(mc.player.getInventory().getSelectedSlot()).getItem() == Items.TOTEM_OF_UNDYING) {
+        if (whenTotem.get() && mc.player.getInventory().getItem(mc.player.getInventory().getSelectedSlot()).getItem() == Items.TOTEM_OF_UNDYING) {
             return true;
         }
         return false;
     }
     private boolean isHandledScreenOpen() {
-        return mc.currentScreen instanceof HandledScreen<?>;
+        return mc.screen instanceof AbstractContainerScreen<?>;
     }
     private enum GapMode {
         OffHand,

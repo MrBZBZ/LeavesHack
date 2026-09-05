@@ -4,6 +4,9 @@ import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import meteordevelopment.meteorclient.events.entity.player.BlockBreakingCooldownEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
@@ -19,16 +22,12 @@ import meteordevelopment.meteorclient.utils.world.BlockIterator;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.block.Block;
-import net.minecraft.text.Text;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public class NukerPlus extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -248,14 +247,14 @@ public class NukerPlus extends Module {
     private final List<BlockPos> blocks = new ArrayList<>();
 
     private boolean firstBlock;
-    private final BlockPos.Mutable lastBlockPos = new BlockPos.Mutable();
+    private final BlockPos.MutableBlockPos lastBlockPos = new BlockPos.MutableBlockPos();
 
     private int timer;
     private int noBlockTimer;
     private Timer mineTimer = new Timer();
 
-    private final BlockPos.Mutable pos1 = new BlockPos.Mutable();
-    private final BlockPos.Mutable pos2 = new BlockPos.Mutable();
+    private final BlockPos.MutableBlockPos pos1 = new BlockPos.MutableBlockPos();
+    private final BlockPos.MutableBlockPos pos2 = new BlockPos.MutableBlockPos();
     int maxh = 0;
     int maxv = 0;
 
@@ -310,7 +309,7 @@ public class NukerPlus extends Module {
             pos1.set(pX_ - r, pY - r + 1, pZ - r + 1);
             pos2.set(pX_ + r - 1, pY + r, pZ + r);
         } else {
-            int direction = Math.round((mc.player.getRotationClient().y % 360) / 90);
+            int direction = Math.round((mc.player.getRotationVector().y % 360) / 90);
             direction = Math.floorMod(direction, 4);
 
             pos1.set(pX_ - range_forward.get(), Math.ceil(pY) - range_down.get(), pZ_ - range_right.get());
@@ -343,7 +342,7 @@ public class NukerPlus extends Module {
         if (mode.get() == Mode.Flatten) {
             pos1.setY((int) Math.floor(pY));
         }
-        Box box = new Box(pos1.toCenterPos(), pos2.toCenterPos());
+        AABB box = new AABB(pos1.getCenter(), pos2.getCenter());
 
         BlockIterator.register(Math.max((int) Math.ceil(range.get() + 1), maxh), Math.max((int) Math.ceil(range.get()), maxv), (blockPos, blockState) -> {
             switch (shape.get()) {
@@ -351,10 +350,10 @@ public class NukerPlus extends Module {
                     if (Utils.squaredDistance(pX, pY, pZ, blockPos.getX() + 0.5, blockPos.getY() + 0.5, blockPos.getZ() + 0.5) > rangeSq) return;
                 }
                 case UniformCube -> {
-                    if (chebyshevDist(mc.player.getBlockPos().getX(), mc.player.getBlockPos().getY(), mc.player.getBlockPos().getZ(), blockPos.getX(), blockPos.getY(), blockPos.getZ()) >= range.get()) return;
+                    if (chebyshevDist(mc.player.blockPosition().getX(), mc.player.blockPosition().getY(), mc.player.blockPosition().getZ(), blockPos.getX(), blockPos.getY(), blockPos.getZ()) >= range.get()) return;
                 }
                 case Cube -> {
-                    if (!box.contains(Vec3d.ofCenter(blockPos))) return;
+                    if (!box.contains(Vec3.atCenterOf(blockPos))) return;
                 }
             }
 
@@ -362,12 +361,12 @@ public class NukerPlus extends Module {
 
             if (mode.get() == Mode.Flatten && blockPos.getY() < Math.floor(mc.player.getY())) return;
 
-            if (mode.get() == Mode.Smash && blockState.getHardness(mc.world, blockPos) != 0) return;
+            if (mode.get() == Mode.Smash && blockState.getDestroySpeed(mc.level, blockPos) != 0) return;
 
             if (listMode.get() == ListMode.Whitelist && !whitelist.get().contains(blockState.getBlock())) return;
             if (listMode.get() == ListMode.Blacklist && blacklist.get().contains(blockState.getBlock())) return;
 
-            blocks.add(blockPos.toImmutable());
+            blocks.add(blockPos.immutable());
         });
 
         BlockIterator.after(() -> {
@@ -401,9 +400,9 @@ public class NukerPlus extends Module {
                 boolean canInstaMine = BlockUtils.canInstaBreak(block);
 
                 if (rotate.get()) {
-                    float[] rot = Rotation.getRotation(mc.player.getEyePos(), Vec3d.of(block));
-                    mc.player.setYaw(rot[0]);
-                    mc.player.setPitch(rot[1]);
+                    float[] rot = Rotation.getRotation(mc.player.getEyePosition(), Vec3.atLowerCornerOf(block));
+                    mc.player.setYRot(rot[0]);
+                    mc.player.setXRot(rot[1]);
                 }
                 breakBlock(block);
 
@@ -426,11 +425,11 @@ public class NukerPlus extends Module {
             PacketMine packetMine = Modules.get().get(PacketMine.class);
             if (packetMine != null && !packetMine.isActive()) {
                 ChatUtils.forceNextPrefixClass(getClass());
-                ChatUtils.sendMsg(title, Text.of("You must toggle PacketMine"));
+                ChatUtils.sendMsg(title, Component.nullToEmpty("You must toggle PacketMine"));
                 toggle();
             }
-            mc.player.swingHand(Hand.MAIN_HAND);
-            mc.interactionManager.attackBlock(pos, BlockUtil.getClickSide(pos));
+            mc.player.swing(InteractionHand.MAIN_HAND);
+            mc.gameMode.startDestroyBlock(pos, BlockUtil.getClickSide(pos));
             PacketMine.INSTANCE.mine(pos);
         } else {
             BlockUtils.breakBlock(pos, swingHand.get());

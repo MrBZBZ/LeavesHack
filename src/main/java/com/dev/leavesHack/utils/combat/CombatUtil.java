@@ -4,64 +4,63 @@ import com.dev.leavesHack.utils.entity.EntityUtil;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import com.google.common.collect.Lists;
-import meteordevelopment.meteorclient.systems.friends.Friends;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.EndCrystalEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-
 import java.util.ArrayList;
 import java.util.List;
+import meteordevelopment.meteorclient.systems.friends.Friends;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class CombatUtil {
     public static BlockPos modifyPos;
-    public static BlockState modifyBlockState = Blocks.AIR.getDefaultState();
-    public static List<PlayerEntity> getEnemies(double range) {
-        List<PlayerEntity> list = new ArrayList<>();
-        for (AbstractClientPlayerEntity player : Lists.newArrayList(mc.world.getPlayers())) {
+    public static BlockState modifyBlockState = Blocks.AIR.defaultBlockState();
+    public static List<Player> getEnemies(double range) {
+        List<Player> list = new ArrayList<>();
+        for (AbstractClientPlayer player : Lists.newArrayList(mc.level.players())) {
             if (!isValid(player, range)) continue;
             list.add(player);
         }
         return list;
     }
     public static boolean isValid(Entity entity, double range) {
-        boolean invalid = entity == null || !entity.isAlive() || entity.equals(mc.player) || entity instanceof PlayerEntity player && Friends.get().isFriend(player) || mc.player.getEntityPos().distanceTo(entity.getEntityPos()) > range;
+        boolean invalid = entity == null || !entity.isAlive() || entity.equals(mc.player) || entity instanceof Player player && Friends.get().isFriend(player) || mc.player.position().distanceTo(entity.position()) > range;
 
         return !invalid;
     }
     public static boolean isValid(Entity entity) {
-        boolean invalid = entity == null || !entity.isAlive() || entity.equals(mc.player) || entity instanceof PlayerEntity player && Friends.get().isFriend(player);
+        boolean invalid = entity == null || !entity.isAlive() || entity.equals(mc.player) || entity instanceof Player player && Friends.get().isFriend(player);
 
         return !invalid;
     }
-    public static PlayerEntity getClosestEnemy(double distance) {
-        PlayerEntity closest = null;
+    public static Player getClosestEnemy(double distance) {
+        Player closest = null;
 
-        for (PlayerEntity player : getEnemies(distance)) {
+        for (Player player : getEnemies(distance)) {
             if (closest == null) {
                 closest = player;
                 continue;
             }
 
-            if (!(mc.player.squaredDistanceTo(player.getEntityPos()) < mc.player.squaredDistanceTo(closest))) continue;
+            if (!(mc.player.distanceToSqr(player.position()) < mc.player.distanceToSqr(closest))) continue;
 
             closest = player;
         }
         return closest;
     }
     public static void attackCrystal(BlockPos pos, boolean rotate, boolean eatingPause) {
-        attackCrystal(new Box(pos), rotate, eatingPause);
+        attackCrystal(new AABB(pos), rotate, eatingPause);
     }
 
-    public static void attackCrystal(Box box, boolean rotate, boolean eatingPause) {
-        for (EndCrystalEntity entity : BlockUtil.getEndCrystals(box)) {
+    public static void attackCrystal(AABB box, boolean rotate, boolean eatingPause) {
+        for (EndCrystal entity : BlockUtil.getEndCrystals(box)) {
             attackCrystal(entity, rotate, eatingPause);
         }
     }
@@ -69,10 +68,10 @@ public class CombatUtil {
         if (usingPause && mc.player.isUsingItem())
             return;
         if (crystal != null) {
-            Rotation.snapAt(new Vec3d(crystal.getX(), crystal.getY() + 0.25, crystal.getZ()));
+            Rotation.snapAt(new Vec3(crystal.getX(), crystal.getY() + 0.25, crystal.getZ()));
 //            mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(crystal, mc.player.isSneaking()));
-            mc.interactionManager.attackEntity(mc.player, crystal);
-            mc.player.resetTicksSinceLastAttack();
+            mc.gameMode.attack(mc.player, crystal);
+            mc.player.resetOnlyAttackStrengthTicker();
             EntityUtil.attackSwingHand();
             if (rotate) {
                Rotation.snapBack();

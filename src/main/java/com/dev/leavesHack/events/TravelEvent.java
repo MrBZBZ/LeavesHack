@@ -1,18 +1,18 @@
 package com.dev.leavesHack.events;
 
 import meteordevelopment.meteorclient.events.Cancellable;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 
 public class TravelEvent extends Cancellable {
 
-    private final PlayerEntity entity;
+    private final Player entity;
 
 
-    public TravelEvent(PlayerEntity entity) {
+    public TravelEvent(Player entity) {
         this.entity = entity;
     }
 
-    public PlayerEntity getEntity() {
+    public Player getEntity() {
         return entity;
     }
 }

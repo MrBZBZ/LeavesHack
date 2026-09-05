@@ -3,7 +3,7 @@
   "id": "leaveshack",
   "version": "${version}",
   "name": "LeavesHack",
-  "description": "(1.21.11尝鲜版)致力于改善无政府服务器生存体验的MeteorClient插件 dev：Leaves_awa",
+  "description": "(26.1.2尝鲜版)致力于改善无政府服务器生存体验的MeteorClient插件 dev：Leaves_awa",
   "authors": [
     "Leaves_awa"
   ],
@@ -29,9 +29,10 @@
     }
   },
   "depends": {
-    "java": ">=21",
-    "minecraft": ["${mc_version}"],
+    "java": ">=${jdk_version}",
+    "minecraft": "${minecraft_version}",
+    "fabricloader": ">=${loader_version}",
     "meteor-client": "*"
   },
-  "accessWidener": "leaves.accesswidener"
+  "accessWidener": "leaves.classtweaker"
 }

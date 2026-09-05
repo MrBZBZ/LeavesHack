@@ -12,10 +12,10 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 
 import static com.dev.leavesHack.utils.world.BlockUtil.getClosestPointToBox;
 
@@ -64,7 +64,7 @@ public class Follower extends Module {
         super(LeavesHack.LEAVES_COMBAT, "Follower", "自动追人");
         INSTANCE = this;
     }
-    public PlayerEntity target;
+    public Player target;
     public float yaw;
     public float pitch;
     public boolean canFollow = false;
@@ -92,7 +92,7 @@ public class Follower extends Module {
     @EventHandler
     public void onTravel(TravelEvent event) {
         if (!FireworkElytraFly.INSTANCE.isFallFlying || !canFollow) return;
-        if (mc.player.isOnGround()) {
+        if (mc.player.onGround()) {
             shouldJump = true;
             return;
         }
@@ -118,7 +118,7 @@ public class Follower extends Module {
             if (autoDisable.get()) toggle();
             return;
         }
-        if (mc.player.isOnGround()) {
+        if (mc.player.onGround()) {
             shouldJump = true;
             return;
         }
@@ -143,29 +143,29 @@ public class Follower extends Module {
             returnTimer.reset();
             shouldReturn = true;
         }
-        if (mc.player.isOnGround()) {
-            mc.player.jump();
+        if (mc.player.onGround()) {
+            mc.player.jumpFromGround();
             shouldReturn = true;
             returnTimer.reset();
         }
-        Vec3d attackVec = getAttackVec(target);
-        pitch = shouldReturn ? -90 : Rotation.getRotation(mc.player.getEyePos(), attackVec)[1];
-        yaw = shouldReturn ? 0 : Rotation.getRotation(mc.player.getEyePos(), attackVec)[0];
+        Vec3 attackVec = getAttackVec(target);
+        pitch = shouldReturn ? -90 : Rotation.getRotation(mc.player.getEyePosition(), attackVec)[1];
+        yaw = shouldReturn ? 0 : Rotation.getRotation(mc.player.getEyePosition(), attackVec)[0];
         Rotation.snapAt(yaw, pitch);
     }
     private void setY(double f) {
-        ((IVec3d) mc.player.getVelocity()).setY(f);
+        ((IVec3d) mc.player.getDeltaMovement()).setY(f);
     }
     private void setX(double f) {
-        ((IVec3d) mc.player.getVelocity()).setX(f);
+        ((IVec3d) mc.player.getDeltaMovement()).setX(f);
     }
     private void setZ(double f) {
-        ((IVec3d) mc.player.getVelocity()).setZ(f);
+        ((IVec3d) mc.player.getDeltaMovement()).setZ(f);
     }
-    private Vec3d getAttackVec(Entity entity) {
-        return getClosestPointToBox(mc.player.getEyePos(), entity.getBoundingBox());
+    private Vec3 getAttackVec(Entity entity) {
+        return getClosestPointToBox(mc.player.getEyePosition(), entity.getBoundingBox());
     }
     private boolean wantToMove() {
-        return mc.options.forwardKey.isPressed() || mc.options.backKey.isPressed() || mc.options.leftKey.isPressed() || mc.options.rightKey.isPressed() || mc.options.jumpKey.isPressed() || mc.options.sneakKey.isPressed();
+        return mc.options.keyUp.isDown() || mc.options.keyDown.isDown() || mc.options.keyLeft.isDown() || mc.options.keyRight.isDown() || mc.options.keyJump.isDown() || mc.options.keyShift.isDown();
     }
 }

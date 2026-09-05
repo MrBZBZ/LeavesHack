@@ -1,7 +1,7 @@
 package com.dev.leavesHack.events;
 
 import meteordevelopment.meteorclient.events.Cancellable;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 
 public class ElytraUpdateEvent extends Cancellable {
     private final Entity entity;

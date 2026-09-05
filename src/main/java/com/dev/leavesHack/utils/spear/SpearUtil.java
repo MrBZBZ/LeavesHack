@@ -1,19 +1,18 @@
 package com.dev.leavesHack.utils.spear;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.component.type.NbtComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.AbstractNbtNumber;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.text.Text;
-
 import java.util.Set;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NumericTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 /**
  * 长矛（Spear）识别工具类。
@@ -48,14 +47,14 @@ public class SpearUtil {
      * 返回 null 表示未找到。
      */
     private static Integer getProtocolId(ItemStack stack) {
-        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
+        CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
         if (customData == null) return null;
 
-        NbtCompound nbt = customData.copyNbt();
-        for (String key : nbt.getKeys()) {
+        CompoundTag nbt = customData.copyTag();
+        for (String key : nbt.keySet()) {
             if (key.matches("^VB\\|Protocol.+id$")) {
-                NbtElement element = nbt.get(key);
-                if (element instanceof AbstractNbtNumber num) {
+                Tag element = nbt.get(key);
+                if (element instanceof NumericTag num) {
                     return num.intValue();
                 }
             }
@@ -76,9 +75,9 @@ public class SpearUtil {
         }
 
         // 2) Lore 包含 "lunge" — ViaVersion 将未知附魔转为 Lore 文本
-        LoreComponent lore = stack.get(DataComponentTypes.LORE);
+        ItemLore lore = stack.get(DataComponents.LORE);
         if (lore != null) {
-            for (Text line : lore.lines()) {
+            for (Component line : lore.lines()) {
                 if (line.getString().toLowerCase().contains("lunge")) {
                     return true;
                 }
@@ -86,7 +85,7 @@ public class SpearUtil {
         }
 
         // 3) custom_name 包含关键词（兜底）
-        Text customName = stack.get(DataComponentTypes.CUSTOM_NAME);
+        Component customName = stack.get(DataComponents.CUSTOM_NAME);
         if (customName != null) {
             String name = customName.getString().toLowerCase();
             if (name.contains("spear") || name.contains("长矛") || name.contains("突进")) {
@@ -113,11 +112,11 @@ public class SpearUtil {
      * 检查其 ID 路径是否以 "lunge" 结尾。
      */
     private static boolean hasLungeInEnchantments(ItemStack stack) {
-        ItemEnchantmentsComponent enchantments = stack.get(DataComponentTypes.ENCHANTMENTS);
+        ItemEnchantments enchantments = stack.get(DataComponents.ENCHANTMENTS);
         if (enchantments == null || enchantments.isEmpty()) return false;
 
-        for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : enchantments.getEnchantmentEntries()) {
-            String id = entry.getKey().getIdAsString();
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : enchantments.entrySet()) {
+            String id = entry.getKey().getRegisteredName();
             if (id.endsWith("lunge")) {
                 return true;
             }
@@ -142,9 +141,9 @@ public class SpearUtil {
         }
 
         // 2) Lore 文本中包含 lunge（ViaVersion 将未知附魔转为 Lore）
-        LoreComponent lore = stack.get(DataComponentTypes.LORE);
+        ItemLore lore = stack.get(DataComponents.LORE);
         if (lore != null) {
-            for (Text line : lore.lines()) {
+            for (Component line : lore.lines()) {
                 if (line.getString().toLowerCase().contains("lunge")) {
                     return true;
                 }

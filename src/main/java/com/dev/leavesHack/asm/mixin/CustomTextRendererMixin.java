@@ -1,6 +1,8 @@
 package com.dev.leavesHack.asm.mixin;
 
 import com.dev.leavesHack.utils.skid.FontFix;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import meteordevelopment.meteorclient.renderer.MeshBuilder;
 import meteordevelopment.meteorclient.renderer.MeshRenderer;
 import meteordevelopment.meteorclient.renderer.MeteorRenderPipelines;
@@ -8,7 +10,7 @@ import meteordevelopment.meteorclient.renderer.text.CustomTextRenderer;
 import meteordevelopment.meteorclient.renderer.text.FontFace;
 import meteordevelopment.meteorclient.renderer.text.TextRenderer;
 import meteordevelopment.meteorclient.utils.render.color.Color;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -16,9 +18,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import static meteordevelopment.meteorclient.renderer.text.CustomTextRenderer.SHADOW_COLOR;
 
@@ -147,10 +146,10 @@ public abstract class CustomTextRendererMixin implements TextRenderer {
             mesh.end();
 
             MeshRenderer.begin()
-                .attachments(MinecraftClient.getInstance().getFramebuffer())
+                .attachments(Minecraft.getInstance().getMainRenderTarget())
                 .pipeline(MeteorRenderPipelines.UI_TEXT)
                 .mesh(mesh)
-                .sampler("u_Texture", font_fix.texture.getGlTextureView(), font_fix.texture.getSampler())
+                .sampler("u_Texture", font_fix.texture.getTextureView(), font_fix.texture.getSampler())
                 .end();
         }
 

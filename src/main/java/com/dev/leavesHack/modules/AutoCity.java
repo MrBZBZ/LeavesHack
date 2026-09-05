@@ -5,6 +5,10 @@ import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.world.BlockPosX;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.BoolSetting;
@@ -13,17 +17,12 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 
 public class AutoCity extends Module {
     public static AutoCity INSTANCE;
@@ -105,21 +104,21 @@ public class AutoCity extends Module {
     public final Timer cityTimer = new Timer();
     @EventHandler
     public void onPacketSend(PacketEvent.Send event) {
-        if (event.packet instanceof PlayerActionC2SPacket packet) {
-            if (packet.getAction() == PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK) {
+        if (event.packet instanceof ServerboundPlayerActionPacket packet) {
+            if (packet.getAction() == ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK) {
                 cityTimer.reset();
             }
         }
     }
     @EventHandler
     public void onTick(TickEvent.Pre event) {
-        PlayerEntity player = CombatUtil.getClosestEnemy(targetRange.get());
+        Player player = CombatUtil.getClosestEnemy(targetRange.get());
         if (preferSelfClick.get() && PacketMine.selfClickPos != null) return;
         if (delay.get() && !cityTimer.passedMs(PacketMine.INSTANCE.mineDelay.get())) return;
-        if (antiCrawl.get() && mc.player.isCrawling()) {
-            if (canBreak(mc.player.getBlockPos().up()) && !mc.player.getBlockPos().up().equals(PacketMine.targetPos) && !mc.player.getBlockPos().up().equals(PacketMine.secondPos)) {
-                PacketMine.selfClickPos = mc.player.getBlockPos().up();
-                PacketMine.INSTANCE.mine(mc.player.getBlockPos().up());
+        if (antiCrawl.get() && mc.player.isVisuallyCrawling()) {
+            if (canBreak(mc.player.blockPosition().above()) && !mc.player.blockPosition().above().equals(PacketMine.targetPos) && !mc.player.blockPosition().above().equals(PacketMine.secondPos)) {
+                PacketMine.selfClickPos = mc.player.blockPosition().above();
+                PacketMine.INSTANCE.mine(mc.player.blockPosition().above());
                 return;
             }
         }
@@ -127,12 +126,12 @@ public class AutoCity extends Module {
         doBreak(player);
     }
 
-    private void doBreak(PlayerEntity player) {
-        BlockPos pos = player.getBlockPos();
+    private void doBreak(Player player) {
+        BlockPos pos = player.blockPosition();
         double[] yOffset = new double[]{-0.8, 0.3, 2.3, 1.1};
         double[] xzOffset = new double[]{0.3, -0.3};
         if (!doubleBreak.get()) {
-            for (PlayerEntity entity : CombatUtil.getEnemies(targetRange.get())) {
+            for (Player entity : CombatUtil.getEnemies(targetRange.get())) {
                 for (double y : yOffset) {
                     for (double x : xzOffset) {
                         for (double z : xzOffset) {
@@ -146,7 +145,7 @@ public class AutoCity extends Module {
             }
         } else {
             int count = 0;
-            for (PlayerEntity entity : CombatUtil.getEnemies(targetRange.get())) {
+            for (Player entity : CombatUtil.getEnemies(targetRange.get())) {
                 for (double y : yOffset) {
                     for (double x : xzOffset) {
                         for (double z : xzOffset) {
@@ -198,10 +197,10 @@ public class AutoCity extends Module {
         if (surround.get()) {
             for (Direction i : Direction.values()) {
                 if (i == Direction.UP || i == Direction.DOWN) continue;
-                if (Math.sqrt(mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos())) > range.get()) {
+                if (Math.sqrt(mc.player.getEyePosition().distanceToSqr(pos.relative(i).getCenter())) > range.get()) {
                     continue;
                 }
-                if ((mc.world.isAir(pos.offset(i)) || pos.offset(i).equals(PacketMine.targetPos)) && canPlaceCrystal(pos.offset(i), false)) {
+                if ((mc.level.isEmptyBlock(pos.relative(i)) || pos.relative(i).equals(PacketMine.targetPos)) && canPlaceCrystal(pos.relative(i), false)) {
                     if (!doubleBreak.get()) return;
                     if (PacketMine.targetPos != null && PacketMine.completed) return;
                 }
@@ -209,27 +208,27 @@ public class AutoCity extends Module {
             ArrayList<BlockPos> list = new ArrayList<>();
             for (Direction i : Direction.values()) {
                 if (i == Direction.UP || i == Direction.DOWN) continue;
-                if (Math.sqrt(mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos())) > range.get()) {
+                if (Math.sqrt(mc.player.getEyePosition().distanceToSqr(pos.relative(i).getCenter())) > range.get()) {
                     continue;
                 }
-                if (canBreak(pos.offset(i)) && canPlaceCrystal(pos.offset(i), true) && !isSurroundPos(pos.offset(i))) {
-                    list.add(pos.offset(i));
+                if (canBreak(pos.relative(i)) && canPlaceCrystal(pos.relative(i), true) && !isSurroundPos(pos.relative(i))) {
+                    list.add(pos.relative(i));
                 }
             }
             if (!list.isEmpty()) {
-                PacketMine.INSTANCE.mine(list.stream().min(Comparator.comparingDouble((E) -> E.getSquaredDistance(mc.player.getEyePos()))).get());
+                PacketMine.INSTANCE.mine(list.stream().min(Comparator.comparingDouble((E) -> E.distToCenterSqr(mc.player.getEyePosition()))).get());
             } else {
                 for (Direction i : Direction.values()) {
                     if (i == Direction.UP || i == Direction.DOWN) continue;
-                    if (Math.sqrt(mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos())) > range.get()) {
+                    if (Math.sqrt(mc.player.getEyePosition().distanceToSqr(pos.relative(i).getCenter())) > range.get()) {
                         continue;
                     }
-                    if (canBreak(pos.offset(i)) && canPlaceCrystal(pos.offset(i), false)) {
-                        list.add(pos.offset(i));
+                    if (canBreak(pos.relative(i)) && canPlaceCrystal(pos.relative(i), false)) {
+                        list.add(pos.relative(i));
                     }
                 }
                 if (!list.isEmpty()) {
-                    PacketMine.INSTANCE.mine(list.stream().min(Comparator.comparingDouble((E) -> E.getSquaredDistance(mc.player.getEyePos()))).get());
+                    PacketMine.INSTANCE.mine(list.stream().min(Comparator.comparingDouble((E) -> E.distToCenterSqr(mc.player.getEyePosition()))).get());
                 }
             }
         }
@@ -240,24 +239,24 @@ public class AutoCity extends Module {
                 continue;
             }
             BlockPos self = getPlayerPos(true);
-            if (self.offset(i).equals(pos)) {
+            if (self.relative(i).equals(pos)) {
                 return true;
             }
         }
         return false;
     }
     public BlockPos getPlayerPos(boolean fix) {
-        return new BlockPosX(mc.player.getEntityPos(), fix);
+        return new BlockPosX(mc.player.position(), fix);
     }
     public Block getBlock(BlockPos pos) {
-        return mc.world.getBlockState(pos).getBlock();
+        return mc.level.getBlockState(pos).getBlock();
     }
     public boolean canPlaceCrystal(BlockPos pos, boolean block) {
-        BlockPos obsPos = pos.down();
-        BlockPos boost = obsPos.up();
+        BlockPos obsPos = pos.below();
+        BlockPos boost = obsPos.above();
         return (getBlock(obsPos) == Blocks.BEDROCK || getBlock(obsPos) == Blocks.OBSIDIAN || !block)
                 && BlockUtil.noEntityBlockCrystal(boost, true, true)
-                && BlockUtil.noEntityBlockCrystal(boost.up(), true, true)
+                && BlockUtil.noEntityBlockCrystal(boost.above(), true, true)
                 ;
     }
     public static final List<Block> hard = Arrays.asList(
@@ -265,7 +264,7 @@ public class AutoCity extends Module {
     );
 
     private boolean isObsidian(BlockPos pos) {
-        return mc.player.getEyePos().distanceTo(pos.toCenterPos()) <= PacketMine.INSTANCE.range.get() && (hard.contains(mc.world.getBlockState(pos).getBlock()) || BlockUtil.getBlock(pos) == Blocks.GLASS) && BlockUtil.getClickSideStrict(pos) != null;
+        return mc.player.getEyePosition().distanceTo(pos.getCenter()) <= PacketMine.INSTANCE.range.get() && (hard.contains(mc.level.getBlockState(pos).getBlock()) || BlockUtil.getBlock(pos) == Blocks.GLASS) && BlockUtil.getClickSideStrict(pos) != null;
     }
 
     private boolean canBreak(BlockPos pos) {

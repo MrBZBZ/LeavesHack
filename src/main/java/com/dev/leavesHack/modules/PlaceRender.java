@@ -3,6 +3,8 @@ package com.dev.leavesHack.modules;
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.events.PlaceBlockEvent;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import java.util.HashMap;
+import java.util.Map;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
@@ -10,12 +12,9 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
-
-import java.util.HashMap;
-import java.util.Map;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.AABB;
 
 public class PlaceRender extends Module {
     public PlaceRender() {
@@ -109,11 +108,11 @@ public class PlaceRender extends Module {
                     BlockUtil.placeList.remove(pos);
                     continue;
                 }
-                double p = 1 - MathHelper.clamp(entry.progress, 0, 1);
+                double p = 1 - Mth.clamp(entry.progress, 0, 1);
                 p = Math.pow(p, animationExp.get());
                 p = 1 - p;
                 double size = p / 2;
-                Box box = new Box(
+                AABB box = new AABB(
                         pos.getX() + 0.5 - size,
                         pos.getY() + 0.5 - size,
                         pos.getZ() + 0.5 - size,

@@ -7,6 +7,8 @@ import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockUtil;
+import java.util.ArrayList;
+import java.util.List;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
@@ -15,19 +17,16 @@ import meteordevelopment.meteorclient.utils.entity.DamageUtils;
 import meteordevelopment.meteorclient.utils.entity.EntityUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.PistonBlock;
-import net.minecraft.block.PistonHeadBlock;
-import net.minecraft.block.RedstoneBlock;
-import net.minecraft.block.RedstoneTorchBlock;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Items;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-
-import java.util.ArrayList;
-import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.PoweredBlock;
+import net.minecraft.world.level.block.RedstoneTorchBlock;
+import net.minecraft.world.level.block.piston.PistonBaseBlock;
+import net.minecraft.world.level.block.piston.PistonHeadBlock;
+import net.minecraft.world.phys.Vec3;
 
 public class PistonCrystal extends LeavesModule {
     public static PistonCrystal INSTANCE;
@@ -186,8 +185,8 @@ public class PistonCrystal extends LeavesModule {
     private Direction face;
     private BlockPos lastBestPos; // 缓存上次最优爆炸中心，容差防止震荡
     private final Timer breakTimer = new Timer();
-    private PlayerEntity target;
-    private PlayerEntity lastTarget;
+    private Player target;
+    private Player lastTarget;
     @Override
     public void onActivate() {
         breakTimer.setMs(99999999);
@@ -201,7 +200,7 @@ public class PistonCrystal extends LeavesModule {
     @Override
     public void onThread() {
         if (!thread.get()) return;
-        PlayerEntity tTarget = target;
+        Player tTarget = target;
         if (tTarget == null) return;
         if (pistonPos == null && crystalPos == null && redstonePos == null) {
             doPistonCrystal(tTarget);
@@ -209,7 +208,7 @@ public class PistonCrystal extends LeavesModule {
     }
     @EventHandler
     private void onTick(TickEvent.Post event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
         if (System.currentTimeMillis() - lastAction < delay.get()) return;
         if (preferCrystal.get() && AutoCrystal.INSTANCE.crystalPos != null) return;
         target = CombatUtil.getClosestEnemy(targetRange.get());
@@ -220,7 +219,7 @@ public class PistonCrystal extends LeavesModule {
         lastTarget = target;
         int redStone = findRedstone();
         int crystal = inventory.get() ? InventoryUtil.findItemInventorySlot(Items.END_CRYSTAL) : InventoryUtil.findItem(Items.END_CRYSTAL);
-        int piston = inventory.get() ? InventoryUtil.findClassInventory(PistonBlock.class) : InventoryUtil.findClass(PistonBlock.class);
+        int piston = inventory.get() ? InventoryUtil.findClassInventory(PistonBaseBlock.class) : InventoryUtil.findClass(PistonBaseBlock.class);
         if (shouldPause()) {
             return;
         }
@@ -255,10 +254,10 @@ public class PistonCrystal extends LeavesModule {
         }
         //检查有没有活塞堵着导致放不了水晶，attack触发包挖挖活塞
         if (lastPiston != null) {
-            if (BlockUtil.getBlock(lastPiston.offset(face.getOpposite())) instanceof PistonHeadBlock && BlockUtil.getBlock(lastPiston) instanceof PistonBlock) {
+            if (BlockUtil.getBlock(lastPiston.relative(face.getOpposite())) instanceof PistonHeadBlock && BlockUtil.getBlock(lastPiston) instanceof PistonBaseBlock) {
                 if (mine.get()) {
                     Direction side = BlockUtil.getClickSide(lastPiston);
-                    mc.interactionManager.attackBlock(lastPiston, side);
+                    mc.gameMode.startDestroyBlock(lastPiston, side);
                     lastPiston = null;
                     lastCrystal = null;
                     lastRedstone = null;
@@ -313,16 +312,16 @@ public class PistonCrystal extends LeavesModule {
         }
     }
 
-    private void doPistonCrystal(PlayerEntity target) {
+    private void doPistonCrystal(Player target) {
         // 第一阶段：收集所有可行的爆炸中心点，计算伤害并排序
         List<BlockPos> candidates = new ArrayList<>();
         for (BlockPos pos : BlockUtil.getSphere(range.get())) {
             boolean canPlace = false;
-            for (Direction dir : Direction.Type.HORIZONTAL) {
-                if (BlockUtil.canPlaceCrystal(pos.offset(dir)) || BlockUtil.hasCrystalPlace(pos.offset(dir))) canPlace = true;
+            for (Direction dir : Direction.Plane.HORIZONTAL) {
+                if (BlockUtil.canPlaceCrystal(pos.relative(dir)) || BlockUtil.hasCrystalPlace(pos.relative(dir))) canPlace = true;
             }
             if (!canPlace) continue;
-            Vec3d vec2 = new Vec3d(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+            Vec3 vec2 = new Vec3(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
             float targetDmg = DamageUtils.crystalDamage(target, vec2);
             if (targetDmg < minDamage.get()) continue;
             float selfDmg = DamageUtils.crystalDamage(mc.player, vec2);
@@ -338,25 +337,25 @@ public class PistonCrystal extends LeavesModule {
 
         // 按对敌人伤害从高到低排序，伤害相同则按距离玩家从近到远
         candidates.sort((a, b) -> {
-            Vec3d va = new Vec3d(a.getX() + 0.5, a.getY(), a.getZ() + 0.5);
-            Vec3d vb = new Vec3d(b.getX() + 0.5, b.getY(), b.getZ() + 0.5);
+            Vec3 va = new Vec3(a.getX() + 0.5, a.getY(), a.getZ() + 0.5);
+            Vec3 vb = new Vec3(b.getX() + 0.5, b.getY(), b.getZ() + 0.5);
             float dmgA = DamageUtils.crystalDamage(target, va);
             float dmgB = DamageUtils.crystalDamage(target, vb);
             int cmp = Float.compare(dmgB, dmgA);
             if (cmp != 0) return cmp;
             return Float.compare(
-                (float) mc.player.getEyePos().distanceTo(va),
-                (float) mc.player.getEyePos().distanceTo(vb)
+                (float) mc.player.getEyePosition().distanceTo(va),
+                (float) mc.player.getEyePosition().distanceTo(vb)
             );
         });
 
         // 第二阶段：选择爆炸中心（借鉴 AutoCrystal lastBestPos 容差机制）
         BlockPos best = candidates.get(0);
-        Vec3d bestVec = new Vec3d(best.getX() + 0.5, best.getY(), best.getZ() + 0.5);
+        Vec3 bestVec = new Vec3(best.getX() + 0.5, best.getY(), best.getZ() + 0.5);
         float bestDamage = DamageUtils.crystalDamage(target, bestVec);
 
         if (lastBestPos != null) {
-            Vec3d lastVec = new Vec3d(lastBestPos.getX() + 0.5, lastBestPos.getY(), lastBestPos.getZ() + 0.5);
+            Vec3 lastVec = new Vec3(lastBestPos.getX() + 0.5, lastBestPos.getY(), lastBestPos.getZ() + 0.5);
             float lastDmg = DamageUtils.crystalDamage(target, lastVec);
             float lastSelfDmg = DamageUtils.crystalDamage(mc.player, lastVec);
 
@@ -386,19 +385,19 @@ public class PistonCrystal extends LeavesModule {
         }
 
         // 第四阶段：为爆炸中心寻找活塞+红石+水晶的放置方案
-        for (Direction dir : Direction.Type.HORIZONTAL) {
-            if (!yawDeceive.get() && dir != mc.player.getHorizontalFacing()) continue;
-            BlockPos temp1 = best.offset(dir);
+        for (Direction dir : Direction.Plane.HORIZONTAL) {
+            if (!yawDeceive.get() && dir != mc.player.getDirection()) continue;
+            BlockPos temp1 = best.relative(dir);
             if (!BlockUtil.canPlaceCrystal(temp1)) continue;
             BlockPos tempCrystalPos = temp1;
-            BlockPos temp = temp1.offset(dir);
-            if (!BlockUtil.canPlace(temp) && !(BlockUtil.getBlock(temp) instanceof PistonBlock)) {
-                if (!mc.world.getBlockState(temp).isReplaceable()) continue;
+            BlockPos temp = temp1.relative(dir);
+            if (!BlockUtil.canPlace(temp) && !(BlockUtil.getBlock(temp) instanceof PistonBaseBlock)) {
+                if (!mc.level.getBlockState(temp).canBeReplaced()) continue;
                 for (Direction help : Direction.values()) {
                     if (help == dir.getOpposite()) continue;
-                    BlockPos helpPos = temp.offset(help);
+                    BlockPos helpPos = temp.relative(help);
                     if (helpPos.equals(tempCrystalPos)) continue;
-                    if (!mc.world.getBlockState(helpPos).isReplaceable()) continue;
+                    if (!mc.level.getBlockState(helpPos).canBeReplaced()) continue;
                     if (!BlockUtil.isGrimDirection(helpPos, help.getOpposite())) continue;
                     if (!BlockUtil.canPlace(helpPos)) continue;
                     int old = mc.player.getInventory().getSelectedSlot();
@@ -418,15 +417,15 @@ public class PistonCrystal extends LeavesModule {
             BlockPos tempRedstonePos = null;
             for (Direction dir3 : Direction.values()) {
                 if (dir3 == dir.getOpposite()) continue;
-                BlockPos temp3 = tempPistonPos.offset(dir3);
-                if ((BlockUtil.getBlock(temp3) instanceof RedstoneBlock && redStoneMode.get() == RedstoneMode.Block) || (BlockUtil.getBlock(temp3) instanceof RedstoneTorchBlock && redStoneMode.get() == RedstoneMode.Torch)) {
-                    tempRedstonePos = tempPistonPos.offset(dir3);
+                BlockPos temp3 = tempPistonPos.relative(dir3);
+                if ((BlockUtil.getBlock(temp3) instanceof PoweredBlock && redStoneMode.get() == RedstoneMode.Block) || (BlockUtil.getBlock(temp3) instanceof RedstoneTorchBlock && redStoneMode.get() == RedstoneMode.Torch)) {
+                    tempRedstonePos = tempPistonPos.relative(dir3);
                     break;
                 }
                 if (!BlockUtil.canPlace(temp3)) {
                     continue;
                 }
-                tempRedstonePos = tempPistonPos.offset(dir3);
+                tempRedstonePos = tempPistonPos.relative(dir3);
                 break;
             }
             if (tempRedstonePos == null) continue;
@@ -440,7 +439,7 @@ public class PistonCrystal extends LeavesModule {
         lastBestPos = null;
     }
 
-    private void place(net.minecraft.item.Item item, int slot, BlockPos pos, Direction dir) {
+    private void place(net.minecraft.world.item.Item item, int slot, BlockPos pos, Direction dir) {
         Direction side = BlockUtil.getPlaceSide(pos, null);
         if (side == null) {
             return;
@@ -451,7 +450,7 @@ public class PistonCrystal extends LeavesModule {
         int old = mc.player.getInventory().getSelectedSlot();
         doSwap(slot);
         if (rotate.get()) {
-            Rotation.snapAt(pos.toCenterPos().add(new Vec3d(side.getVector().getX() * 0.5, side.getVector().getY() * 0.5, side.getVector().getZ() * 0.5)));
+            Rotation.snapAt(pos.getCenter().add(new Vec3(side.getUnitVec3i().getX() * 0.5, side.getUnitVec3i().getY() * 0.5, side.getUnitVec3i().getZ() * 0.5)));
         }
         if (item == Items.PISTON) {
             if (yawDeceive.get() && rotate.get()) {
@@ -472,7 +471,7 @@ public class PistonCrystal extends LeavesModule {
         return usingPause.get() && checkPause(onlyMain.get());
     }
     public boolean checkPause(boolean onlyMain) {
-        return (mc.options.useKey.isPressed() || mc.player.isUsingItem()) && (!onlyMain || mc.player.getActiveHand() == Hand.MAIN_HAND);
+        return (mc.options.keyUse.isDown() || mc.player.isUsingItem()) && (!onlyMain || mc.player.getUsedItemHand() == InteractionHand.MAIN_HAND);
     }
     public static void pistonFacing(Direction i) {
         if (i == Direction.EAST) {
@@ -486,7 +485,7 @@ public class PistonCrystal extends LeavesModule {
         }
     }
     private void placeCrystal(BlockPos pos, int slot) {
-        BlockPos base = pos.down();
+        BlockPos base = pos.below();
 
         Direction side = BlockUtil.getClickSide(base);
         if (side == null) return;
@@ -507,7 +506,7 @@ public class PistonCrystal extends LeavesModule {
         ArrayList<Direction> sides = BlockUtil.getPlaceSides(pos, null);
         if (sides.isEmpty()) return;
         for (Direction side : sides) {
-            if (BlockUtil.getBlock(pos.offset(side)) instanceof PistonBlock) continue;
+            if (BlockUtil.getBlock(pos.relative(side)) instanceof PistonBaseBlock) continue;
             if (side == Direction.UP) continue;
             if (slot == -1) return;
             int old = mc.player.getInventory().getSelectedSlot();

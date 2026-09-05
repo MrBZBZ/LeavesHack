@@ -1,9 +1,8 @@
 package com.dev.leavesHack.manager;
 
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ThreadManager {
     private static final Logger LOGGER = LoggerFactory.getLogger("LeavesHack-ThreadManager");
