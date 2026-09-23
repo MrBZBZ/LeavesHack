@@ -29,22 +29,9 @@
 bilibili: https://space.bilibili.com/1932462042  
 神秘群聊欢迎吹水：  
 1群：1076456572  
-2群：2160060506  
-中文使用文档：https://leaveshack.netlify.app/
+使用文档：https://leaveshack.netlify.app/
 
-### 注意事项
-
-- 这个东西是我玩3c3u写的，开源只是顺手，我想写什么就写什么，readme的更新有一定滞后性，我尽量把每个模块的教程写上
-- 插件现在已经自带汉化系统，打开GlobalSetting(全局设置)，在里面找到Chinese选项，打开即可
-- Meteor本身不支持中文渲染，可以通过下载现代化UI和模组菜单，打开现代化UI的文本引擎，对字体规则选择“忽略全部”，再关闭Meteor的CustomFont解决
-- 理论上AntiAntiXray可以绕过其他服务器的假矿或其他反矿透插件，如果腐竹不给开挂，而且你使用这个插件导致被封号等等后果请自负
-- 如果你觉得这个插件不错可以请我吃个肠粉，咕咕嘎嘎
-
-<div align="center">
-  <img src="114514.jpg" style="border-radius: 15px;" alt="神秘二维码" width="400">
-</div>
-
-### 功能
+### 功能  
 
 截至目前更新的功能，基本上默认参数就能在3c使用：
 
@@ -75,23 +62,14 @@ bilibili: https://space.bilibili.com/1932462042
 ## English
 
 bilibili: https://space.bilibili.com/1932462042   
+Feel free to join the chat groups:
+Group 1: `1076456572`<br />
+Group 2: `2160060506`<br />
 Documentation: https://leaveshack.netlify.app/
-
-### Notes
-
-- This addon was originally written for playing on 3c3u. Open-sourcing it was just a side thing. I'll add whatever I want, and README updates may lag behind. I'll try to include tutorials for each module.
-- The addon now includes a built-in Chinese localization system. Open GlobalSetting and enable the Chinese option.
-- Meteor Client does not natively support Chinese rendering. You can fix this by installing Modern UI and Mod Menu, enabling Modern UI's text engine, setting font rules to "Ignore All", and then disabling Meteor's CustomFont.
-- In theory, AntiAntiXray can bypass fake ore and anti-Xray plugins on other servers. If the server owner does not allow cheating and you get banned for using this addon, you are responsible for the consequences.
-- If you think this addon is good, you can treat me to a rice noodle roll. Coo coo ga ga.
-
-<div align="center">
-  <img src="114514.jpg" style="border-radius: 15px;" alt="QR Code" width="400">
-</div>
 
 ### Features
 
-The following features are updated so far. Default parameters should work on 3c3u:
+The features currently included are listed below. With default settings, most of them should work on 3c3u:
 
 |      Module       | Description | Notes |
 |:-----------------:|-------------|-------|
@@ -117,7 +95,7 @@ The following features are updated so far. Default parameters should work on 3c3
 
 ---
 
-## Credits / 致谢
+## 致谢 / Credits
 
 致谢项目 / Projects:
 
