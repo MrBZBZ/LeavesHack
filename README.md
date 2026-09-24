@@ -62,9 +62,8 @@ bilibili: https://space.bilibili.com/1932462042
 ## English
 
 bilibili: https://space.bilibili.com/1932462042   
-Feel free to join the chat groups:
+Feel free to join the chat groups:  
 Group 1: `1076456572`<br />
-Group 2: `2160060506`<br />
 Documentation: https://leaveshack.netlify.app/
 
 ### Features

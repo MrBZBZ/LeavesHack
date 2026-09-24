@@ -460,8 +460,8 @@ public class AutoAnchor extends LeavesModule {
         return new Anchor(pos, AnchorState.Air, 0);
     }
     private boolean shouldPause() {
-        if (AutoCrystal.INSTANCE.isActive() && AutoCrystal.INSTANCE.preferMode.get() == AutoCrystal.PreferMode.PreferCrystal) {
-            return AutoCrystal.INSTANCE.crystalPos != null;
+        if (CrystalAuraPlus.INSTANCE.isActive() && CrystalAuraPlus.INSTANCE.preferMode.get() == CrystalAuraPlus.PreferMode.PreferCrystal) {
+            return CrystalAuraPlus.INSTANCE.renderCrystalPos != null;
         }
         return usingPause.get() && checkPause(onlyMain.get());
     }

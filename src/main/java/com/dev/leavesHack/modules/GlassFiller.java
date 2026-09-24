@@ -103,7 +103,7 @@ public class GlassFiller extends Module {
         if (skipPhased.get() && isPhased(target)) {
             return;
         }
-        if (AutoCrystal.INSTANCE.crystalPos != null || AutoAnchor.INSTANCE.currentPos != null) {
+        if (CrystalAuraPlus.INSTANCE.renderCrystalPos != null || AutoAnchor.INSTANCE.currentPos != null) {
             return;
         }
         Box boundingBox = target.getBoundingBox().shrink(0.01, 0.1, 0.01);

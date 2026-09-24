@@ -27,12 +27,12 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
     public MixinClientPlayerEntity(ClientWorld world, GameProfile profile) {
         super(world, profile);
     }
-    @Inject(method = "sendMovementPackets", at = {@At("HEAD")}, cancellable = true)
+    @Inject(method = "sendMovementPackets", at = {@At("HEAD")})
     private void sendMovementPacketsHook(CallbackInfo ci) {
         Rotation.rotationYaw = this.getYaw();
         Rotation.rotationPitch = this.getPitch();
     }
-    @Inject(method = "sendMovementPackets", at = {@At("TAIL")}, cancellable = true)
+    @Inject(method = "sendMovementPackets", at = {@At("TAIL")})
     private void sendMovementPacketsHook2(CallbackInfo ci) {
         Rotation.rotation = false;
     }
@@ -56,24 +56,6 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
             return Rotation.targetPitch;
         }
         return original;
-    }
-    @Inject(method = "tick",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/network/ClientPlayerEntity;hasVehicle()Z",
-                    shift = At.Shift.AFTER
-            ),
-            cancellable = true)
-    private void tickHook(CallbackInfo ci) {
-        try {
-            if (this.hasVehicle()) {
-                Rotation.rotationYaw = this.getYaw();
-                Rotation.rotationPitch = this.getPitch();
-                this.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(this.getYaw(), this.getPitch(), this.isOnGround(), this.horizontalCollision));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
     @Inject(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V"), cancellable = true)
     public void onMoveHook(MovementType movementType, Vec3d movement, CallbackInfo ci) {

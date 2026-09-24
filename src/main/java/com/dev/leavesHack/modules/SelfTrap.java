@@ -3,6 +3,7 @@ package com.dev.leavesHack.modules;
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.events.DeathEvent;
 import com.dev.leavesHack.events.MoveEvent;
+import com.dev.leavesHack.manager.BreakManager;
 import com.dev.leavesHack.manager.LeavesModule;
 import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
@@ -168,6 +169,12 @@ public class SelfTrap extends LeavesModule {
         .defaultValue(false)
         .build()
     );
+    private final Setting<Boolean> flyDisable = sgCheck.add(new BoolSetting.Builder()
+        .name("FlyDisable")
+        .description("飞行时关闭")
+        .defaultValue(true)
+        .build()
+    );
 
     private final Timer placeTimer = new Timer();
     private final List<BlockPos> placedPositions = new ArrayList<>();
@@ -206,7 +213,10 @@ public class SelfTrap extends LeavesModule {
             if (noBlockDisable.get()) toggle();
             return;
         }
-
+        if (flyDisable.get() && FireworkElytraFly.INSTANCE.isActive()) {
+            toggle();
+            return;
+        }
         if (!allowNotOnGround.get() && !mc.player.isOnGround()) return;
 
         if (moveDisable.get() || jumpDisable.get()) {
@@ -250,8 +260,10 @@ public class SelfTrap extends LeavesModule {
         for (Direction dir : Direction.HORIZONTAL) {
             BlockPos target = pos.offset(dir);
             addUnique(list, target);
+            addUnique(list, target.down());
             if (selfIntersectPos(target) && extend.get()) {
                 addExtend(list, target);
+                addExtend(list, target.down());
             }
         }
     }
@@ -279,6 +291,7 @@ public class SelfTrap extends LeavesModule {
                 );
                 for (Direction dir : Direction.HORIZONTAL) {
                     BlockPos surround = base.offset(dir);
+                    if (!BreakManager.INSTANCE.isMining(surround)) continue;
                     for (Direction dir2 : Direction.HORIZONTAL) {
                         BlockPos target = surround.offset(dir2);
                         if (BlockUtil.canPlace(target, null))
@@ -295,6 +308,7 @@ public class SelfTrap extends LeavesModule {
 
     private int tryPlaceBlock(BlockPos pos, int block) {
         if (pos == null || placedPositions.contains(pos)) return 0;
+        if (PacketMine.INSTANCE.isActive() && pos.equals(PacketMine.targetPos)) return 0;
         if (mc.player.getEyePos().distanceTo(pos.toCenterPos()) > range.get()) return 0;
         if (!BlockUtil.canPlace(pos, true)) return 0;
         if (BlockUtil.hasCrystal(pos) && attack.get()) {

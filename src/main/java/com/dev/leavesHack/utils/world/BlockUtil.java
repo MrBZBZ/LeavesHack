@@ -380,6 +380,14 @@ public class BlockUtil {
         }
         if (rotate) Rotation.snapBack();
     }
+    public static void clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand) {
+        Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
+        if (rotate) Rotation.snapAt(directionVec);
+        EntityUtil.placeSwingHand();
+        BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
+        mc.interactionManager.interactBlock(mc.player, hand, result);
+        if (rotate) Rotation.snapBack();
+    }
     public static boolean needSneak(Block in) {
         return shiftBlocks.contains(in);
     }

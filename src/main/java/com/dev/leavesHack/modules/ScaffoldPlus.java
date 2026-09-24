@@ -48,14 +48,14 @@ public class ScaffoldPlus extends Module {
         new ColorSetting.Builder()
             .name("Line")
             .description("边框颜色")
-            .defaultValue(new SettingColor(255, 255, 255, 255))
+            .defaultValue(new SettingColor(140, 142, 255, 255))
             .build()
     );
     private final Setting<SettingColor> sideColor = sgRender.add(
         new ColorSetting.Builder()
             .name("Side")
             .description("填充颜色")
-            .defaultValue(new SettingColor(255, 255, 255, 50))
+            .defaultValue(new SettingColor(140, 142, 255, 50))
             .build()
     );
     @EventHandler

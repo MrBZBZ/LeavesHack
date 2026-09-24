@@ -211,7 +211,7 @@ public class PistonCrystal extends LeavesModule {
     private void onTick(TickEvent.Post event) {
         if (mc.player == null || mc.world == null) return;
         if (System.currentTimeMillis() - lastAction < delay.get()) return;
-        if (preferCrystal.get() && AutoCrystal.INSTANCE.crystalPos != null) return;
+        if (preferCrystal.get() && CrystalAuraPlus.INSTANCE.renderCrystalPos != null) return;
         target = CombatUtil.getClosestEnemy(targetRange.get());
         // 目标切换时清除缓存，重新计算最优位置
         if (lastBestPos != null && target != null && lastTarget != null && target != lastTarget) {

@@ -57,7 +57,7 @@ public class PlaceRender extends Module {
             new ColorSetting.Builder()
                     .name("SideStart")
                     .description("方块填充开始颜色")
-                    .defaultValue(new SettingColor(255, 255, 255, 0))
+                    .defaultValue(new SettingColor(140, 142, 255, 50))
                     .build()
     );
 
@@ -65,7 +65,7 @@ public class PlaceRender extends Module {
             new ColorSetting.Builder()
                     .name("SideEnd")
                     .description("方块填充结束颜色")
-                    .defaultValue(new SettingColor(255, 255, 255, 50))
+                    .defaultValue(new SettingColor(140, 142, 255, 50))
                     .build()
     );
 
@@ -73,7 +73,7 @@ public class PlaceRender extends Module {
             new ColorSetting.Builder()
                     .name("LineStart")
                     .description("方块边框开始颜色")
-                    .defaultValue(new SettingColor(255, 255, 255, 0))
+                    .defaultValue(new SettingColor(140, 142, 255, 255))
                     .build()
     );
 
@@ -81,7 +81,7 @@ public class PlaceRender extends Module {
             new ColorSetting.Builder()
                     .name("LineEnd")
                     .description("方块边框结束颜色")
-                    .defaultValue(new SettingColor(255, 255, 255, 255))
+                    .defaultValue(new SettingColor(140, 142, 255, 255))
                     .build()
     );
     private final Map<BlockPos, PosEntry> posEntries = new HashMap<>();

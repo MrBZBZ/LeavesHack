@@ -2,38 +2,50 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.asm.accessors.IClientWorld;
+import com.dev.leavesHack.utils.combat.CombatUtil;
 import com.dev.leavesHack.utils.entity.EntityUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil.MineSwitchMode;
 import com.dev.leavesHack.utils.math.Timer;
+import com.dev.leavesHack.utils.rotation.Rotation;
 import com.dev.leavesHack.utils.world.BlockPosX;
 import com.dev.leavesHack.utils.world.BlockUtil;
 import meteordevelopment.meteorclient.events.entity.player.StartBreakingBlockEvent;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
+import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
+import meteordevelopment.meteorclient.renderer.text.TextRenderer;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.utils.player.PlayerUtils;
+import meteordevelopment.meteorclient.utils.render.NametagUtils;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.block.BedBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.network.PendingUpdateManager;
 import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.BedItem;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
+import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
+import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.*;
+import net.minecraft.world.World;
+import org.joml.Vector3d;
 
+import java.util.ArrayList;
 import java.util.TimerTask;
 
 import static com.dev.leavesHack.utils.entity.InventoryUtil.sendPacket;
@@ -45,6 +57,7 @@ public class PacketMine extends Module {
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
+    private final SettingGroup sgGlass = settings.createGroup("AutoGlass");
     private final SettingGroup sgRender = settings.createGroup("Render");
     private final Setting<Boolean> usingPause = sgGeneral.add(new BoolSetting.Builder()
             .name("UsingPause")
@@ -80,6 +93,18 @@ public class PacketMine extends Module {
             .min(0)
             .sliderMax(10)
             .build()
+    );
+    private final Setting<Boolean> preferAnchor = sgGeneral.add(new BoolSetting.Builder()
+        .name("PreferAnchor")
+        .description("优先重生锚")
+        .defaultValue(true)
+        .build()
+    );
+    private final Setting<Boolean> preferWeb = sgGeneral.add(new BoolSetting.Builder()
+        .name("PreferAutoWeb")
+        .description("优先蜘蛛网")
+        .defaultValue(true)
+        .build()
     );
     private final Setting<Boolean> farCancel = sgGeneral.add(new BoolSetting.Builder()
             .name("FarCancel")
@@ -177,24 +202,24 @@ public class PacketMine extends Module {
             .sliderRange(0, 10)
             .build()
     );
-//    private final Setting<Boolean> renderProgress = sgRender.add(new BoolSetting.Builder()
-//            .name("RenderProgress")
-//            .description("渲染进度")
-//            .defaultValue(true)
-//            .build()
-//    );
-//    private final Setting<SettingColor> targetColor = sgRender.add(new ColorSetting.Builder()
-//            .name("TargetColor")
-//            .description("主挖文本颜色")
-//            .defaultValue(new SettingColor(255, 255, 255, 50))
-//            .build()
-//    );
-//    private final Setting<SettingColor> secondColor = sgRender.add(new ColorSetting.Builder()
-//            .name("SecondColor")
-//            .description("副挖文本颜色")
-//            .defaultValue(new SettingColor(255, 255, 255, 50))
-//            .build()
-//    );
+    private final Setting<Boolean> renderProgress = sgRender.add(new BoolSetting.Builder()
+            .name("RenderProgress")
+            .description("渲染进度")
+            .defaultValue(true)
+            .build()
+    );
+    private final Setting<SettingColor> targetColor = sgRender.add(new ColorSetting.Builder()
+            .name("TargetColor")
+            .description("主挖文本颜色")
+            .defaultValue(new SettingColor(140, 142, 255, 255))
+            .build()
+    );
+    private final Setting<SettingColor> secondColor = sgRender.add(new ColorSetting.Builder()
+            .name("SecondColor")
+            .description("副挖文本颜色")
+            .defaultValue(new SettingColor(140, 142, 255, 255))
+            .build()
+    );
     private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>()
             .name("ShapeMode")
             .defaultValue(ShapeMode.Both)
@@ -202,48 +227,48 @@ public class PacketMine extends Module {
     );
     private final Setting<SettingColor> sideStartColor = sgRender.add(new ColorSetting.Builder()
             .name("SideStart")
-            .defaultValue(new SettingColor(255, 255, 255, 0))
+            .defaultValue(new SettingColor(140, 142, 255, 50))
             .build()
     );
 
     private final Setting<SettingColor> sideEndColor = sgRender.add(new ColorSetting.Builder()
             .name("SideEnd")
-            .defaultValue(new SettingColor(255, 255, 255, 50))
+            .defaultValue(new SettingColor(140, 142, 255, 50))
             .build()
     );
 
     private final Setting<SettingColor> lineStartColor = sgRender.add(new ColorSetting.Builder()
             .name("LineStart")
-            .defaultValue(new SettingColor(255, 255, 255, 0))
+            .defaultValue(new SettingColor(140, 142, 255, 255))
             .build()
     );
 
     private final Setting<SettingColor> lineEndColor = sgRender.add(new ColorSetting.Builder()
             .name("LineEnd")
-            .defaultValue(new SettingColor(255, 255, 255, 255))
+            .defaultValue(new SettingColor(140, 142, 255, 255))
             .build()
     );
     private final Setting<SettingColor> secondSideStartColor = sgRender.add(new ColorSetting.Builder()
             .name("SecondSideStart")
-            .defaultValue(new SettingColor(255, 255, 255, 0))
+            .defaultValue(new SettingColor(140, 142, 255, 50))
             .build()
     );
 
     private final Setting<SettingColor> secondSideEndColor = sgRender.add(new ColorSetting.Builder()
             .name("SecondSideEnd")
-            .defaultValue(new SettingColor(255, 255, 255, 50))
+            .defaultValue(new SettingColor(140, 142, 255, 50))
             .build()
     );
 
     private final Setting<SettingColor> secondLineStartColor = sgRender.add(new ColorSetting.Builder()
             .name("SecondLineStart")
-            .defaultValue(new SettingColor(255, 255, 255, 0))
+            .defaultValue(new SettingColor(140, 142, 255, 255))
             .build()
     );
 
     private final Setting<SettingColor> secondLineEndColor = sgRender.add(new ColorSetting.Builder()
             .name("SecondLineEnd")
-            .defaultValue(new SettingColor(255, 255, 255, 255))
+            .defaultValue(new SettingColor(140, 142, 255, 255))
             .build()
     );
     public static BlockPos selfClickPos = null;
@@ -265,25 +290,7 @@ public class PacketMine extends Module {
 
     @Override
     public void onActivate() {
-        maxBreaksCount = 0;
-        hasSwitch = false;
-        secondHasSwitch = false;
-        bypassTimer.setMs(999999);
-        mineTimer.setMs(999999);
-        instantTimer.setMs(999999);
-        timer.setMs(999999);
-        secondTimer.setMs(999999);
-        targetPos = null;
-        secondPos = null;
-        started = false;
-        secondStarted = false;
-        publicProgress = 0;
-        secondPublicProgress = 0;
-        progress = 0;
-        secondProgress = 0;
-        lastTime = System.currentTimeMillis();
-        secondLastTime = System.currentTimeMillis();
-        render = 1;
+        reset();
     }
     @Override
     public void onDeactivate() {
@@ -361,24 +368,20 @@ public class PacketMine extends Module {
     }
     @Override
     public String getInfoString() {
+        if (mc.player == null || mc.world == null) return null;
         if (targetPos == null) return null;
         double max = getMineTicks(getTool(targetPos));
         if (progress >= max * mineDamage.get()) return "[100%]";
         return "[" + publicProgress + "%]";
     }
-//    @EventHandler
-//    private void onMyRender(RenderLeaves3DEvent event) {
-//        if (!renderProgress.get()) return;
-//        if (targetPos != null) {
-//            Render3DUtil.renderText3D(completed ? "Done" : publicProgress + "%", targetPos.toCenterPos(), targetColor.get().getPacked());
-//        }
-//        if (secondPos != null) {
-//            Render3DUtil.renderText3D(secondPublicProgress + "%", secondPos.toCenterPos(), secondColor.get().getPacked());
-//        }
-//    }
+    @EventHandler
+    private void onRender2D(Render2DEvent event) {
+        renderProgressText();
+    }
     @EventHandler
     private void onRender(Render3DEvent event) {
         if (mc.world == null || mc.player == null) return;
+        renderProgressText();
         if ((targetPos == null || completed) && secondPos == null) selfClickPos = null;
         if (publicProgress >= 100) {
             if (!instantMine.get()) targetPos = null;
@@ -394,6 +397,7 @@ public class PacketMine extends Module {
         if (maxBreaksCount >= maxBreaks.get() * 10) {
             maxBreaksCount = 0;
             targetPos = null;
+            secondPos = null;
         }
         if (secondPos != null && doubleBreak.get()) {
             if (farCancel.get() && Math.sqrt(mc.player.getEyePos().squaredDistanceTo(secondPos.toCenterPos())) > range.get()){
@@ -418,6 +422,7 @@ public class PacketMine extends Module {
             }
             renderSecondAnimation(event, secondDelta, secondDamage);
             if (secondProgress >= secondMax * secondDamage) {
+                countMaxBreaks(secondPos);
                 sendStopSecond();
 //                selfClickPos = null;
 //                secondCompleted = true;
@@ -446,9 +451,7 @@ public class PacketMine extends Module {
             double max = getMineTicks(getTool(targetPos));
             publicProgress = (int) (progress / (max * mineDamage.get()) * 100);
             if (progress >= max * mineDamage.get() && completed) {
-                if (isAir(targetPos) || mc.world.getBlockState(targetPos).isReplaceable()) maxBreaksCount = 0;
-                if (!isAir(targetPos) && !mc.world.getBlockState(targetPos).isReplaceable() && !(usingPause.get() && checkPause(onlyMain.get())))
-                    maxBreaksCount++;
+                countMaxBreaks(targetPos);
             }
             if (instantMine.get() && completed) {
                 Color side = getColor(sideStartColor.get(), sideEndColor.get(), 1);
@@ -474,27 +477,37 @@ public class PacketMine extends Module {
             }
             renderAnimation(event, delta, damage);
             if (progress >= max * damage) {
-                sendStop();
+                if (!instantMine.get()) sendStop();
                 completed = true;
                 if (!instantMine.get() && secondPos == null) targetPos = null;
             }
         }
     }
 
+    private void countMaxBreaks(BlockPos pos) {
+        if (isAir(pos) || mc.world.getBlockState(pos).isReplaceable()) {
+            maxBreaksCount = 0;
+            return;
+        }
+        if (usingPause.get() && checkPause(onlyMain.get())) return;
+        maxBreaksCount ++;
+    }
+
     private void sendStart(BlockPos pos) {
-        sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, pos, BlockUtil.getClickSide(pos)));
+        sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, pos, BlockUtil.getClickSide(pos), id));
         if (fastBypass.get()) {
-            BlockPos bypassPos = new BlockPosX(mc.player.getX(), 321, mc.player.getZ());
-            sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, bypassPos, Direction.DOWN, id));
+            BlockPos bypassPos = new BlockPosX(0, -999, 0);
+            sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, bypassPos, Direction.UP, id));
         }
         if (doubleBreak.get()) {
+            //sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, pos, BlockUtil.getClickSide(pos), id));
             long delay = packetDelay.get();
             java.util.Timer timer = new java.util.Timer();
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     mc.execute(() -> {
-                        sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, pos, BlockUtil.getClickSide(pos)));
+                        sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, pos, BlockUtil.getClickSide(pos), id));
                     });
                     timer.cancel();
                 }
@@ -511,11 +524,17 @@ public class PacketMine extends Module {
     }
 
     private void sendStop() {
+        if (preferAnchor.get() && AutoAnchor.INSTANCE.currentPos != null) {
+            return;
+        }
+        if (preferWeb.get() && AutoWeb.INSTANCE.webPos != null && AutoWeb.INSTANCE.webPos.equals(targetPos) && BlockUtil.getBlock(targetPos) == Blocks.COBWEB) {
+            return;
+        }
         if (usingPause.get() && checkPause(onlyMain.get())) {
             return;
         }
+        int bestSlot = getTool(targetPos);
         if (!doubleBreak.get() || secondPos == null) {
-            int bestSlot = getTool(targetPos);
             if (!hasSwitch) oldSlot = mc.player.getInventory().getSelectedSlot();
             if (autoSwitch.get() != MineSwitchMode.None && bestSlot != -1) {
                 if (autoSwitch.get() == MineSwitchMode.Delay) InventoryUtil.switchToSlot(bestSlot);
@@ -536,7 +555,6 @@ public class PacketMine extends Module {
             mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9, mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true, mc.player.horizontalCollision));
             mc.player.onLanding();
         }
-        if (secondPos != null && !mc.world.isAir(secondPos)) mc.world.setBlockState(secondPos, Blocks.AIR.getDefaultState());
         //sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, secondPos, BlockUtil.getClickSide(secondPos), id));
     }
     private boolean isAir(BlockPos breakPos) {
@@ -649,6 +667,58 @@ public class PacketMine extends Module {
 
         event.renderer.box(box, side, line, shapeMode.get(), 0);
     }
+    private void renderProgressText() {
+        if (!renderProgress.get()) return;
+        TextRenderer textRenderer = TextRenderer.get();
+        // 主挖
+        if (targetPos != null) {
+            Vector3d pos = new Vector3d(
+                targetPos.getX() + 0.5,
+                targetPos.getY() + 0.5,
+                targetPos.getZ() + 0.5
+            );
+            if (NametagUtils.to2D(pos, 1.5, true)) {
+                NametagUtils.begin(pos);
+                textRenderer.begin(NametagUtils.scale, false, true);
+                String text = completed ? "Done" : publicProgress + "%";
+                double width = textRenderer.getWidth(text, true);
+                double height = textRenderer.getHeight(true);
+                textRenderer.render(
+                    text,
+                    -width / 2,
+                    -height / 2,
+                    targetColor.get(),
+                    true
+                );
+                textRenderer.end();
+                NametagUtils.end();
+            }
+        }
+        // 副挖
+        if (secondPos != null) {
+            Vector3d pos = new Vector3d(
+                secondPos.getX() + 0.5,
+                secondPos.getY() + 0.5,
+                secondPos.getZ() + 0.5
+            );
+            if (NametagUtils.to2D(pos, 1.5, true)) {
+                NametagUtils.begin(pos);
+                textRenderer.begin(NametagUtils.scale, false, true);
+                String text = secondPublicProgress + "%";
+                double width = textRenderer.getWidth(text, true);
+                double height = textRenderer.getHeight(true);
+                textRenderer.render(
+                    text,
+                    -width / 2,
+                    -height / 2,
+                    secondColor.get(),
+                    true
+                );
+                textRenderer.end();
+                NametagUtils.end();
+            }
+        }
+    }
 
     private Color getColor(Color start, Color end, double progress) {
         return new Color(
@@ -687,5 +757,26 @@ public class PacketMine extends Module {
     }
     public boolean checkPause(boolean onlyMain) {
         return mc.options.useKey.isPressed() && (!onlyMain || mc.player.getActiveHand() == Hand.MAIN_HAND);
+    }
+    public void reset() {
+        maxBreaksCount = 0;
+        hasSwitch = false;
+        secondHasSwitch = false;
+        bypassTimer.setMs(999999);
+        mineTimer.setMs(999999);
+        instantTimer.setMs(999999);
+        timer.setMs(999999);
+        secondTimer.setMs(999999);
+        targetPos = null;
+        secondPos = null;
+        started = false;
+        secondStarted = false;
+        publicProgress = 0;
+        secondPublicProgress = 0;
+        progress = 0;
+        secondProgress = 0;
+        lastTime = System.currentTimeMillis();
+        secondLastTime = System.currentTimeMillis();
+        render = 1;
     }
 }

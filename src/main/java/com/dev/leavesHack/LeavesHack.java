@@ -1,5 +1,6 @@
 package com.dev.leavesHack;
 
+import com.dev.leavesHack.manager.BreakManager;
 import com.dev.leavesHack.manager.DeathManager;
 import com.dev.leavesHack.manager.ModuleManager;
 import com.dev.leavesHack.modules.*;
@@ -29,15 +30,18 @@ public class LeavesHack extends MeteorAddon {
         InventoryUtil.INSTANCE.hashCode();
         ModuleManager.INSTANCE.hashCode();
         DeathManager.INSTANCE.hashCode();
+        BreakManager.INSTANCE.hashCode();
 
         // Modules
+        add(new CrystalAuraPlus());
+        add(new BreakESP());
+        add(new DeathRender());
         add(new AutoOffHand());
         add(new SelfTrap());
         add(new FriendsManager());
         add(new ElytraGrimAccelerate());
         add(new Printer());
         add(new PlaceRender());
-        add(new AutoCrystal());
         add(new AutoPlaceBlock());
         add(new AutoAnchor());
         add(new AutoRefreshTrade());

@@ -22,7 +22,7 @@ public class GlobalSetting extends Module {
     public final Setting<Boolean> changeFov = sgGeneral.add(new BoolSetting.Builder()
         .name("ChangeFov")
         .description("可变视角")
-        .defaultValue(false)
+        .defaultValue(true)
         .build()
     );
     public final Setting<SwingMode> placeSwing = sgGeneral.add(new EnumSetting.Builder<SwingMode>()
@@ -64,7 +64,7 @@ public class GlobalSetting extends Module {
     public final Setting<Boolean> moveFix = sgRotation.add(new BoolSetting.Builder()
         .name("1.21+")
         .description("高版本转头")
-        .defaultValue(true)
+        .defaultValue(false)
         .build()
     );
     public final Setting<Boolean> grimRotation = sgRotation.add(new BoolSetting.Builder()

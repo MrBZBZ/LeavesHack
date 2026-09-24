@@ -2,19 +2,19 @@ package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
 import com.dev.leavesHack.asm.accessors.IClientWorld;
-import com.dev.leavesHack.asm.accessors.IPlayerMoveC2SPacket;
 import com.dev.leavesHack.asm.accessors.IVec3d;
 import com.dev.leavesHack.events.ElytraUpdateEvent;
 import com.dev.leavesHack.events.KeyboardInputEvent;
 import com.dev.leavesHack.events.TravelEvent;
+import com.dev.leavesHack.manager.LeavesModule;
 import com.dev.leavesHack.utils.entity.EntityUtil;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
 import com.dev.leavesHack.utils.math.Timer;
 import com.dev.leavesHack.utils.rotation.Rotation;
+import meteordevelopment.meteorclient.events.entity.EntityAddedEvent;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
-import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
@@ -29,7 +29,6 @@ import net.minecraft.entity.projectile.FireworkRocketEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.*;
-import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
@@ -40,9 +39,12 @@ import net.minecraft.util.math.Direction;
 import java.util.TimerTask;
 
 import static com.dev.leavesHack.utils.entity.InventoryUtil.sendPacket;
-import static com.dev.leavesHack.utils.rotation.Rotation.*;
+import static com.dev.leavesHack.utils.rotation.Rotation.rotationPitch;
+import static com.dev.leavesHack.utils.rotation.Rotation.rotationYaw;
 
-public class FireworkElytraFly extends Module {
+public class FireworkElytraFly extends LeavesModule {
+    private static final long FIREWORK_PENDING_TIMEOUT_MS = 500;
+
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
     public final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
         .name("Mode")
@@ -115,13 +117,14 @@ public class FireworkElytraFly extends Module {
         .defaultValue(true)
         .build()
     );
-    //    private final Setting<Integer> checkTime = sgGeneral.add(new IntSetting.Builder()
-//        .name("CheckTime")
-//        .description("烟花寿命")
-//        .defaultValue(35)
-//        .sliderRange(0, 50)
-//        .build()
-//    );
+    private final Setting<Integer> checkTime = sgGeneral.add(new IntSetting.Builder()
+        .name("CheckTime")
+        .description("检查时间")
+        .defaultValue(30)
+        .min(0)
+        .sliderMax(50)
+        .build()
+    );
     public final Setting<Boolean> inventorySwap = sgGeneral.add(new BoolSetting.Builder()
         .name("InventorySwap")
         .description("背包鬼手")
@@ -132,14 +135,6 @@ public class FireworkElytraFly extends Module {
         .name("Control")
         .description("甲飞控制")
         .defaultValue(true)
-        .build()
-    );
-    private final Setting<Double> flySpeed = sgGeneral.add(new DoubleSetting.Builder()
-        .name("Speed")
-        .description("飞行速度")
-        .defaultValue(1.7)
-        .min(0)
-        .sliderMax(5.0)
         .build()
     );
     private final Setting<Double> fallSpeed = sgGeneral.add(new DoubleSetting.Builder()
@@ -170,7 +165,8 @@ public class FireworkElytraFly extends Module {
     public float pitch = rotationPitch;
     public boolean isUsingFirework = false;
     private final Timer fireworkTimer = new Timer();
-    private final Timer delayTimer = new Timer();
+    private final Timer fireworkPendingTimer = new Timer();
+    private boolean fireworkPending = false;
     private final Timer swapTimer = new Timer();
     private final Timer spearTimer = new Timer();
     public boolean isFallFlying = false;
@@ -185,9 +181,10 @@ public class FireworkElytraFly extends Module {
     public void onActivate() {
         if (noSprint.get()) mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.STOP_SPRINTING));
         hasSpear = false;
-        delayTimer.setMs(99999);
         spearTimer.setMs(99999);
         fireworkTimer.setMs(99999);
+        fireworkPendingTimer.setMs(99999);
+        fireworkPending = false;
         packetDelayInt = 0;
         spearDelayInt = 0;
         shouldJump = false;
@@ -195,6 +192,7 @@ public class FireworkElytraFly extends Module {
     }
     @Override
     public void onDeactivate() {
+        fireworkPending = false;
         if (pressSneak.get()) {
             mc.player.setSneaking(true);
         }
@@ -228,30 +226,11 @@ public class FireworkElytraFly extends Module {
     @EventHandler
     public void onTravel(TravelEvent event) {
         if (!isFallFlying) return;
-        if (isNoGravityActive) {
-            mc.player.setNoGravity(savedNoGravity);
-            isNoGravityActive = false;
-            return;
-        }
-        if (mode.get() == Mode.Legit) return;
         if (!control.get()) return;
         if (Follower.INSTANCE.isActive() && Follower.INSTANCE.canFollow) return;
-        if (mc.player.isOnGround()) {
-            shouldJump = true;
-            return;
-        }
-        double speed = flySpeed.get();
-        double radYaw = Math.toRadians(yaw);
-        double radPitch = Math.toRadians(pitch);
-        double x = -Math.sin(radYaw) * Math.cos(radPitch) * speed;
-        double y = -Math.sin(radPitch) * speed;
-        double z = Math.cos(radYaw) * Math.cos(radPitch) * speed;
-        double horLen = Math.sqrt(x * x + z * z);
-        if (horLen > 0.001) {
-            x = x / horLen * speed;
-            z = z / horLen * speed;
-        }
-        if (mc.currentScreen instanceof ChatScreen) {
+        if (mc.currentScreen instanceof ChatScreen || (!isUsingFirework && !wantToMove())) {
+            setX(0);
+            setZ(0);
             setY(fallSpeed.get());
             return;
         }
@@ -259,15 +238,6 @@ public class FireworkElytraFly extends Module {
             setX(0);
             setZ(0);
             setY(fallSpeed.get());
-        } else {
-            setX(x);
-            setY(y);
-            setZ(z);
-        }
-        if (horizontalNoGravity.get() && Math.abs(y) <= 0.02 && !mc.player.isOnGround()) {
-            savedNoGravity = mc.player.hasNoGravity();
-            mc.player.setNoGravity(true);
-            isNoGravityActive = true;
         }
     }
     private void setY(double f) {
@@ -278,6 +248,12 @@ public class FireworkElytraFly extends Module {
     }
     private void setZ(double f) {
         ((IVec3d) mc.player.getVelocity()).setZ(f);
+    }
+    public void setPitch(float pitch) {
+        this.pitch = pitch;
+    }
+    public void setYaw(float yaw) {
+        this.yaw = yaw;
     }
     @Override
     public String getInfoString() {
@@ -307,34 +283,53 @@ public class FireworkElytraFly extends Module {
     public void onElytraUpdate(ElytraUpdateEvent event) {
         if (stand.get()) event.cancel();
     }
+
+    @EventHandler
+    private void onEntityAdded(EntityAddedEvent event) {
+        if (!fireworkPending || mc.player == null) return;
+        if (event.entity instanceof FireworkRocketEntity firework && firework.getOwner() == mc.player) {
+            fireworkPending = false;
+        }
+    }
+
     @EventHandler
     public void onTick(TickEvent.Pre event){
-        if (mc.currentScreen != null && deBug.get()) info("screen" + mc.currentScreen.getTitle() + " " + mc.currentScreen.getClass().getSimpleName() + " " + mc.currentScreen.getClass().getSuperclass().getSimpleName() + " " + mc.currentScreen.getTitle());
-        if (mc.currentScreen != null && mc.currentScreen instanceof HandledScreen<?> && !(mc.currentScreen instanceof InventoryScreen || mc.currentScreen instanceof CreativeInventoryScreen)) return;
-        if (mc.player.isOnGround() || mc.player.isInFluid()) {
-            shouldJump = true;
-            return;
+        isUsingFirework = false;
+        if (fireworkPending && fireworkPendingTimer.passedMs(FIREWORK_PENDING_TIMEOUT_MS)) {
+            fireworkPending = false;
         }
-        yaw = getSprintYaw(mc.player.getYaw());
-        pitch = getPitch(mc.player.getPitch());
-        if (deBug.get()) info("Yaw: " + yaw + " Pitch: " + pitch);
-        syncInput();
-        packetDelayInt++;
-        boolean hasFirework = false;
-        if (checkFirework.get()) {
+        if (checkFirework.get() || fireworkPending) {
             for (Entity entity : mc.world.getEntities()) {
                 if (entity instanceof FireworkRocketEntity firework) {
-                    if (firework.getOwner() == mc.player) {
-                        hasFirework = true;
+                    if (checkFirework.get() && firework.getOwner() == mc.player) {
+                        if (deBug.get()) {
+                            info("Firework:" + firework.life + " " + firework.lifeTime);
+                        }
+                    }
+                    if (checkFirework.get() && firework.getOwner() == mc.player && firework.life <= checkTime.get()) {
+                        isUsingFirework = true;
+                        fireworkPending = false;
+                        break;
                     }
                 }
             }
         }
-        isUsingFirework = hasFirework;
-        if (control.get()) {
+        if (mc.currentScreen != null && deBug.get()) info("screen" + mc.currentScreen.getTitle() + " " + mc.currentScreen.getClass().getSimpleName() + " " + mc.currentScreen.getClass().getSuperclass().getSimpleName() + " " + mc.currentScreen.getTitle());
+        if (mc.currentScreen != null && mc.currentScreen instanceof HandledScreen<?> && !(mc.currentScreen instanceof InventoryScreen || mc.currentScreen instanceof CreativeInventoryScreen)) return;
+        if (mc.player.isOnGround()) {
+            shouldJump = true;
+            mc.player.jump();
+            return;
+        }
+        if (!Follower.INSTANCE.canFollow) {
+            yaw = getSprintYaw(mc.player.getYaw());
+            pitch = getPitch(mc.player.getPitch());
+        }
+        if (deBug.get()) info("Yaw: " + yaw + " Pitch: " + pitch);
+        syncInput();
+        packetDelayInt++;
+        if (control.get() && isUsingFirework) {
             Rotation.elytraSnapAt(yaw, pitch);
-        } else {
-            Rotation.rotation = false;
         }
         int elytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA);
 //        int armor = findChestplate();
@@ -348,19 +343,26 @@ public class FireworkElytraFly extends Module {
         }
         if (mode.get() == Mode.GrimDurability && !isFallFlying) {
             if (elytra != -1 && packetDelayInt > packetDealy.get()) {
+//                int old = mc.player.getInventory().getSelectedSlot();
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
+//                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
+//                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, old + 36, 0, SlotActionType.PICKUP, mc.player);
+//                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, old, SlotActionType.SWAP, mc.player);
                 shouldJump = true;
                 sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
                 mc.player.startGliding();
-                if (!hasFirework && fireWorkMode.get() == FireWorkMode.Auto) {
+                if (!isUsingFirework && !fireworkPending && fireWorkMode.get() == FireWorkMode.Auto) {
                     offFirework();
                 } else if (fireWorkMode.get() == FireWorkMode.Delay && wantToMove()){
                     if (!checkFirework.get() || !isUsingFirework){
                         offFirework();
                     }
                 }
+//                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, old, SlotActionType.SWAP, mc.player);
+//                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, old + 36, 0, SlotActionType.PICKUP, mc.player);
+//                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
@@ -369,7 +371,7 @@ public class FireworkElytraFly extends Module {
         }
         if (mode.get() == Mode.Legit) {
             if (wearingElytra && isFallFlying) {
-                if (!hasFirework && fireWorkMode.get() == FireWorkMode.Auto) {
+                if (!isUsingFirework && !fireworkPending && fireWorkMode.get() == FireWorkMode.Auto) {
                     offFirework();
                 } else if (fireWorkMode.get() == FireWorkMode.Delay && wantToMove()){
                     if (!checkFirework.get() || !isUsingFirework){
@@ -472,29 +474,44 @@ public class FireworkElytraFly extends Module {
         score += InventoryUtil.getEnchantmentLevel(stack, Enchantments.UNBREAKING) * 2;
         return score;
     }
-    public void offFirework() {
-        if (!delayTimer.passedMs(700)) return;
-        delayTimer.reset();
-        if (!fireworkTimer.passedMs(delay.get()) && fireWorkMode.get() == FireWorkMode.Delay) return;
+    public boolean offFirework() {
+        if (fireworkPending) return false;
+//        if (!fireworkTimer.passedMs(200)) return false;
+        if (!fireworkTimer.passedMs(delay.get()) && fireWorkMode.get() == FireWorkMode.Delay) return false;
         int firework;
         if (mc.player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET) {
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, mc.player.getYaw(), mc.player.getPitch()));
             fireworkTimer.reset();
+            markFireworkPending();
+            return true;
         } else if (mc.player.getOffHandStack().getItem() == Items.FIREWORK_ROCKET) {
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.OFF_HAND, id, mc.player.getYaw(), mc.player.getPitch()));
             fireworkTimer.reset();
+            markFireworkPending();
+            return true;
         } else if (inventorySwap.get() && (firework = InventoryUtil.findItemInventorySlot(Items.FIREWORK_ROCKET)) != -1) {
             InventoryUtil.inventorySwap(firework, mc.player.getInventory().getSelectedSlot());
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, mc.player.getYaw(), mc.player.getPitch()));
             InventoryUtil.inventorySwap(firework, mc.player.getInventory().getSelectedSlot());
+            sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
             fireworkTimer.reset();
+            markFireworkPending();
+            return true;
         } else if ((firework = InventoryUtil.findItem(Items.FIREWORK_ROCKET)) != -1) {
             int old = mc.player.getInventory().getSelectedSlot();
             InventoryUtil.switchToSlot(firework);
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, mc.player.getYaw(), mc.player.getPitch()));
             InventoryUtil.switchToSlot(old);
             fireworkTimer.reset();
+            markFireworkPending();
+            return true;
         }
+        return false;
+    }
+
+    private void markFireworkPending() {
+        fireworkPending = true;
+        fireworkPendingTimer.reset();
     }
     public void sendSequencedPacket(SequencedPacketCreator packetCreator) {
         if (mc.getNetworkHandler() == null || mc.world == null) return;

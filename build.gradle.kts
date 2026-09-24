@@ -35,7 +35,7 @@ dependencies {
     modImplementation(libs.meteor.client)
     // Litematica dependencies
     modCompileOnly("maven.modrinth:malilib:0.27.10")
-    modCompileOnly("maven.modrinth:litematica:0.26.6")
+    modCompileOnly("maven.modrinth:litematica:0.26.16")
 }
 
 tasks {

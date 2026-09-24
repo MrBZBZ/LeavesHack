@@ -19,7 +19,7 @@ public abstract class MixinFireworkRocketEntity {
     )
     private Vec3d wrapGetRotationVector(LivingEntity instance, Operation<Vec3d> original) {
         if (instance == mc.player) {
-            if (FireworkElytraFly.INSTANCE.isActive() && FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.GrimDurability && FireworkElytraFly.INSTANCE.control.get()) {
+            if (FireworkElytraFly.INSTANCE.isActive() && FireworkElytraFly.INSTANCE.control.get()) {
                 float yaw = FireworkElytraFly.INSTANCE.yaw;
                 float pitch = FireworkElytraFly.INSTANCE.pitch;
                 return instance.getRotationVector(pitch, yaw);
