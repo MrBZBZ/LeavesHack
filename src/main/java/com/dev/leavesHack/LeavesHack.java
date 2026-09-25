@@ -33,6 +33,7 @@ public class LeavesHack extends MeteorAddon {
         BreakManager.INSTANCE.hashCode();
 
         // Modules
+        add(new AutoWeb());
         add(new CrystalAuraPlus());
         add(new BreakESP());
         add(new DeathRender());
