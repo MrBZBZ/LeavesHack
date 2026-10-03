@@ -1,17 +1,23 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
+import com.dev.leavesHack.asm.accessors.IClientWorld;
 import com.dev.leavesHack.utils.entity.InventoryUtil;
-import com.dev.leavesHack.utils.math.Timer;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.gui.WidgetScreen;
 import meteordevelopment.meteorclient.settings.BoolSetting;
+import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.IntSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
+import meteordevelopment.meteorclient.utils.player.FindItemResult;
+import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.client.network.PendingUpdateManager;
+import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
+import net.minecraft.util.Hand;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.component.DataComponentTypes;
@@ -32,40 +38,38 @@ import java.util.Map;
 import static com.dev.leavesHack.utils.rotation.Rotation.sendPacket;
 
 public class AutoArmorPlus extends Module {
-    private Timer timer = new Timer();
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
-    private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
-        .name("Delay")
-        .description("操作延迟(毫秒MS)")
-        .defaultValue(10)
-        .min(0)
-        .sliderMax(1000)
-        .build()
-    );
-    private final Setting<Boolean> autoElytra = sgGeneral.add(new BoolSetting.Builder()
-        .name("AutoElytra")
-        .description("自动切换鞘翅")
-        .defaultValue(true)
-        .build()
-    );
-    private final Setting<Boolean> ignoreBinding = sgGeneral.add(new BoolSetting.Builder()
+            private final Setting<Boolean> ignoreBinding = sgGeneral.add(new BoolSetting.Builder()
         .name("IgnoreBinding")
         .description("忽略绑定诅咒")
         .defaultValue(false)
         .build()
     );
-    private final Setting<Boolean> snowBug = sgGeneral.add(new BoolSetting.Builder()
-        .name("SnowBug")
-        .description("")
-        .defaultValue(false)
+        private final Setting<Boolean> doubleTapTakeoff = sgGeneral.add(new BoolSetting.Builder()
+        .name("DoubleTapTakeoff")
+        .description("双击空格切鞘翅起飞（装备同步+下落段自动起滑）")
+        .defaultValue(true)
         .build()
     );
+    private final Setting<Double> jumpDelay = sgGeneral.add(new DoubleSetting.Builder()
+        .name("DoubleTapWindow")
+        .description("双击空格的有效时间窗口（秒）")
+        .defaultValue(0.317)
+        .min(0.0)
+        .sliderMax(1.0)
+        .visible(doubleTapTakeoff::get)
+        .build()
+    );
+    private long lastPressTime = 0L;
+    private boolean wasJumpPressed = false;
+    private int elytraSwapPhase = 0;
+    private int elytraSwapSlot = -1;
+    private int elytraSwapTicks = 0;
     public AutoArmorPlus() {
-        super(LeavesHack.LEAVES_COMBAT, "AutoArmorPlus", "自动穿甲与鞘翅切换");
+        super(LeavesHack.LEAVES_COMBAT, "AutoArmorPlus", "双击空格起飞");
     }
     @Override
     public void onActivate() {
-        timer.setMs(999999);
     }
     @EventHandler
     public void onTick(TickEvent.Pre event){
@@ -73,93 +77,88 @@ public class AutoArmorPlus extends Module {
             return;
         }
         if (mc.player.playerScreenHandler != mc.player.currentScreenHandler) return;
-        if (!timer.passedMs(delay.get())) return;
-        timer.reset();
-        Map<EquipmentSlot, int[]> armorMap = new HashMap<>(4);
-        armorMap.put(EquipmentSlot.FEET, new int[]{36, getProtection(mc.player.getInventory().getStack(36)), -1, -1});
-        armorMap.put(EquipmentSlot.LEGS, new int[]{37, getProtection(mc.player.getInventory().getStack(37)), -1, -1});
-        armorMap.put(EquipmentSlot.CHEST, new int[]{38, getProtection(mc.player.getInventory().getStack(38)), -1, -1});
-        armorMap.put(EquipmentSlot.HEAD, new int[]{39, getProtection(mc.player.getInventory().getStack(39)), -1, -1});
-        for (int s = 0; s < 36; s++) {
-            if (!(mc.player.getInventory().getStack(s).contains(DataComponentTypes.EQUIPPABLE)) && mc.player.getInventory().getStack(s).getItem() != Items.ELYTRA)
-                continue;
-            int protection = getProtection(mc.player.getInventory().getStack(s));
-            EquipmentSlot slot = (mc.player.getInventory().getStack(s).getItem() == Items.ELYTRA ? EquipmentSlot.CHEST : mc.player.getInventory().getStack(s).get(DataComponentTypes.EQUIPPABLE).slot());
-            for (Map.Entry<EquipmentSlot, int[]> e : armorMap.entrySet()) {
-                if (e.getKey() == EquipmentSlot.FEET) {
-                    if (mc.player.hurtTime > 1 && snowBug.get()) {
-                        if (!mc.player.getInventory().getStack(36).isEmpty() && mc.player.getInventory().getStack(36).getItem() == Items.LEATHER_BOOTS) {
-                            continue;
-                        }
-                        if (!mc.player.getInventory().getStack(s).isEmpty() && mc.player.getInventory().getStack(s).getItem() == Items.LEATHER_BOOTS) {
-                            e.getValue()[2] = s;
-                            continue;
-                        }
-                    }
-                }
-                FireworkElytraFly fireworkElytraFly = Modules.get().get(FireworkElytraFly.class);
-                if (autoElytra.get() && fireworkElytraFly.isActive() && e.getKey() == EquipmentSlot.CHEST) {
-                    if (FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.GrimDurability || FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.AutoSpear) continue;
-                    if (!mc.player.getInventory().getStack(38).isEmpty() && mc.player.getInventory().getStack(38).getItem() == Items.ELYTRA && mc.player.getInventory().getStack(38).isDamageable() && mc.player.getInventory().getStack(38).getDamage() < mc.player.getInventory().getStack(38).getMaxDamage()) {
-                        continue;
-                    }
-                    if (e.getValue()[2] != -1 && !mc.player.getInventory().getStack(e.getValue()[2]).isEmpty() && mc.player.getInventory().getStack(e.getValue()[2]).getItem() == Items.ELYTRA && mc.player.getInventory().getStack(e.getValue()[2]).isDamageable() && mc.player.getInventory().getStack(e.getValue()[2]).getDamage() < mc.player.getInventory().getStack(e.getValue()[2]).getMaxDamage()) {
-                        continue;
-                    }
-                    if (!mc.player.getInventory().getStack(s).isEmpty() && mc.player.getInventory().getStack(s).getItem() == Items.ELYTRA && mc.player.getInventory().getStack(s).isDamageable() && mc.player.getInventory().getStack(s).getDamage() < mc.player.getInventory().getStack(s).getMaxDamage()) {
-                        e.getValue()[2] = s;
-                    }
-                    continue;
-                }
-                if (protection > 0) {
-                    if (e.getKey() == slot) {
-                        if (protection > e.getValue()[1] && protection > e.getValue()[3]) {
-                            e.getValue()[2] = s;
-                            e.getValue()[3] = protection;
-                        }
-                    }
-                }
-            }
-        }
-        for (Map.Entry<EquipmentSlot, int[]> equipmentSlotEntry : armorMap.entrySet()) {
-            if (equipmentSlotEntry.getValue()[2] != -1) {
-                if (equipmentSlotEntry.getValue()[1] == -1 && equipmentSlotEntry.getValue()[2] < 9) {
-/*					if (equipmentSlotEntry.getValue()[2] != mc.player.getInventory().selectedSlot) {
-						mc.player.getInventory().selectedSlot = equipmentSlotEntry.getValue()[2];
-						sendPacket(new UpdateSelectedSlotC2SPacket(equipmentSlotEntry.getValue()[2]));
-					}*/
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 36 + equipmentSlotEntry.getValue()[2], 1, SlotActionType.QUICK_MOVE, mc.player);
-                    sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
-                } else if (mc.player.playerScreenHandler == mc.player.currentScreenHandler) {
-                    int armorSlot = (equipmentSlotEntry.getValue()[0] - 34) + (39 - equipmentSlotEntry.getValue()[0]) * 2;
-                    int newArmorSlot = equipmentSlotEntry.getValue()[2] < 9 ? 36 + equipmentSlotEntry.getValue()[2] : equipmentSlotEntry.getValue()[2];
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, newArmorSlot, 0, SlotActionType.PICKUP, mc.player);
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, armorSlot, 0, SlotActionType.PICKUP, mc.player);
-                    if (equipmentSlotEntry.getValue()[1] != -1)
-                        mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, newArmorSlot, 0, SlotActionType.PICKUP, mc.player);
-                    sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
-                }
-                return;
-            }
-        }
+        // 双击空格起飞切鞘翅（每 tick 检测）
+        if (doubleTapTakeoff.get()) handleDoubleTapTakeoff();
     }
-    private int getProtection(ItemStack is) {
-        if (is.contains(DataComponentTypes.EQUIPPABLE) || is.getItem() == Items.ELYTRA) {
-            int prot = 0;
-            if (is.getItem() == Items.ELYTRA) {
-                if (!(is.isDamageable() && is.getDamage() < is.getMaxDamage())) return 0;
-                prot = 1;
+    /** 双击空格：鞘翅换入胸甲槽起飞（原版 MeteorPlusPlus ElytraAndArmor 逻辑 1:1 移植） */
+    private void handleDoubleTapTakeoff() {
+        // 右键装备状态机: 1=已静默切槽，本 tick 右键装备
+        if (elytraSwapPhase == 1) {
+            if (++elytraSwapTicks > 5) { elytraSwapPhase = 0; return; }
+            if (mc.player != null && mc.world != null) {
+                try (PendingUpdateManager pm = ((IClientWorld) mc.world).invokeGetPendingUpdateManager().incrementSequence()) {
+                    int sequence = pm.getSequence();
+                    mc.getNetworkHandler().sendPacket(new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, sequence, mc.player.getYaw(), mc.player.getPitch()));
+                }
             }
-            if (is.hasEnchantments()) {
-                if (ignoreBinding.get() && InventoryUtil.hasEnchantment(is, Enchantments.BINDING_CURSE)) return -1;
-                prot += InventoryUtil.getEnchantmentLevel(is, Enchantments.PROTECTION);
-            }
-            return (is.contains(DataComponentTypes.EQUIPPABLE) ? getBaseArmorScore(is) : 0) + prot;
-        } else if (!is.isEmpty()) {
-            return 0;
+            elytraSwapPhase = 2; // 确认态: 等胸部同步+离地+下落段才起滑(服务端canGlide确定性成立)
+            elytraSwapTicks = 0;
+            return;
         }
-        return -1;
+        if (elytraSwapPhase == 2) {
+            if (++elytraSwapTicks > 15) { elytraSwapPhase = 0; return; }
+            // 起滑条件全部确定性成立后才发START: 胸部鞘翅已同步 + 已离地 + 下落段(vel.y<0)
+            // 双击过快时的地面/上升段绝不启滑(服务端canGlide的!onGround为假会拒旗->客户端旗分裂=卡地+Simulation)
+            if (mc.player.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST).isOf(net.minecraft.item.Items.ELYTRA)
+                && !mc.player.isOnGround() && mc.player.getVelocity().y < 0 && !mc.player.isGliding()) {
+                mc.player.startGliding();
+            }
+            if (mc.player.isGliding()) elytraSwapPhase = 0;
+            return;
+        }
+        boolean isJumpPressed = mc.options.jumpKey.isPressed();
+
+        // 上升沿检测：松开后再按下才算一次有效点击，避免长按触发
+        if (isJumpPressed && !wasJumpPressed) {
+            long now = System.currentTimeMillis();
+            double threshold = jumpDelay.get() * 1000.0;
+
+            if (lastPressTime != 0L && now - lastPressTime <= threshold) {
+                // 双击判定成立；已穿鞘翅则只重置计时，不切换
+                ItemStack chest = mc.player.getEquippedStack(EquipmentSlot.CHEST);
+                if (!chest.isOf(Items.ELYTRA)) {
+                    // 胸甲槽为空或为普通胸甲时，切换为鞘翅
+                    if (chest.isEmpty() || isChestplateOrEmpty(chest)) {
+                        // 与 FireworkElytraFly 的 GrimDurability/AutoSpear 模式互斥（它们自行管理鞘翅换装）
+                        FireworkElytraFly fly = Modules.get().get(FireworkElytraFly.class);
+                        boolean flyManaging = fly != null && fly.isActive()
+                            && (FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.GrimDurability
+                                || FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.AutoSpear);
+                        if (!flyManaging) {
+                            if (mc.currentScreen != null) mc.currentScreen.close();
+                            FindItemResult elytraSlot = InvUtils.find(Items.ELYTRA);
+                            if (elytraSlot.found() && elytraSlot.slot() < 9) {
+                                // 快捷栏鞘翅：t0 静默切槽 → t1 右键装备（USE_ITEM 不受 MultiActionsC/PacketOrderE 管辖，零 CLICK_WINDOW）
+                                elytraSwapSlot = elytraSlot.slot();
+                                if (mc.player.getInventory().getSelectedSlot() != elytraSwapSlot) {
+                                    InventoryUtil.switchToSlot(elytraSwapSlot);
+                                }
+                                elytraSwapPhase = 1;
+                                elytraSwapTicks = 0;
+                            } else if (elytraSlot.found()) {
+                                // 背包鞘翅：原版 clickSlot 切换（建议放快捷栏走右键）
+                                InvUtils.move().from(elytraSlot.slot()).toArmor(2);
+                            }
+                        }
+                    }
+                }
+                lastPressTime = 0L; // 双击触发后重置时间，防止连续多次点击被误判为多次双击
+            } else {
+                // 第一次点击，或者超时后的点击，记录时间
+                lastPressTime = now;
+            }
+        }
+
+        // 更新上一 Tick 的按键状态
+        wasJumpPressed = isJumpPressed;
     }
+
+    private boolean isChestplateOrEmpty(ItemStack stack) {
+        if (stack.isEmpty()) return true;
+        return stack.contains(DataComponentTypes.EQUIPPABLE)
+            && stack.get(DataComponentTypes.EQUIPPABLE).slot() == EquipmentSlot.CHEST;
+    }
+
     private int getBaseArmorScore(ItemStack itemStack) {
         if (!itemStack.contains(DataComponentTypes.ATTRIBUTE_MODIFIERS)) return 0;
         int score = 0;

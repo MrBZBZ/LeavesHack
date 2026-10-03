@@ -30,6 +30,8 @@ import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.util.math.Vec3d;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.function.Predicate;
@@ -307,8 +309,9 @@ public class Aura extends Module {
         return !usingPause.get() || !mc.player.isUsingItem();
     }
     private Entity getTarget(double range) {
-        Entity target = null;
-        double distance = range;
+        List<Entity> candidates = new ArrayList<>();
+        List<Entity> actionable = new ArrayList<>();
+        double attackRangeSq = attackRange.get() * attackRange.get();
         for (Entity entity : mc.world.getEntities()) {
             if (!entities.get().contains(entity.getType())) continue;
             if (ignoreNamed.get() && entity.hasCustomName()) continue;
@@ -324,17 +327,13 @@ public class Aura extends Module {
                 if (entity instanceof WolfEntity wolf && !wolf.isAttacking()) continue;
             }
             if (!CombatUtil.isValid(entity,targetRange.get())) continue;
-            if (target == null) {
-                target = entity;
-                distance = mc.player.distanceTo(entity);
-            } else {
-                if (mc.player.distanceTo(entity) < distance) {
-                    target = entity;
-                    distance = mc.player.distanceTo(entity);
-                }
-            }
+            candidates.add(entity);
+            // 攻击可达的目标单独成池：Health/Both 模式下低血远目标会抢占选择导致永远打不到
+            if (mc.player.squaredDistanceTo(entity) <= attackRangeSq) actionable.add(entity);
         }
-        return target;
+        // 按全局目标模式（Health/Distance/Both）选目标：优先攻击可达者；无可达者回退全池（用于渲染/信息）
+        Entity best = CombatUtil.getTarget(actionable, targetRange.get());
+        return best != null ? best : CombatUtil.getTarget(candidates, targetRange.get());
     }
     private Vec3d getAttackVec(Entity entity) {
         return getClosestPointToBox(mc.player.getEyePos(), entity.getBoundingBox());

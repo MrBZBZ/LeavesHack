@@ -193,7 +193,7 @@ public class AutoWeb extends Module {
     @EventHandler
     private void onTick(TickEvent.Pre event) {
         if (mc.player == null || mc.world == null) return;
-        target = CombatUtil.getClosestEnemy(targetRange.get());
+        target = CombatUtil.getTargetEnemy(targetRange.get());
         if (target == null) {
             webPos = null;
             return;

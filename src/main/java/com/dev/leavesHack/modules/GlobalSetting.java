@@ -1,6 +1,7 @@
 package com.dev.leavesHack.modules;
 
 import com.dev.leavesHack.LeavesHack;
+import com.dev.leavesHack.utils.combat.CombatUtil;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 
@@ -11,8 +12,15 @@ public class GlobalSetting extends Module {
         INSTANCE = this;
     }
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
+    private final SettingGroup sgCombat = this.settings.createGroup("Combat");
     private final SettingGroup sgRotation = this.settings.createGroup("Rotation");
     private final SettingGroup sgElytra = this.settings.createGroup("Elytra");
+    public final Setting<CombatUtil.TargetMode> targetMode = sgCombat.add(new EnumSetting.Builder<CombatUtil.TargetMode>()
+        .name("TargetMode")
+        .description("目标选择方法(Health=生命值优先 Distance=距离优先 Both=综合)")
+        .defaultValue(CombatUtil.TargetMode.Distance)
+        .build()
+    );
     public final Setting<Boolean> chinese = sgGeneral.add(new BoolSetting.Builder()
         .name("Chinese")
         .description("中文汉化")

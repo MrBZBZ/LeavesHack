@@ -96,7 +96,7 @@ public class GlassFiller extends Module {
 
     public void update() {
         if (usingPause.get() && checkPause(onlyMain.get())) return;
-        target = CombatUtil.getClosestEnemy(targetRange.get());
+        target = CombatUtil.getTargetEnemy(targetRange.get());
         if (target == null) {
             return;
         }

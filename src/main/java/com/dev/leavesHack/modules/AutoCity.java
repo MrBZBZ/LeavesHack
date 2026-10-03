@@ -113,7 +113,7 @@ public class AutoCity extends Module {
     }
     @EventHandler
     public void onTick(TickEvent.Pre event) {
-        PlayerEntity player = CombatUtil.getClosestEnemy(targetRange.get());
+        PlayerEntity player = CombatUtil.getTargetEnemy(targetRange.get());
         if (preferSelfClick.get() && PacketMine.selfClickPos != null) return;
         if (delay.get() && !cityTimer.passedMs(PacketMine.INSTANCE.mineDelay.get())) return;
         if (antiCrawl.get() && mc.player.isCrawling()) {

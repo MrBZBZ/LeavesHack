@@ -29,7 +29,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -411,7 +410,8 @@ public class AutoAnchor extends LeavesModule {
     private void updateTargets() {
         targets.clear();
         List<PlayerEntity> enemies = CombatUtil.getEnemies(targetRange.get());
-        enemies.sort(Comparator.comparingDouble(p -> mc.player.squaredDistanceTo(p.getEntityPos())));
+        // 按全局目标模式（Health/Distance/Both）排序
+        enemies.sort(CombatUtil.targetComparator(targetRange.get()));
         int count = Math.min(enemies.size(), maxTargets.get());
         for (int i = 0; i < count; i++) targets.add(enemies.get(i));
         target = targets.isEmpty() ? null : targets.get(0);

@@ -62,6 +62,10 @@ public class LeavesHack extends MeteorAddon {
         add(new PistonCrystal());
         add(new AutoLogin());
         add(new NukerPlus());
+        add(new FakePlayerPlus());
+        add(new ElytraReplace());
+        add(new OneKeyPearl());
+        add(new OneKeyFirework());
 //        // Commands
 //        Commands.add(new CommandExample());
 //

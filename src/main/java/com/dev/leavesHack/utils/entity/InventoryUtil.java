@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMaps;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
+import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -38,6 +39,8 @@ public class InventoryUtil {
     static int lastSlot = -1;
     public static int serverSlot = 0;
     static int lastSelect = -1;
+    /** 服务端视角的冲刺状态（BadPacketsF 防御：仅服务端认为 sprinting=true 时才允许发 STOP） */
+    public static boolean serverSprintState = false;
     @EventHandler
     public void onPacketSend(PacketEvent.Send event) {
         if (event.packet instanceof UpdateSelectedSlotC2SPacket packet) {
@@ -45,6 +48,15 @@ public class InventoryUtil {
                 event.cancel();
             }
             serverSlot = packet.getSelectedSlot();
+        }
+        // 跟踪服务端冲刺视角（被取消的包不会到达服务端，不计入）
+        if (event.packet instanceof net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket packet) {
+            if (event.isCancelled()) return;
+            switch (packet.getMode()) {
+                case START_SPRINTING -> serverSprintState = true;
+                case STOP_SPRINTING -> serverSprintState = false;
+                default -> {}
+            }
         }
     }
 //    public static int getEquipmentLevel(PlayerEntity player, RegistryKey<Enchantment> enchantmentKey) {
@@ -133,6 +145,16 @@ public class InventoryUtil {
     public static ItemStack getStackInSlot(int i) {
         return mc.player.getInventory().getStack(i);
     }
+    /** 单次停冲刺：仅服务端视角在冲刺时发一次 STOP（合法 true→false），MultiActionsC 需要服务端 sprint=false */
+    public static void stopSprintIfServerSprinting() {
+        if (mc.player == null) return;
+        if (serverSprintState) {
+            mc.player.setSprinting(false);
+            sendPacket(new net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket(mc.player, net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket.Mode.STOP_SPRINTING));
+            serverSprintState = false;
+        }
+    }
+
     public static void switchToSlot(int slot) {
         if (GlobalSetting.INSTANCE.clientSwitch.get()) mc.player.getInventory().setSelectedSlot(slot);
         sendPacket(new UpdateSelectedSlotC2SPacket(slot));

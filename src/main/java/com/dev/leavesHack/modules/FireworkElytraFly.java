@@ -150,6 +150,19 @@ public class FireworkElytraFly extends LeavesModule {
         .defaultValue(false)
         .build()
     );
+    private final Setting<Double> takeoffInterval = sgGeneral.add(new DoubleSetting.Builder()
+        .name("TakeoffInterval")
+        .description("起飞包最小间隔ms(±10%%抖动)。0=port10原版不限制；3C3U被限频就调大")
+        .defaultValue(0)
+        .sliderMax(10000)
+        .build()
+    );
+    private final Setting<Boolean> smartTakeoff = sgGeneral.add(new BoolSetting.Builder()
+        .name("SmartTakeoff")
+        .description("自家火箭助推中不重复起飞(省配额)")
+        .defaultValue(false)
+        .build()
+    );
     private final Setting<Boolean> deBug = sgGeneral.add(new BoolSetting.Builder()
         .name("DeBug")
         .description("dev查bug的，没iq不要开")
@@ -177,10 +190,34 @@ public class FireworkElytraFly extends LeavesModule {
     public boolean hasSpear = false;
     private boolean savedNoGravity = false;
     private boolean isNoGravityActive = false;
+    private int glidePhase = 0;
+    private int glideElytraSlot = -1;
+    private int glideFwSlot = -1;
+    private int glideTicks = 0;
+    private int boostRemaining = 0;
+    private final Timer takeoffTimer = new Timer();
+    private double currentTakeoffInterval = 0;
+
+    private void rollTakeoffInterval() {
+        double base = takeoffInterval.get();
+        currentTakeoffInterval = base <= 0 ? 0 : base * (0.9 + Math.random() * 0.2);
+    }
+    private boolean takeoffGate() {
+        if (smartTakeoff.get() && (isUsingFirework || fireworkPending)) return false;
+        return takeoffTimer.passedMs((long) currentTakeoffInterval);
+    }
+    private boolean hasFireworkAvailable() {
+        if (mc.player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET) return true;
+        if (mc.player.getOffHandStack().getItem() == Items.FIREWORK_ROCKET) return true;
+        if (inventorySwap.get() && InventoryUtil.findItemInventorySlot(Items.FIREWORK_ROCKET) != -1) return true;
+        return InventoryUtil.findItem(Items.FIREWORK_ROCKET) != -1;
+    }
     @Override
     public void onActivate() {
         if (noSprint.get()) mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.STOP_SPRINTING));
         hasSpear = false;
+        takeoffTimer.setMs(99999);
+        rollTakeoffInterval();
         spearTimer.setMs(99999);
         fireworkTimer.setMs(99999);
         fireworkPendingTimer.setMs(99999);
@@ -212,7 +249,13 @@ public class FireworkElytraFly extends LeavesModule {
     @EventHandler
     public void onSprint(PacketEvent.Send send) {
         if (noSprint.get() && send.packet instanceof ClientCommandC2SPacket packet) {
-            if (packet.getMode() == ClientCommandC2SPacket.Mode.START_SPRINTING) send.cancel();
+            if (packet.getMode() == ClientCommandC2SPacket.Mode.START_SPRINTING) {
+                send.cancel();
+                InventoryUtil.serverSprintState = false;
+            } else if (packet.getMode() == ClientCommandC2SPacket.Mode.STOP_SPRINTING) {
+                if (noSprint.get() && !InventoryUtil.serverSprintState) send.cancel();
+                else InventoryUtil.serverSprintState = false;
+            }
         }
     }
     @EventHandler
@@ -341,8 +384,15 @@ public class FireworkElytraFly extends LeavesModule {
             sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
             mc.player.startGliding();
         }
-        if (mode.get() == Mode.GrimDurability && !isFallFlying) {
-            if (elytra != -1 && packetDelayInt > packetDealy.get()) {
+        if (mode.get() == Mode.GrimDurability) {
+            if (!isFallFlying) {
+            if (elytra != -1 && packetDelayInt > packetDealy.get() && takeoffGate()) {
+                // 离地闸门：服务端 canGlide() 要求 !isOnGround，地面时只跳不发任何包。
+                // 否则 START_FALL_FLYING 会被 checkGliding 打回 → 原地干蹦不起飞
+                if (mc.player.isOnGround()) {
+                    shouldJump = true;
+                    return;
+                }
 //                int old = mc.player.getInventory().getSelectedSlot();
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
@@ -367,6 +417,7 @@ public class FireworkElytraFly extends LeavesModule {
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
                 packetDelayInt = 0;
+            }
             }
         }
         if (mode.get() == Mode.Legit) {

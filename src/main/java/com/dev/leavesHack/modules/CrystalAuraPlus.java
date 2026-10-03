@@ -972,12 +972,14 @@ public class CrystalAuraPlus extends Module {
         return !PlayerUtils.isWithin(vec3d, (place ? placeRange : breakRange).get());
     }
 
-    private LivingEntity getNearestTarget() {
+    private LivingEntity getPriorityTarget() {
+        // 快速伤害路径必须用最近目标：水晶为范围伤害，放置可行性只取决于距离；
+        // 全局目标模式(Health/Distance/Both)若用于此处，低血远目标会抢占并导致 damage=0 而永不放置
         LivingEntity nearestTarget = null;
         double nearestDistance = Double.MAX_VALUE;
 
         for (LivingEntity target : targets) {
-            double distance = PlayerUtils.squaredDistanceTo(target);
+            double distance = mc.player.squaredDistanceTo(target);
 
             if (distance < nearestDistance) {
                 nearestTarget = target;
@@ -988,11 +990,13 @@ public class CrystalAuraPlus extends Module {
         return nearestTarget;
     }
 
+
     private float getDamageToTargets(Vec3d vec3d, BlockPos obsidianPos, boolean breaking, boolean fast) {
         float damage = 0;
 
         if (fast) {
-            LivingEntity target = getNearestTarget();
+            LivingEntity target = getPriorityTarget();
+            if (target == null) return 0;
             if (!(smartDelay.get() && breaking && target.hurtTime > 0)) damage = DamageUtils.crystalDamage(target, vec3d, predictMovement.get(), obsidianPos);
         }
         else {

@@ -1,0 +1,1330 @@
+diff --git a/src/main/java/com/dev/leavesHack/LeavesHack.java b/src/main/java/com/dev/leavesHack/LeavesHack.java
+index f946a50..ae8f19a 100644
+--- a/src/main/java/com/dev/leavesHack/LeavesHack.java
++++ b/src/main/java/com/dev/leavesHack/LeavesHack.java
+@@ -62,6 +62,10 @@ public class LeavesHack extends MeteorAddon {
+         add(new PistonCrystal());
+         add(new AutoLogin());
+         add(new NukerPlus());
++        add(new FakePlayerPlus());
++        add(new ElytraReplace());
++        add(new OneKeyPearl());
++        add(new OneKeyFirework());
+ //        // Commands
+ //        Commands.add(new CommandExample());
+ //
+diff --git a/src/main/java/com/dev/leavesHack/modules/Aura.java b/src/main/java/com/dev/leavesHack/modules/Aura.java
+index ac13895..8465daf 100644
+--- a/src/main/java/com/dev/leavesHack/modules/Aura.java
++++ b/src/main/java/com/dev/leavesHack/modules/Aura.java
+@@ -30,6 +30,8 @@ import net.minecraft.registry.tag.ItemTags;
+ import net.minecraft.util.math.Vec3d;
+ 
+ import java.awt.*;
++import java.util.ArrayList;
++import java.util.List;
+ import java.util.Set;
+ import java.util.TimerTask;
+ import java.util.function.Predicate;
+@@ -307,8 +309,9 @@ public class Aura extends Module {
+         return !usingPause.get() || !mc.player.isUsingItem();
+     }
+     private Entity getTarget(double range) {
+-        Entity target = null;
+-        double distance = range;
++        List<Entity> candidates = new ArrayList<>();
++        List<Entity> actionable = new ArrayList<>();
++        double attackRangeSq = attackRange.get() * attackRange.get();
+         for (Entity entity : mc.world.getEntities()) {
+             if (!entities.get().contains(entity.getType())) continue;
+             if (ignoreNamed.get() && entity.hasCustomName()) continue;
+@@ -324,17 +327,13 @@ public class Aura extends Module {
+                 if (entity instanceof WolfEntity wolf && !wolf.isAttacking()) continue;
+             }
+             if (!CombatUtil.isValid(entity,targetRange.get())) continue;
+-            if (target == null) {
+-                target = entity;
+-                distance = mc.player.distanceTo(entity);
+-            } else {
+-                if (mc.player.distanceTo(entity) < distance) {
+-                    target = entity;
+-                    distance = mc.player.distanceTo(entity);
+-                }
+-            }
++            candidates.add(entity);
++            // 攻击可达的目标单独成池：Health/Both 模式下低血远目标会抢占选择导致永远打不到
++            if (mc.player.squaredDistanceTo(entity) <= attackRangeSq) actionable.add(entity);
+         }
+-        return target;
++        // 按全局目标模式（Health/Distance/Both）选目标：优先攻击可达者；无可达者回退全池（用于渲染/信息）
++        Entity best = CombatUtil.getTarget(actionable, targetRange.get());
++        return best != null ? best : CombatUtil.getTarget(candidates, targetRange.get());
+     }
+     private Vec3d getAttackVec(Entity entity) {
+         return getClosestPointToBox(mc.player.getEyePos(), entity.getBoundingBox());
+diff --git a/src/main/java/com/dev/leavesHack/modules/AutoAnchor.java b/src/main/java/com/dev/leavesHack/modules/AutoAnchor.java
+index 65b7fd5..93a03d1 100644
+--- a/src/main/java/com/dev/leavesHack/modules/AutoAnchor.java
++++ b/src/main/java/com/dev/leavesHack/modules/AutoAnchor.java
+@@ -29,7 +29,6 @@ import net.minecraft.util.math.Direction;
+ import net.minecraft.util.math.Vec3d;
+ 
+ import java.util.ArrayList;
+-import java.util.Comparator;
+ import java.util.List;
+ import java.util.concurrent.CopyOnWriteArrayList;
+ 
+@@ -411,7 +410,8 @@ public class AutoAnchor extends LeavesModule {
+     private void updateTargets() {
+         targets.clear();
+         List<PlayerEntity> enemies = CombatUtil.getEnemies(targetRange.get());
+-        enemies.sort(Comparator.comparingDouble(p -> mc.player.squaredDistanceTo(p.getEntityPos())));
++        // 按全局目标模式（Health/Distance/Both）排序
++        enemies.sort(CombatUtil.targetComparator(targetRange.get()));
+         int count = Math.min(enemies.size(), maxTargets.get());
+         for (int i = 0; i < count; i++) targets.add(enemies.get(i));
+         target = targets.isEmpty() ? null : targets.get(0);
+diff --git a/src/main/java/com/dev/leavesHack/modules/AutoArmorPlus.java b/src/main/java/com/dev/leavesHack/modules/AutoArmorPlus.java
+index 1063f45..5bd2710 100644
+--- a/src/main/java/com/dev/leavesHack/modules/AutoArmorPlus.java
++++ b/src/main/java/com/dev/leavesHack/modules/AutoArmorPlus.java
+@@ -1,17 +1,23 @@
+ package com.dev.leavesHack.modules;
+ 
+ import com.dev.leavesHack.LeavesHack;
++import com.dev.leavesHack.asm.accessors.IClientWorld;
+ import com.dev.leavesHack.utils.entity.InventoryUtil;
+-import com.dev.leavesHack.utils.math.Timer;
+ import meteordevelopment.meteorclient.events.world.TickEvent;
+ import meteordevelopment.meteorclient.gui.WidgetScreen;
+ import meteordevelopment.meteorclient.settings.BoolSetting;
++import meteordevelopment.meteorclient.settings.DoubleSetting;
+ import meteordevelopment.meteorclient.settings.IntSetting;
+ import meteordevelopment.meteorclient.settings.Setting;
+ import meteordevelopment.meteorclient.settings.SettingGroup;
+ import meteordevelopment.meteorclient.systems.modules.Module;
+ import meteordevelopment.meteorclient.systems.modules.Modules;
++import meteordevelopment.meteorclient.utils.player.FindItemResult;
++import meteordevelopment.meteorclient.utils.player.InvUtils;
+ import meteordevelopment.orbit.EventHandler;
++import net.minecraft.client.network.PendingUpdateManager;
++import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
++import net.minecraft.util.Hand;
+ import net.minecraft.client.gui.screen.ChatScreen;
+ import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+ import net.minecraft.component.DataComponentTypes;
+@@ -32,40 +38,38 @@ import java.util.Map;
+ import static com.dev.leavesHack.utils.rotation.Rotation.sendPacket;
+ 
+ public class AutoArmorPlus extends Module {
+-    private Timer timer = new Timer();
+     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
+-    private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
+-        .name("Delay")
+-        .description("操作延迟(毫秒MS)")
+-        .defaultValue(10)
+-        .min(0)
+-        .sliderMax(1000)
+-        .build()
+-    );
+-    private final Setting<Boolean> autoElytra = sgGeneral.add(new BoolSetting.Builder()
+-        .name("AutoElytra")
+-        .description("自动切换鞘翅")
+-        .defaultValue(true)
+-        .build()
+-    );
+-    private final Setting<Boolean> ignoreBinding = sgGeneral.add(new BoolSetting.Builder()
++            private final Setting<Boolean> ignoreBinding = sgGeneral.add(new BoolSetting.Builder()
+         .name("IgnoreBinding")
+         .description("忽略绑定诅咒")
+         .defaultValue(false)
+         .build()
+     );
+-    private final Setting<Boolean> snowBug = sgGeneral.add(new BoolSetting.Builder()
+-        .name("SnowBug")
+-        .description("")
+-        .defaultValue(false)
++        private final Setting<Boolean> doubleTapTakeoff = sgGeneral.add(new BoolSetting.Builder()
++        .name("DoubleTapTakeoff")
++        .description("双击空格切鞘翅起飞（装备同步+下落段自动起滑）")
++        .defaultValue(true)
++        .build()
++    );
++    private final Setting<Double> jumpDelay = sgGeneral.add(new DoubleSetting.Builder()
++        .name("DoubleTapWindow")
++        .description("双击空格的有效时间窗口（秒）")
++        .defaultValue(0.317)
++        .min(0.0)
++        .sliderMax(1.0)
++        .visible(doubleTapTakeoff::get)
+         .build()
+     );
++    private long lastPressTime = 0L;
++    private boolean wasJumpPressed = false;
++    private int elytraSwapPhase = 0;
++    private int elytraSwapSlot = -1;
++    private int elytraSwapTicks = 0;
+     public AutoArmorPlus() {
+-        super(LeavesHack.LEAVES_COMBAT, "AutoArmorPlus", "自动穿甲与鞘翅切换");
++        super(LeavesHack.LEAVES_COMBAT, "AutoArmorPlus", "双击空格起飞");
+     }
+     @Override
+     public void onActivate() {
+-        timer.setMs(999999);
+     }
+     @EventHandler
+     public void onTick(TickEvent.Pre event){
+@@ -73,93 +77,88 @@ public class AutoArmorPlus extends Module {
+             return;
+         }
+         if (mc.player.playerScreenHandler != mc.player.currentScreenHandler) return;
+-        if (!timer.passedMs(delay.get())) return;
+-        timer.reset();
+-        Map<EquipmentSlot, int[]> armorMap = new HashMap<>(4);
+-        armorMap.put(EquipmentSlot.FEET, new int[]{36, getProtection(mc.player.getInventory().getStack(36)), -1, -1});
+-        armorMap.put(EquipmentSlot.LEGS, new int[]{37, getProtection(mc.player.getInventory().getStack(37)), -1, -1});
+-        armorMap.put(EquipmentSlot.CHEST, new int[]{38, getProtection(mc.player.getInventory().getStack(38)), -1, -1});
+-        armorMap.put(EquipmentSlot.HEAD, new int[]{39, getProtection(mc.player.getInventory().getStack(39)), -1, -1});
+-        for (int s = 0; s < 36; s++) {
+-            if (!(mc.player.getInventory().getStack(s).contains(DataComponentTypes.EQUIPPABLE)) && mc.player.getInventory().getStack(s).getItem() != Items.ELYTRA)
+-                continue;
+-            int protection = getProtection(mc.player.getInventory().getStack(s));
+-            EquipmentSlot slot = (mc.player.getInventory().getStack(s).getItem() == Items.ELYTRA ? EquipmentSlot.CHEST : mc.player.getInventory().getStack(s).get(DataComponentTypes.EQUIPPABLE).slot());
+-            for (Map.Entry<EquipmentSlot, int[]> e : armorMap.entrySet()) {
+-                if (e.getKey() == EquipmentSlot.FEET) {
+-                    if (mc.player.hurtTime > 1 && snowBug.get()) {
+-                        if (!mc.player.getInventory().getStack(36).isEmpty() && mc.player.getInventory().getStack(36).getItem() == Items.LEATHER_BOOTS) {
+-                            continue;
+-                        }
+-                        if (!mc.player.getInventory().getStack(s).isEmpty() && mc.player.getInventory().getStack(s).getItem() == Items.LEATHER_BOOTS) {
+-                            e.getValue()[2] = s;
+-                            continue;
+-                        }
+-                    }
+-                }
+-                FireworkElytraFly fireworkElytraFly = Modules.get().get(FireworkElytraFly.class);
+-                if (autoElytra.get() && fireworkElytraFly.isActive() && e.getKey() == EquipmentSlot.CHEST) {
+-                    if (FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.GrimDurability || FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.AutoSpear) continue;
+-                    if (!mc.player.getInventory().getStack(38).isEmpty() && mc.player.getInventory().getStack(38).getItem() == Items.ELYTRA && mc.player.getInventory().getStack(38).isDamageable() && mc.player.getInventory().getStack(38).getDamage() < mc.player.getInventory().getStack(38).getMaxDamage()) {
+-                        continue;
+-                    }
+-                    if (e.getValue()[2] != -1 && !mc.player.getInventory().getStack(e.getValue()[2]).isEmpty() && mc.player.getInventory().getStack(e.getValue()[2]).getItem() == Items.ELYTRA && mc.player.getInventory().getStack(e.getValue()[2]).isDamageable() && mc.player.getInventory().getStack(e.getValue()[2]).getDamage() < mc.player.getInventory().getStack(e.getValue()[2]).getMaxDamage()) {
+-                        continue;
+-                    }
+-                    if (!mc.player.getInventory().getStack(s).isEmpty() && mc.player.getInventory().getStack(s).getItem() == Items.ELYTRA && mc.player.getInventory().getStack(s).isDamageable() && mc.player.getInventory().getStack(s).getDamage() < mc.player.getInventory().getStack(s).getMaxDamage()) {
+-                        e.getValue()[2] = s;
+-                    }
+-                    continue;
+-                }
+-                if (protection > 0) {
+-                    if (e.getKey() == slot) {
+-                        if (protection > e.getValue()[1] && protection > e.getValue()[3]) {
+-                            e.getValue()[2] = s;
+-                            e.getValue()[3] = protection;
+-                        }
+-                    }
++        // 双击空格起飞切鞘翅（每 tick 检测）
++        if (doubleTapTakeoff.get()) handleDoubleTapTakeoff();
++    }
++    /** 双击空格：鞘翅换入胸甲槽起飞（原版 MeteorPlusPlus ElytraAndArmor 逻辑 1:1 移植） */
++    private void handleDoubleTapTakeoff() {
++        // 右键装备状态机: 1=已静默切槽，本 tick 右键装备
++        if (elytraSwapPhase == 1) {
++            if (++elytraSwapTicks > 5) { elytraSwapPhase = 0; return; }
++            if (mc.player != null && mc.world != null) {
++                try (PendingUpdateManager pm = ((IClientWorld) mc.world).invokeGetPendingUpdateManager().incrementSequence()) {
++                    int sequence = pm.getSequence();
++                    mc.getNetworkHandler().sendPacket(new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, sequence, mc.player.getYaw(), mc.player.getPitch()));
+                 }
+             }
++            elytraSwapPhase = 2; // 确认态: 等胸部同步+离地+下落段才起滑(服务端canGlide确定性成立)
++            elytraSwapTicks = 0;
++            return;
+         }
+-        for (Map.Entry<EquipmentSlot, int[]> equipmentSlotEntry : armorMap.entrySet()) {
+-            if (equipmentSlotEntry.getValue()[2] != -1) {
+-                if (equipmentSlotEntry.getValue()[1] == -1 && equipmentSlotEntry.getValue()[2] < 9) {
+-/*					if (equipmentSlotEntry.getValue()[2] != mc.player.getInventory().selectedSlot) {
+-						mc.player.getInventory().selectedSlot = equipmentSlotEntry.getValue()[2];
+-						sendPacket(new UpdateSelectedSlotC2SPacket(equipmentSlotEntry.getValue()[2]));
+-					}*/
+-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 36 + equipmentSlotEntry.getValue()[2], 1, SlotActionType.QUICK_MOVE, mc.player);
+-                    sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
+-                } else if (mc.player.playerScreenHandler == mc.player.currentScreenHandler) {
+-                    int armorSlot = (equipmentSlotEntry.getValue()[0] - 34) + (39 - equipmentSlotEntry.getValue()[0]) * 2;
+-                    int newArmorSlot = equipmentSlotEntry.getValue()[2] < 9 ? 36 + equipmentSlotEntry.getValue()[2] : equipmentSlotEntry.getValue()[2];
+-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, newArmorSlot, 0, SlotActionType.PICKUP, mc.player);
+-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, armorSlot, 0, SlotActionType.PICKUP, mc.player);
+-                    if (equipmentSlotEntry.getValue()[1] != -1)
+-                        mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, newArmorSlot, 0, SlotActionType.PICKUP, mc.player);
+-                    sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
+-                }
+-                return;
++        if (elytraSwapPhase == 2) {
++            if (++elytraSwapTicks > 15) { elytraSwapPhase = 0; return; }
++            // 起滑条件全部确定性成立后才发START: 胸部鞘翅已同步 + 已离地 + 下落段(vel.y<0)
++            // 双击过快时的地面/上升段绝不启滑(服务端canGlide的!onGround为假会拒旗->客户端旗分裂=卡地+Simulation)
++            if (mc.player.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST).isOf(net.minecraft.item.Items.ELYTRA)
++                && !mc.player.isOnGround() && mc.player.getVelocity().y < 0 && !mc.player.isGliding()) {
++                mc.player.startGliding();
+             }
++            if (mc.player.isGliding()) elytraSwapPhase = 0;
++            return;
+         }
+-    }
+-    private int getProtection(ItemStack is) {
+-        if (is.contains(DataComponentTypes.EQUIPPABLE) || is.getItem() == Items.ELYTRA) {
+-            int prot = 0;
+-            if (is.getItem() == Items.ELYTRA) {
+-                if (!(is.isDamageable() && is.getDamage() < is.getMaxDamage())) return 0;
+-                prot = 1;
+-            }
+-            if (is.hasEnchantments()) {
+-                if (ignoreBinding.get() && InventoryUtil.hasEnchantment(is, Enchantments.BINDING_CURSE)) return -1;
+-                prot += InventoryUtil.getEnchantmentLevel(is, Enchantments.PROTECTION);
++        boolean isJumpPressed = mc.options.jumpKey.isPressed();
++
++        // 上升沿检测：松开后再按下才算一次有效点击，避免长按触发
++        if (isJumpPressed && !wasJumpPressed) {
++            long now = System.currentTimeMillis();
++            double threshold = jumpDelay.get() * 1000.0;
++
++            if (lastPressTime != 0L && now - lastPressTime <= threshold) {
++                // 双击判定成立；已穿鞘翅则只重置计时，不切换
++                ItemStack chest = mc.player.getEquippedStack(EquipmentSlot.CHEST);
++                if (!chest.isOf(Items.ELYTRA)) {
++                    // 胸甲槽为空或为普通胸甲时，切换为鞘翅
++                    if (chest.isEmpty() || isChestplateOrEmpty(chest)) {
++                        // 与 FireworkElytraFly 的 GrimDurability/AutoSpear 模式互斥（它们自行管理鞘翅换装）
++                        FireworkElytraFly fly = Modules.get().get(FireworkElytraFly.class);
++                        boolean flyManaging = fly != null && fly.isActive()
++                            && (FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.GrimDurability
++                                || FireworkElytraFly.INSTANCE.mode.get() == FireworkElytraFly.Mode.AutoSpear);
++                        if (!flyManaging) {
++                            if (mc.currentScreen != null) mc.currentScreen.close();
++                            FindItemResult elytraSlot = InvUtils.find(Items.ELYTRA);
++                            if (elytraSlot.found() && elytraSlot.slot() < 9) {
++                                // 快捷栏鞘翅：t0 静默切槽 → t1 右键装备（USE_ITEM 不受 MultiActionsC/PacketOrderE 管辖，零 CLICK_WINDOW）
++                                elytraSwapSlot = elytraSlot.slot();
++                                if (mc.player.getInventory().getSelectedSlot() != elytraSwapSlot) {
++                                    InventoryUtil.switchToSlot(elytraSwapSlot);
++                                }
++                                elytraSwapPhase = 1;
++                                elytraSwapTicks = 0;
++                            } else if (elytraSlot.found()) {
++                                // 背包鞘翅：原版 clickSlot 切换（建议放快捷栏走右键）
++                                InvUtils.move().from(elytraSlot.slot()).toArmor(2);
++                            }
++                        }
++                    }
++                }
++                lastPressTime = 0L; // 双击触发后重置时间，防止连续多次点击被误判为多次双击
++            } else {
++                // 第一次点击，或者超时后的点击，记录时间
++                lastPressTime = now;
+             }
+-            return (is.contains(DataComponentTypes.EQUIPPABLE) ? getBaseArmorScore(is) : 0) + prot;
+-        } else if (!is.isEmpty()) {
+-            return 0;
+         }
+-        return -1;
++
++        // 更新上一 Tick 的按键状态
++        wasJumpPressed = isJumpPressed;
++    }
++
++    private boolean isChestplateOrEmpty(ItemStack stack) {
++        if (stack.isEmpty()) return true;
++        return stack.contains(DataComponentTypes.EQUIPPABLE)
++            && stack.get(DataComponentTypes.EQUIPPABLE).slot() == EquipmentSlot.CHEST;
+     }
++
+     private int getBaseArmorScore(ItemStack itemStack) {
+         if (!itemStack.contains(DataComponentTypes.ATTRIBUTE_MODIFIERS)) return 0;
+         int score = 0;
+diff --git a/src/main/java/com/dev/leavesHack/modules/AutoCity.java b/src/main/java/com/dev/leavesHack/modules/AutoCity.java
+index 1bc5811..dbb69f4 100644
+--- a/src/main/java/com/dev/leavesHack/modules/AutoCity.java
++++ b/src/main/java/com/dev/leavesHack/modules/AutoCity.java
+@@ -113,7 +113,7 @@ public class AutoCity extends Module {
+     }
+     @EventHandler
+     public void onTick(TickEvent.Pre event) {
+-        PlayerEntity player = CombatUtil.getClosestEnemy(targetRange.get());
++        PlayerEntity player = CombatUtil.getTargetEnemy(targetRange.get());
+         if (preferSelfClick.get() && PacketMine.selfClickPos != null) return;
+         if (delay.get() && !cityTimer.passedMs(PacketMine.INSTANCE.mineDelay.get())) return;
+         if (antiCrawl.get() && mc.player.isCrawling()) {
+diff --git a/src/main/java/com/dev/leavesHack/modules/AutoWeb.java b/src/main/java/com/dev/leavesHack/modules/AutoWeb.java
+index 51a4deb..a82c1aa 100644
+--- a/src/main/java/com/dev/leavesHack/modules/AutoWeb.java
++++ b/src/main/java/com/dev/leavesHack/modules/AutoWeb.java
+@@ -193,7 +193,7 @@ public class AutoWeb extends Module {
+     @EventHandler
+     private void onTick(TickEvent.Pre event) {
+         if (mc.player == null || mc.world == null) return;
+-        target = CombatUtil.getClosestEnemy(targetRange.get());
++        target = CombatUtil.getTargetEnemy(targetRange.get());
+         if (target == null) {
+             webPos = null;
+             return;
+diff --git a/src/main/java/com/dev/leavesHack/modules/CrystalAuraPlus.java b/src/main/java/com/dev/leavesHack/modules/CrystalAuraPlus.java
+index 05cf609..996aa3a 100644
+--- a/src/main/java/com/dev/leavesHack/modules/CrystalAuraPlus.java
++++ b/src/main/java/com/dev/leavesHack/modules/CrystalAuraPlus.java
+@@ -972,12 +972,14 @@ public class CrystalAuraPlus extends Module {
+         return !PlayerUtils.isWithin(vec3d, (place ? placeRange : breakRange).get());
+     }
+ 
+-    private LivingEntity getNearestTarget() {
++    private LivingEntity getPriorityTarget() {
++        // 快速伤害路径必须用最近目标：水晶为范围伤害，放置可行性只取决于距离；
++        // 全局目标模式(Health/Distance/Both)若用于此处，低血远目标会抢占并导致 damage=0 而永不放置
+         LivingEntity nearestTarget = null;
+         double nearestDistance = Double.MAX_VALUE;
+ 
+         for (LivingEntity target : targets) {
+-            double distance = PlayerUtils.squaredDistanceTo(target);
++            double distance = mc.player.squaredDistanceTo(target);
+ 
+             if (distance < nearestDistance) {
+                 nearestTarget = target;
+@@ -988,11 +990,13 @@ public class CrystalAuraPlus extends Module {
+         return nearestTarget;
+     }
+ 
++
+     private float getDamageToTargets(Vec3d vec3d, BlockPos obsidianPos, boolean breaking, boolean fast) {
+         float damage = 0;
+ 
+         if (fast) {
+-            LivingEntity target = getNearestTarget();
++            LivingEntity target = getPriorityTarget();
++            if (target == null) return 0;
+             if (!(smartDelay.get() && breaking && target.hurtTime > 0)) damage = DamageUtils.crystalDamage(target, vec3d, predictMovement.get(), obsidianPos);
+         }
+         else {
+diff --git a/src/main/java/com/dev/leavesHack/modules/ElytraReplace.java b/src/main/java/com/dev/leavesHack/modules/ElytraReplace.java
+new file mode 100644
+index 0000000..c2aab8e
+--- /dev/null
++++ b/src/main/java/com/dev/leavesHack/modules/ElytraReplace.java
+@@ -0,0 +1,105 @@
++package com.dev.leavesHack.modules;
++
++import com.dev.leavesHack.LeavesHack;
++import meteordevelopment.meteorclient.events.world.TickEvent;
++import meteordevelopment.meteorclient.settings.IntSetting;
++import meteordevelopment.meteorclient.settings.Setting;
++import meteordevelopment.meteorclient.settings.SettingGroup;
++import meteordevelopment.meteorclient.systems.modules.Module;
++import meteordevelopment.meteorclient.utils.player.ChatUtils;
++import meteordevelopment.orbit.EventHandler;
++import net.minecraft.entity.EquipmentSlot;
++import net.minecraft.item.ItemStack;
++import net.minecraft.item.Items;
++import net.minecraft.screen.slot.SlotActionType;
++
++/**
++ * 鞘翅替换（移植自 MeteorPlusPlusAddon ElytraReplace）
++ * 自动替换耐久度过低的鞘翅：优先从快捷栏，其次从背包。
++ */
++public class ElytraReplace extends Module {
++    private final SettingGroup sg = settings.getDefaultGroup();
++
++    private final Setting<Integer> durability = sg.add(new IntSetting.Builder()
++        .name("耐久阈值")
++        .description("耐久度百分比阈值，低于此值时替换鞘翅。")
++        .defaultValue(5)
++        .min(0)
++        .max(100)
++        .build()
++    );
++
++    public ElytraReplace() {
++        super(LeavesHack.LEAVES_MISC, "ElytraSwap", "自动替换耐久度过低的鞘翅");
++    }
++
++    @EventHandler
++    private void onTick(TickEvent.Post event) {
++        if (mc.player == null) return;
++
++        ItemStack chestStack = mc.player.getEquippedStack(EquipmentSlot.CHEST);
++
++        // 穿着鞘翅且耐久度过低时触发
++        if (chestStack.isOf(Items.ELYTRA) && getDurabilityPercent(chestStack) <= durability.get()) {
++            // 1. 先在快捷栏中寻找
++            int hotbarSlot = findBetterElytraInHotbar();
++            if (hotbarSlot != -1) {
++                swapElytra(hotbarSlot);
++                ChatUtils.info("§a从快捷栏替换了鞘翅!");
++                return;
++            }
++
++            // 2. 快捷栏没有，再从背包中寻找
++            int inventorySlot = findBetterElytraInInventory();
++            if (inventorySlot != -1) {
++                swapElytra(inventorySlot);
++                ChatUtils.info("§a从背包替换了鞘翅!");
++            }
++        }
++    }
++
++    /** 获取物品剩余耐久度百分比（空物品按 100 处理，避免除零） */
++    private float getDurabilityPercent(ItemStack stack) {
++        float maxDamage = stack.getMaxDamage();
++        if (maxDamage <= 0) return 100f;
++        float currentDamage = stack.getDamage();
++        return 100f - (currentDamage / maxDamage * 100f);
++    }
++
++    /** 在快捷栏（界面槽位 36-44）中查找耐久度更好的鞘翅 */
++    private int findBetterElytraInHotbar() {
++        for (int i = 36; i <= 44; i++) {
++            ItemStack stack = mc.player.currentScreenHandler.getSlot(i).getStack();
++            if (stack.isOf(Items.ELYTRA) && getDurabilityPercent(stack) > durability.get()) {
++                return i;
++            }
++        }
++        return -1;
++    }
++
++    /** 在背包（界面槽位 9-35）中查找耐久度更好的鞘翅 */
++    private int findBetterElytraInInventory() {
++        for (int i = 9; i <= 35; i++) {
++            ItemStack stack = mc.player.currentScreenHandler.getSlot(i).getStack();
++            if (stack.isOf(Items.ELYTRA) && getDurabilityPercent(stack) > durability.get()) {
++                return i;
++            }
++        }
++        return -1;
++    }
++
++    /**
++     * 执行鞘翅替换（三次 PICKUP 点击与胸甲槽交换）
++     * 1.21.11 取证：PlayerScreenHandler 槽位 5-8 为盔甲（HEAD=5, CHEST=6, LEGS=7, FEET=8）
++     */
++    private void swapElytra(int screenSlot) {
++        int syncId = mc.player.currentScreenHandler.syncId;
++
++        // 1. 拾取新鞘翅
++        mc.interactionManager.clickSlot(syncId, screenSlot, 0, SlotActionType.PICKUP, mc.player);
++        // 2. 与胸甲槽交换
++        mc.interactionManager.clickSlot(syncId, 6, 0, SlotActionType.PICKUP, mc.player);
++        // 3. 放回旧鞘翅
++        mc.interactionManager.clickSlot(syncId, screenSlot, 0, SlotActionType.PICKUP, mc.player);
++    }
++}
+diff --git a/src/main/java/com/dev/leavesHack/modules/FakePlayerPlus.java b/src/main/java/com/dev/leavesHack/modules/FakePlayerPlus.java
+new file mode 100644
+index 0000000..349681c
+--- /dev/null
++++ b/src/main/java/com/dev/leavesHack/modules/FakePlayerPlus.java
+@@ -0,0 +1,299 @@
++package com.dev.leavesHack.modules;
++
++import com.dev.leavesHack.LeavesHack;
++import com.dev.leavesHack.utils.world.BlockUtil;
++import meteordevelopment.meteorclient.events.packets.PacketEvent;
++import meteordevelopment.meteorclient.events.world.TickEvent;
++import meteordevelopment.meteorclient.settings.*;
++import meteordevelopment.meteorclient.systems.modules.Module;
++import meteordevelopment.meteorclient.utils.entity.DamageUtils;
++import meteordevelopment.meteorclient.utils.entity.fakeplayer.FakePlayerEntity;
++import meteordevelopment.meteorclient.utils.player.ChatUtils;
++import meteordevelopment.orbit.EventHandler;
++import net.minecraft.block.Block;
++import net.minecraft.block.Blocks;
++import net.minecraft.entity.EquipmentSlot;
++import net.minecraft.entity.effect.StatusEffectInstance;
++import net.minecraft.entity.effect.StatusEffects;
++import net.minecraft.item.ItemStack;
++import net.minecraft.item.Items;
++import net.minecraft.network.packet.s2c.play.EntityStatusS2CPacket;
++import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket;
++import net.minecraft.entity.EntityStatuses;
++import net.minecraft.particle.ParticleTypes;
++import net.minecraft.sound.SoundEvents;
++import net.minecraft.util.math.BlockPos;
++import net.minecraft.util.math.Vec3d;
++
++/**
++ * FakePlayerPlus（假玩家+）
++ * <p>
++ * 生成一个纯客户端假人，用于测试爆炸类战斗模块（水晶/床/锚）的实战效果。
++ * 基座复用 Meteor 自带的 {@link FakePlayerEntity}（生成/移除/皮肤/背包克隆），
++ * 在此之上移植自 Alien FakePlayer 的增强功能：
++ * <ul>
++ *   <li>无限药水 Buff（回生/抗性/伤害吸收）</li>
++ *   <li>自动图腾：副手保持不死图腾，濒死时自动触发图腾复活动画</li>
++ *   <li>爆炸伤害模拟：监听爆炸包，按距离结算水晶/床爆炸伤害并扣减假人血量</li>
++ * </ul>
++ */
++public class FakePlayerPlus extends Module {
++    public static FakePlayerPlus INSTANCE;
++    public FakePlayerEntity fakePlayer;
++
++    /** 需要镜像到实体 equipment 的人形槽位（1.21.9+ 实体装备与背包分离） */
++    private static final EquipmentSlot[] EQUIPMENT_COPY_SLOTS = {
++        EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND,
++        EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD
++    };
++
++    private final SettingGroup sgGeneral = settings.getDefaultGroup();
++
++    private final Setting<String> fakeName = sgGeneral.add(new StringSetting.Builder()
++        .name("Name")
++        .description("假人名字")
++        .defaultValue("FakePlayer")
++        .build()
++    );
++
++    private final Setting<Integer> health = sgGeneral.add(new IntSetting.Builder()
++        .name("Health")
++        .description("假人血量(>20 的部分转为伤害吸收盾)")
++        .defaultValue(20)
++        .range(1, 40)
++        .sliderRange(1, 40)
++        .build()
++    );
++
++    private final Setting<Boolean> copyInventory = sgGeneral.add(new BoolSetting.Builder()
++        .name("CopyInventory")
++        .description("复制自身背包与装备")
++        .defaultValue(true)
++        .build()
++    );
++
++    private final Setting<Boolean> regen = sgGeneral.add(new BoolSetting.Builder()
++        .name("Regeneration")
++        .description("无限回生 II(注意：会持续回血，影响伤害/图腾测试)")
++        .defaultValue(false)
++        .build()
++    );
++
++    private final Setting<Boolean> resistance = sgGeneral.add(new BoolSetting.Builder()
++        .name("Resistance")
++        .description("无限抗性 II(注意：减少 40% 模拟伤害)")
++        .defaultValue(false)
++        .build()
++    );
++
++    private final Setting<Boolean> absorption = sgGeneral.add(new BoolSetting.Builder()
++        .name("Absorption")
++        .description("无限伤害吸收 III(注意：提供 12 点吸收盾，会优先抵消模拟伤害)")
++        .defaultValue(false)
++        .build()
++    );
++
++    private final Setting<Boolean> autoTotem = sgGeneral.add(new BoolSetting.Builder()
++        .name("AutoTotem")
++        .description("副手自动保持不死图腾，濒死自动弹出")
++        .defaultValue(true)
++        .build()
++    );
++
++    private final Setting<Boolean> explosionDamage = sgGeneral.add(new BoolSetting.Builder()
++        .name("ExplosionDamage")
++        .description("模拟爆炸伤害(水晶/床/锚)并扣减假人血量")
++        .defaultValue(true)
++        .build()
++    );
++
++    private final Setting<Boolean> debugInfo = sgGeneral.add(new BoolSetting.Builder()
++        .name("DebugInfo")
++        .description("在聊天栏输出每次爆炸的结算明细，便于验证模拟是否生效")
++        .defaultValue(true)
++        .build()
++    );
++
++    public FakePlayerPlus() {
++        super(LeavesHack.LEAVES_MISC, "FakePlayer+", "假人测试");
++        INSTANCE = this;
++    }
++
++    @Override
++    public void onActivate() {
++        if (mc.player == null || mc.world == null) {
++            toggle();
++            return;
++        }
++
++        fakePlayer = new FakePlayerEntity(mc.player, fakeName.get(), health.get().floatValue(), copyInventory.get());
++        fakePlayer.doNotPush = true;
++        fakePlayer.hideWhenInsideCamera = true;
++        // 1.21.9+ 实体装备(副手/盔甲)存于 LivingEntity.equipment，与 PlayerInventory 是两套存储；
++        // meteor 的背包克隆只写 PlayerInventory，这里必须用 equipStack 镜像到实体，否则
++        // getOffHandStack()/伤害计算/渲染读到的永远是空
++        if (copyInventory.get()) {
++            for (EquipmentSlot slot : EQUIPMENT_COPY_SLOTS) {
++                fakePlayer.equipStack(slot, mc.player.getEquippedStack(slot).copy());
++            }
++        }
++        applyEffects();
++        if (autoTotem.get()) equipTotem();
++        fakePlayer.spawn();
++        if (debugInfo.get()) ChatUtils.info("FakePlayer+: 假人已生成 (%.0f 血)", fakePlayer.getHealth());
++    }
++
++    @Override
++    public void onDeactivate() {
++        if (fakePlayer != null) {
++            fakePlayer.despawn();
++            fakePlayer = null;
++        }
++    }
++
++    @Override
++    public String getInfoString() {
++        // 模块列表实时显示假人血量，便于确认伤害模拟是否生效（保持简短）
++        return fakePlayer == null ? null : String.format("[%.1f❤]", fakePlayer.getHealth());
++    }
++
++    @EventHandler
++    private void onTick(TickEvent.Pre event) {
++        if (mc.world == null || fakePlayer == null || fakePlayer.isRemoved()) {
++            if (isActive()) toggle();
++            return;
++        }
++
++        // 无限 Buff：每 tick 重新施加短时长药水
++        applyEffects();
++
++        // 副手图腾维持
++        if (autoTotem.get() && !(fakePlayer.getOffHandStack().getItem() == Items.TOTEM_OF_UNDYING)) {
++            equipTotem();
++        }
++
++        // 濒死自动图腾：1.21.2+ 原版把图腾结算改为服务端私有方法，
++        // 此处按原版逻辑在客户端侧等效模拟，并回 10 血（本地粒子发射器+音效）
++        if (fakePlayer.isDead() && autoTotem.get()) {
++            boolean fired = simulateTotem();
++            if (debugInfo.get()) {
++                if (fired) {
++                    ChatUtils.info("FakePlayer+: 图腾触发 → 本地特效已施加(粒子发射器40t+音效)");
++                } else {
++                    ChatUtils.info("FakePlayer+: 图腾触发失败 → 副手无图腾 (autoTotem 会自动补装)");
++                }
++            }
++            if (fired) fakePlayer.setHealth(10.0f);
++        }
++    }
++
++    /** 客户端侧等效图腾判定（对应原版 LivingEntity.tryUseDeathProtector） */
++    private boolean simulateTotem() {
++        ItemStack offhand = fakePlayer.getOffHandStack();
++        if (offhand.getItem() != Items.TOTEM_OF_UNDYING) return false;
++
++        offhand.decrement(1);
++        fakePlayer.setHealth(1.0f);
++        fakePlayer.clearStatusEffects();
++        fakePlayer.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 900, 1));
++        fakePlayer.addStatusEffect(new StatusEffectInstance(StatusEffects.ABSORPTION, 100, 1));
++        fakePlayer.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, 800, 0));
++        // 图腾特效直接本地触发（与 1.21.11 onEntityStatus case 35 等效：40tick 图腾粒子发射器+音效）。
++        // 不走 EntityStatusS2CPacket.apply()：该路径经 forceMainThread/包批处理器，存在被延迟/吞包的不确定性
++        mc.particleManager.addEmitter(fakePlayer, ParticleTypes.TOTEM_OF_UNDYING, 40);
++        mc.world.playSound(null, fakePlayer.getX(), fakePlayer.getY(), fakePlayer.getZ(),
++            SoundEvents.ITEM_TOTEM_USE, fakePlayer.getSoundCategory(), 1.0f, 1.0f);
++        return true;
++    }
++
++    @EventHandler
++    private void onPacketReceive(PacketEvent.Receive event) {
++        if (!explosionDamage.get() || fakePlayer == null) return;
++        if (!(event.packet instanceof ExplosionS2CPacket packet)) return;
++
++        handleExplosion(packet);
++    }
++
++    /**
++     * 爆炸伤害结算：距爆炸中心 10 格内才参与结算；
++     * 爆炸点下方是重生锚按锚伤害计算，否则按末影水晶伤害计算。
++     */
++    private void handleExplosion(ExplosionS2CPacket packet) {
++        // PacketEvent.Receive 在网络线程触发，切回主线程结算，避免与世界数据竞争
++        mc.execute(() -> settleExplosion(packet));
++    }
++
++    private void settleExplosion(ExplosionS2CPacket packet) {
++        if (fakePlayer == null || fakePlayer.isRemoved()) return;
++
++        // 1.21.2+ 爆炸包为 Record：center() 返回爆炸中心
++        Vec3d explosionPos = packet.center();
++        double x = explosionPos.x;
++        double y = explosionPos.y;
++        double z = explosionPos.z;
++
++        // 与原版一致：爆炸(水晶/床)的实际作用半径为 12 格，超出后原版伤害为 0，
++        // 此前 10 格的门槛会把 10~12 格内的残余伤害误判为无伤
++        double distance = fakePlayer.getEntityPos().distanceTo(explosionPos);
++        if (distance > 12) return;
++
++        BlockPos below = BlockPos.ofFloored(x, y - 0.5, z);
++
++        float damage;
++        Block under = BlockUtil.getBlock(below);
++        if (under == Blocks.RESPAWN_ANCHOR) {
++            damage = DamageUtils.anchorDamage(fakePlayer, explosionPos);
++        } else {
++            BlockPos obsidianPos = under == Blocks.OBSIDIAN || under == Blocks.BEDROCK ? below : null;
++            damage = DamageUtils.crystalDamage(fakePlayer, explosionPos, false, obsidianPos);
++        }
++
++        applyDamage(damage);
++        if (debugInfo.get()) {
++            ChatUtils.info("FakePlayer+: 爆炸结算 距离%.1f格 伤害%.1f → 血量%.1f/%.1f (吸收盾%.1f)",
++                distance, damage, fakePlayer.getHealth(), fakePlayer.getMaxHealth(), fakePlayer.getAbsorptionAmount());
++        }
++    }
++
++    /** 先扣伤害吸收盾，再扣血量 */
++    private void applyDamage(float damage) {
++        if (damage <= 0) return;
++
++        float absorption = fakePlayer.getAbsorptionAmount();
++        if (absorption > 0) {
++            if (damage <= absorption) {
++                fakePlayer.setAbsorptionAmount(absorption - damage);
++            } else {
++                fakePlayer.setAbsorptionAmount(0);
++                fakePlayer.setHealth(Math.max(0.0f, fakePlayer.getHealth() - (damage - absorption)));
++            }
++        } else {
++            fakePlayer.setHealth(Math.max(0.0f, fakePlayer.getHealth() - damage));
++        }
++
++        // 受伤动画：红闪 + 受击倾斜（等价原版服务端广播的 status 2）
++        fakePlayer.animateDamage((float) (Math.random() * 360.0));
++        if (debugInfo.get() && fakePlayer.getHealth() <= 0) {
++            ChatUtils.info("FakePlayer+: 假人濒死 (血量=0), 濒死图腾流程启动");
++        }
++    }
++
++    private void applyEffects() {
++        // ambient=false + showParticles=true：让假人周围出现药水漩涡粒子，便于确认效果已应用
++        if (regen.get()) {
++            fakePlayer.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 40, 1, false, true));
++        }
++        if (resistance.get()) {
++            fakePlayer.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 40, 1, false, true));
++        }
++        if (absorption.get()) {
++            fakePlayer.addStatusEffect(new StatusEffectInstance(StatusEffects.ABSORPTION, 40, 2, false, true));
++        }
++    }
++
++    private void equipTotem() {
++        // 关键修复：必须写实体 equipment(通过 equipStack)，
++        // inventory.setStack(40) 写的是 PlayerInventory 的另一套存储，getOffHandStack() 读不到
++        fakePlayer.equipStack(EquipmentSlot.OFFHAND, new ItemStack(Items.TOTEM_OF_UNDYING));
++    }
++}
+diff --git a/src/main/java/com/dev/leavesHack/modules/FireworkElytraFly.java b/src/main/java/com/dev/leavesHack/modules/FireworkElytraFly.java
+index 71a5552..6f11932 100644
+--- a/src/main/java/com/dev/leavesHack/modules/FireworkElytraFly.java
++++ b/src/main/java/com/dev/leavesHack/modules/FireworkElytraFly.java
+@@ -150,6 +150,19 @@ public class FireworkElytraFly extends LeavesModule {
+         .defaultValue(false)
+         .build()
+     );
++    private final Setting<Double> takeoffInterval = sgGeneral.add(new DoubleSetting.Builder()
++        .name("TakeoffInterval")
++        .description("起飞包最小间隔ms(±10%%抖动)。0=port10原版不限制；3C3U被限频就调大")
++        .defaultValue(0)
++        .sliderMax(10000)
++        .build()
++    );
++    private final Setting<Boolean> smartTakeoff = sgGeneral.add(new BoolSetting.Builder()
++        .name("SmartTakeoff")
++        .description("自家火箭助推中不重复起飞(省配额)")
++        .defaultValue(false)
++        .build()
++    );
+     private final Setting<Boolean> deBug = sgGeneral.add(new BoolSetting.Builder()
+         .name("DeBug")
+         .description("dev查bug的，没iq不要开")
+@@ -177,10 +190,34 @@ public class FireworkElytraFly extends LeavesModule {
+     public boolean hasSpear = false;
+     private boolean savedNoGravity = false;
+     private boolean isNoGravityActive = false;
++    private int glidePhase = 0;
++    private int glideElytraSlot = -1;
++    private int glideFwSlot = -1;
++    private int glideTicks = 0;
++    private int boostRemaining = 0;
++    private final Timer takeoffTimer = new Timer();
++    private double currentTakeoffInterval = 0;
++
++    private void rollTakeoffInterval() {
++        double base = takeoffInterval.get();
++        currentTakeoffInterval = base <= 0 ? 0 : base * (0.9 + Math.random() * 0.2);
++    }
++    private boolean takeoffGate() {
++        if (smartTakeoff.get() && (isUsingFirework || fireworkPending)) return false;
++        return takeoffTimer.passedMs((long) currentTakeoffInterval);
++    }
++    private boolean hasFireworkAvailable() {
++        if (mc.player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET) return true;
++        if (mc.player.getOffHandStack().getItem() == Items.FIREWORK_ROCKET) return true;
++        if (inventorySwap.get() && InventoryUtil.findItemInventorySlot(Items.FIREWORK_ROCKET) != -1) return true;
++        return InventoryUtil.findItem(Items.FIREWORK_ROCKET) != -1;
++    }
+     @Override
+     public void onActivate() {
+         if (noSprint.get()) mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.STOP_SPRINTING));
+         hasSpear = false;
++        takeoffTimer.setMs(99999);
++        rollTakeoffInterval();
+         spearTimer.setMs(99999);
+         fireworkTimer.setMs(99999);
+         fireworkPendingTimer.setMs(99999);
+@@ -212,7 +249,13 @@ public class FireworkElytraFly extends LeavesModule {
+     @EventHandler
+     public void onSprint(PacketEvent.Send send) {
+         if (noSprint.get() && send.packet instanceof ClientCommandC2SPacket packet) {
+-            if (packet.getMode() == ClientCommandC2SPacket.Mode.START_SPRINTING) send.cancel();
++            if (packet.getMode() == ClientCommandC2SPacket.Mode.START_SPRINTING) {
++                send.cancel();
++                InventoryUtil.serverSprintState = false;
++            } else if (packet.getMode() == ClientCommandC2SPacket.Mode.STOP_SPRINTING) {
++                if (noSprint.get() && !InventoryUtil.serverSprintState) send.cancel();
++                else InventoryUtil.serverSprintState = false;
++            }
+         }
+     }
+     @EventHandler
+@@ -341,8 +384,15 @@ public class FireworkElytraFly extends LeavesModule {
+             sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
+             mc.player.startGliding();
+         }
+-        if (mode.get() == Mode.GrimDurability && !isFallFlying) {
+-            if (elytra != -1 && packetDelayInt > packetDealy.get()) {
++        if (mode.get() == Mode.GrimDurability) {
++            if (!isFallFlying) {
++            if (elytra != -1 && packetDelayInt > packetDealy.get() && takeoffGate()) {
++                // 离地闸门：服务端 canGlide() 要求 !isOnGround，地面时只跳不发任何包。
++                // 否则 START_FALL_FLYING 会被 checkGliding 打回 → 原地干蹦不起飞
++                if (mc.player.isOnGround()) {
++                    shouldJump = true;
++                    return;
++                }
+ //                int old = mc.player.getInventory().getSelectedSlot();
+                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
+                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
+@@ -368,6 +418,7 @@ public class FireworkElytraFly extends LeavesModule {
+                 mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
+                 packetDelayInt = 0;
+             }
++            }
+         }
+         if (mode.get() == Mode.Legit) {
+             if (wearingElytra && isFallFlying) {
+diff --git a/src/main/java/com/dev/leavesHack/modules/Follower.java b/src/main/java/com/dev/leavesHack/modules/Follower.java
+index 07c8c6e..6a16539 100644
+--- a/src/main/java/com/dev/leavesHack/modules/Follower.java
++++ b/src/main/java/com/dev/leavesHack/modules/Follower.java
+@@ -122,7 +122,7 @@ public class Follower extends Module {
+             shouldJump = true;
+             return;
+         }
+-        target = CombatUtil.getClosestEnemy(targetRange.get());
++        target = CombatUtil.getTargetEnemy(targetRange.get());
+         if (target == null || wantToMove()) {
+             canFollow = false;
+             return;
+diff --git a/src/main/java/com/dev/leavesHack/modules/GlassFiller.java b/src/main/java/com/dev/leavesHack/modules/GlassFiller.java
+index 008c8a2..7a5ae6e 100644
+--- a/src/main/java/com/dev/leavesHack/modules/GlassFiller.java
++++ b/src/main/java/com/dev/leavesHack/modules/GlassFiller.java
+@@ -96,7 +96,7 @@ public class GlassFiller extends Module {
+ 
+     public void update() {
+         if (usingPause.get() && checkPause(onlyMain.get())) return;
+-        target = CombatUtil.getClosestEnemy(targetRange.get());
++        target = CombatUtil.getTargetEnemy(targetRange.get());
+         if (target == null) {
+             return;
+         }
+diff --git a/src/main/java/com/dev/leavesHack/modules/GlobalSetting.java b/src/main/java/com/dev/leavesHack/modules/GlobalSetting.java
+index 9f13175..7f3378a 100644
+--- a/src/main/java/com/dev/leavesHack/modules/GlobalSetting.java
++++ b/src/main/java/com/dev/leavesHack/modules/GlobalSetting.java
+@@ -1,6 +1,7 @@
+ package com.dev.leavesHack.modules;
+ 
+ import com.dev.leavesHack.LeavesHack;
++import com.dev.leavesHack.utils.combat.CombatUtil;
+ import meteordevelopment.meteorclient.settings.*;
+ import meteordevelopment.meteorclient.systems.modules.Module;
+ 
+@@ -11,8 +12,15 @@ public class GlobalSetting extends Module {
+         INSTANCE = this;
+     }
+     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
++    private final SettingGroup sgCombat = this.settings.createGroup("Combat");
+     private final SettingGroup sgRotation = this.settings.createGroup("Rotation");
+     private final SettingGroup sgElytra = this.settings.createGroup("Elytra");
++    public final Setting<CombatUtil.TargetMode> targetMode = sgCombat.add(new EnumSetting.Builder<CombatUtil.TargetMode>()
++        .name("TargetMode")
++        .description("目标选择方法(Health=生命值优先 Distance=距离优先 Both=综合)")
++        .defaultValue(CombatUtil.TargetMode.Distance)
++        .build()
++    );
+     public final Setting<Boolean> chinese = sgGeneral.add(new BoolSetting.Builder()
+         .name("Chinese")
+         .description("中文汉化")
+diff --git a/src/main/java/com/dev/leavesHack/modules/OneKeyFirework.java b/src/main/java/com/dev/leavesHack/modules/OneKeyFirework.java
+new file mode 100644
+index 0000000..59e4aa0
+--- /dev/null
++++ b/src/main/java/com/dev/leavesHack/modules/OneKeyFirework.java
+@@ -0,0 +1,130 @@
++package com.dev.leavesHack.modules;
++
++import com.dev.leavesHack.LeavesHack;
++import com.dev.leavesHack.asm.accessors.IClientWorld;
++import com.dev.leavesHack.utils.entity.InventoryUtil;
++import meteordevelopment.meteorclient.events.world.TickEvent;
++import meteordevelopment.meteorclient.settings.IntSetting;
++import meteordevelopment.meteorclient.settings.Setting;
++import meteordevelopment.meteorclient.settings.SettingGroup;
++import meteordevelopment.meteorclient.systems.modules.Module;
++import meteordevelopment.meteorclient.utils.player.ChatUtils;
++import meteordevelopment.orbit.EventHandler;
++import net.minecraft.client.network.PendingUpdateManager;
++import net.minecraft.item.Items;
++import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
++import net.minecraft.util.Hand;
++
++/**
++ * 一键烟花（移植自 meteor-miku OnekeyFireWork）
++ * 仅在滑行状态释放。
++ * <p>
++ * 对照 Grim v2.3.73 取证重写：
++ * - PacketOrderE: HELD_ITEM_CHANGE 不得与 USE_ITEM 同 tick → 切槽与使用分 tick
++ * - Post: 交互包必须在移动包之前 → 全部状态机推进放在 TickEvent.Pre
++ * - CLOSE_WINDOW 不再发送（无窗口操作，不需要重同步）
++ * 时序: t0 HELD(烟花槽) -> t1 USE(烟花) -> closeDelay 后 t2 HELD(还原槽位) 并自动关闭
++ */
++public class OneKeyFirework extends Module {
++    private static final int PH_IDLE = 0;
++    private static final int PH_SWAPPED = 1;   // 已切到烟花槽，待使用
++    private static final int PH_FIRED = 2;     // 已使用，待还原
++
++    private final SettingGroup sgGeneral = settings.getDefaultGroup();
++    private final Setting<Integer> closeDelay = sgGeneral.add(new IntSetting.Builder()
++        .name("还原延迟")
++        .description("使用烟花后还原选中槽位的延迟（游戏刻）")
++        .defaultValue(4)
++        .sliderRange(1, 40)
++        .build()
++    );
++
++    private int phase = PH_IDLE;
++    private int delay = 0;
++    private int slotBefore = 0;
++    private int fireworkHotbar = -1;
++
++    public OneKeyFirework() {
++        super(LeavesHack.LEAVES_COMBAT, "OneKeyFirework", "一键烟花");
++    }
++
++    @Override
++    public void onActivate() {
++        if (mc.player == null || mc.world == null) {
++            toggle();
++            return;
++        }
++        // 需求：仅在滑行状态释放
++        if (!mc.player.isGliding()) {
++            ChatUtils.error("OneKeyFirework: 未在滑行状态，取消");
++            toggle();
++            return;
++        }
++
++        slotBefore = mc.player.getInventory().getSelectedSlot();
++
++        // 主手/副手烟花：直接使用，零切槽零还原
++        if (mc.player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET) {
++            firework(Hand.MAIN_HAND);
++            toggle();
++            return;
++        }
++        if (mc.player.getOffHandStack().getItem() == Items.FIREWORK_ROCKET) {
++            firework(Hand.OFF_HAND);
++            toggle();
++            return;
++        }
++
++        // 快捷栏烟花：t0 切槽（本 tick 独占），下一 tick 使用，closeDelay 后还原
++        int fw = InventoryUtil.findItemInventorySlot(Items.FIREWORK_ROCKET);
++        if (fw >= 36 && fw <= 44) {
++            fireworkHotbar = fw;
++            InventoryUtil.switchToSlot(fw - 36);
++            phase = PH_SWAPPED;
++            delay = 0;
++            return;
++        }
++
++        ChatUtils.error("OneKeyFirework: 烟花需在主手/副手/快捷栏");
++        toggle();
++    }
++
++    @Override
++    public void onDeactivate() {
++        phase = PH_IDLE;
++        delay = 0;
++        fireworkHotbar = -1;
++    }
++
++    @EventHandler
++    private void onTick(TickEvent.Pre event) {
++        if (phase == PH_IDLE) return;
++
++        if (phase == PH_SWAPPED) {
++            // t1: 使用烟花（与切槽分 tick，规避 PacketOrderE）
++            firework(Hand.MAIN_HAND);
++            phase = PH_FIRED;
++            delay = closeDelay.get();
++            return;
++        }
++
++        if (phase == PH_FIRED) {
++            if (--delay > 0) return;
++            // t2: 还原选中槽位（HELD_ITEM_CHANGE，独占本 tick 交互）
++            if (fireworkHotbar != -1 && mc.player != null) {
++                InventoryUtil.switchToSlot(slotBefore);
++            }
++            phase = PH_IDLE;
++            toggle();
++        }
++    }
++
++    /** 序列化右键包（PendingUpdateManager 分配 sequence） */
++    private void firework(Hand hand) {
++        if (mc.getNetworkHandler() == null || mc.world == null) return;
++        try (PendingUpdateManager pendingUpdateManager = ((IClientWorld) mc.world).invokeGetPendingUpdateManager().incrementSequence()) {
++            int sequence = pendingUpdateManager.getSequence();
++            mc.getNetworkHandler().sendPacket(new PlayerInteractItemC2SPacket(hand, sequence, mc.player.getYaw(), mc.player.getPitch()));
++        }
++    }
++}
+diff --git a/src/main/java/com/dev/leavesHack/modules/OneKeyPearl.java b/src/main/java/com/dev/leavesHack/modules/OneKeyPearl.java
+new file mode 100644
+index 0000000..3861c04
+--- /dev/null
++++ b/src/main/java/com/dev/leavesHack/modules/OneKeyPearl.java
+@@ -0,0 +1,49 @@
++package com.dev.leavesHack.modules;
++
++import com.dev.leavesHack.LeavesHack;
++import meteordevelopment.meteorclient.systems.modules.Module;
++import meteordevelopment.meteorclient.utils.player.ChatUtils;
++import meteordevelopment.meteorclient.utils.player.FindItemResult;
++import meteordevelopment.meteorclient.utils.player.InvUtils;
++import net.minecraft.item.Items;
++import net.minecraft.util.Hand;
++
++/**
++ * 一键珍珠（移植自 meteor-miku OneKeyPearl）
++ * 激活即投掷珍珠：主手直接投；否则静默换手投掷后还原，随后模块自动关闭。
++ */
++public class OneKeyPearl extends Module {
++
++    public OneKeyPearl() {
++        super(LeavesHack.LEAVES_COMBAT, "OneKeyPearl", "一键珍珠");
++    }
++
++    @Override
++    public void onActivate() {
++        if (mc.player == null || mc.world == null) {
++            toggle();
++            return;
++        }
++
++        FindItemResult pearl = InvUtils.find(Items.ENDER_PEARL);
++        if (!pearl.found()) {
++            ChatUtils.error("OneKeyPearl: 背包里没有珍珠");
++            toggle();
++            return;
++        }
++
++        if (pearl.isOffhand()) {
++            // 副手珍珠直接投，无需换手
++            mc.interactionManager.interactItem(mc.player, Hand.OFF_HAND);
++        } else if (!pearl.isMainHand()) {
++            // 静默换手 → 投掷 → 还原
++            InvUtils.swap(pearl.slot(), false);
++            mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
++            InvUtils.swapBack();
++        } else {
++            mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
++        }
++
++        toggle();
++    }
++}
+diff --git a/src/main/java/com/dev/leavesHack/modules/PistonCrystal.java b/src/main/java/com/dev/leavesHack/modules/PistonCrystal.java
+index 0bb6084..f6a4954 100644
+--- a/src/main/java/com/dev/leavesHack/modules/PistonCrystal.java
++++ b/src/main/java/com/dev/leavesHack/modules/PistonCrystal.java
+@@ -212,7 +212,7 @@ public class PistonCrystal extends LeavesModule {
+         if (mc.player == null || mc.world == null) return;
+         if (System.currentTimeMillis() - lastAction < delay.get()) return;
+         if (preferCrystal.get() && CrystalAuraPlus.INSTANCE.renderCrystalPos != null) return;
+-        target = CombatUtil.getClosestEnemy(targetRange.get());
++        target = CombatUtil.getTargetEnemy(targetRange.get());
+         // 目标切换时清除缓存，重新计算最优位置
+         if (lastBestPos != null && target != null && lastTarget != null && target != lastTarget) {
+             lastBestPos = null;
+diff --git a/src/main/java/com/dev/leavesHack/utils/combat/CombatUtil.java b/src/main/java/com/dev/leavesHack/utils/combat/CombatUtil.java
+index 32d36c6..abd4d5d 100644
+--- a/src/main/java/com/dev/leavesHack/utils/combat/CombatUtil.java
++++ b/src/main/java/com/dev/leavesHack/utils/combat/CombatUtil.java
+@@ -1,5 +1,6 @@
+ package com.dev.leavesHack.utils.combat;
+ 
++import com.dev.leavesHack.modules.GlobalSetting;
+ import com.dev.leavesHack.utils.entity.EntityUtil;
+ import com.dev.leavesHack.utils.rotation.Rotation;
+ import com.dev.leavesHack.utils.world.BlockUtil;
+@@ -9,6 +10,7 @@ import net.minecraft.block.BlockState;
+ import net.minecraft.block.Blocks;
+ import net.minecraft.client.network.AbstractClientPlayerEntity;
+ import net.minecraft.entity.Entity;
++import net.minecraft.entity.LivingEntity;
+ import net.minecraft.entity.decoration.EndCrystalEntity;
+ import net.minecraft.entity.player.PlayerEntity;
+ import net.minecraft.util.math.BlockPos;
+@@ -16,6 +18,7 @@ import net.minecraft.util.math.Box;
+ import net.minecraft.util.math.Vec3d;
+ 
+ import java.util.ArrayList;
++import java.util.Comparator;
+ import java.util.List;
+ 
+ import static meteordevelopment.meteorclient.MeteorClient.mc;
+@@ -41,21 +44,58 @@ public class CombatUtil {
+ 
+         return !invalid;
+     }
+-    public static PlayerEntity getClosestEnemy(double distance) {
+-        PlayerEntity closest = null;
++    // ==================== 目标选择（全局设置 -> Combat -> TargetMode） ====================
+ 
+-        for (PlayerEntity player : getEnemies(distance)) {
+-            if (closest == null) {
+-                closest = player;
+-                continue;
+-            }
++    /** 目标选择方法：Health=生命值优先，Distance=距离优先，Both=距离&生命值综合 */
++    public enum TargetMode {
++        Health, Distance, Both
++    }
++
++    /** 读取全局目标模式，GlobalSetting 未初始化时回退为 Distance（保持旧行为） */
++    public static TargetMode getTargetMode() {
++        return GlobalSetting.INSTANCE == null ? TargetMode.Distance : GlobalSetting.INSTANCE.targetMode.get();
++    }
+ 
+-            if (!(mc.player.squaredDistanceTo(player.getEntityPos()) < mc.player.squaredDistanceTo(closest))) continue;
++    /** 血量维度评分：越低越优先；非生物实体视为最差（排最后） */
++    private static double healthScore(Entity entity) {
++        if (entity instanceof LivingEntity living) return living.getHealth() + living.getAbsorptionAmount();
++        return Double.MAX_VALUE;
++    }
++
++    /** 目标综合评分，越小越优先 */
++    public static double targetScore(Entity entity, double range) {
++        double dist = mc.player.squaredDistanceTo(entity);
++        return switch (getTargetMode()) {
++            case Health -> healthScore(entity);
++            case Distance -> dist;
++            case Both -> dist / Math.max(range * range, 1.0) + healthScore(entity) / 20.0;
++        };
++    }
+ 
+-            closest = player;
++    /** 从候选列表中按全局目标模式选出最优目标 */
++    public static <T extends Entity> T getTarget(List<T> candidates, double range) {
++        T best = null;
++        double bestScore = Double.MAX_VALUE;
++        for (T entity : candidates) {
++            double score = targetScore(entity, range);
++            if (best == null || score < bestScore) {
++                best = entity;
++                bestScore = score;
++            }
+         }
+-        return closest;
++        return best;
++    }
++
++    /** 按全局目标模式排序的比较器（越小越优先） */
++    public static <T extends Entity> Comparator<T> targetComparator(double range) {
++        return Comparator.comparingDouble(entity -> targetScore(entity, range));
+     }
++
++    /** 按全局目标模式选出范围内最优敌人（玩家） */
++    public static PlayerEntity getTargetEnemy(double distance) {
++        return getTarget(getEnemies(distance), distance);
++    }
++
+     public static void attackCrystal(BlockPos pos, boolean rotate, boolean eatingPause) {
+         attackCrystal(new Box(pos), rotate, eatingPause);
+     }
+diff --git a/src/main/java/com/dev/leavesHack/utils/entity/InventoryUtil.java b/src/main/java/com/dev/leavesHack/utils/entity/InventoryUtil.java
+index 705b90d..e7b4bfb 100644
+--- a/src/main/java/com/dev/leavesHack/utils/entity/InventoryUtil.java
++++ b/src/main/java/com/dev/leavesHack/utils/entity/InventoryUtil.java
+@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
+ import it.unimi.dsi.fastutil.objects.Object2IntMaps;
+ import meteordevelopment.meteorclient.MeteorClient;
+ import meteordevelopment.meteorclient.events.packets.PacketEvent;
++import meteordevelopment.meteorclient.events.world.TickEvent;
+ import meteordevelopment.orbit.EventHandler;
+ import net.minecraft.block.Block;
+ import net.minecraft.block.Blocks;
+@@ -38,6 +39,8 @@ public class InventoryUtil {
+     static int lastSlot = -1;
+     public static int serverSlot = 0;
+     static int lastSelect = -1;
++    /** 服务端视角的冲刺状态（BadPacketsF 防御：仅服务端认为 sprinting=true 时才允许发 STOP） */
++    public static boolean serverSprintState = false;
+     @EventHandler
+     public void onPacketSend(PacketEvent.Send event) {
+         if (event.packet instanceof UpdateSelectedSlotC2SPacket packet) {
+@@ -46,6 +49,15 @@ public class InventoryUtil {
+             }
+             serverSlot = packet.getSelectedSlot();
+         }
++        // 跟踪服务端冲刺视角（被取消的包不会到达服务端，不计入）
++        if (event.packet instanceof net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket packet) {
++            if (event.isCancelled()) return;
++            switch (packet.getMode()) {
++                case START_SPRINTING -> serverSprintState = true;
++                case STOP_SPRINTING -> serverSprintState = false;
++                default -> {}
++            }
++        }
+     }
+ //    public static int getEquipmentLevel(PlayerEntity player, RegistryKey<Enchantment> enchantmentKey) {
+ //        int maxLevel = 0;
+@@ -133,6 +145,16 @@ public class InventoryUtil {
+     public static ItemStack getStackInSlot(int i) {
+         return mc.player.getInventory().getStack(i);
+     }
++    /** 单次停冲刺：仅服务端视角在冲刺时发一次 STOP（合法 true→false），MultiActionsC 需要服务端 sprint=false */
++    public static void stopSprintIfServerSprinting() {
++        if (mc.player == null) return;
++        if (serverSprintState) {
++            mc.player.setSprinting(false);
++            sendPacket(new net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket(mc.player, net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket.Mode.STOP_SPRINTING));
++            serverSprintState = false;
++        }
++    }
++
+     public static void switchToSlot(int slot) {
+         if (GlobalSetting.INSTANCE.clientSwitch.get()) mc.player.getInventory().setSelectedSlot(slot);
+         sendPacket(new UpdateSelectedSlotC2SPacket(slot));

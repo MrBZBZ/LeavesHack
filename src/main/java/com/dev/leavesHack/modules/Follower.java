@@ -122,7 +122,7 @@ public class Follower extends Module {
             shouldJump = true;
             return;
         }
-        target = CombatUtil.getClosestEnemy(targetRange.get());
+        target = CombatUtil.getTargetEnemy(targetRange.get());
         if (target == null || wantToMove()) {
             canFollow = false;
             return;
