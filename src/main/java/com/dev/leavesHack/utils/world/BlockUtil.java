@@ -1,12 +1,14 @@
 package com.dev.leavesHack.utils.world;
 
-import com.dev.leavesHack.modules.AutoCity;
+import com.dev.leavesHack.asm.accessors.IClientWorld;
 import com.dev.leavesHack.modules.GlobalSetting;
 import com.dev.leavesHack.utils.entity.EntityUtil;
 import com.dev.leavesHack.utils.rotation.Rotation;
 import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import net.minecraft.block.*;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.network.PendingUpdateManager;
+import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ExperienceOrbEntity;
 import net.minecraft.entity.ItemEntity;
@@ -63,14 +65,6 @@ public class BlockUtil {
 
     public static Vec3d getClosestPoint(Entity entity) {
         return getClosestPointToBox(mc.player.getEyePos(), entity.getBoundingBox());
-    }
-    public static boolean noEntityBlockCrystal(BlockPos pos, boolean ignoreCrystal, boolean ignoreItem) {
-        for (Entity entity : getEntities(new Box(pos))) {
-            if (!entity.isAlive() || ignoreItem && entity instanceof ItemEntity || ignoreCrystal && entity instanceof EndCrystalEntity && mc.player.getEyePos().distanceTo(getClosestPoint(entity)) <= AutoCity.INSTANCE.range.get())
-                continue;
-            return false;
-        }
-        return true;
     }
     public static boolean canClick(BlockPos pos) {
         return (mc.world.getBlockState(pos).isSolid() || getBlock(pos) instanceof RedstoneTorchBlock || getBlock(pos) instanceof RedstoneBlock) && (!(shiftBlocks.contains(getBlock(pos)) || getBlock(pos) instanceof BedBlock) || mc.player.isSneaking());
@@ -374,7 +368,7 @@ public class BlockUtil {
         EntityUtil.placeSwingHand();
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         if (packetPlace){
-            mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
+            sendSequencedPacket(id -> new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, id));
         } else {
             mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
         }
@@ -411,7 +405,7 @@ public class BlockUtil {
         mc.player.swingHand(Hand.MAIN_HAND);
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         if (packetPlace){
-            mc.getNetworkHandler().sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, 0));
+            sendSequencedPacket(id -> new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, id));
         } else {
             mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, result);
         }
@@ -447,5 +441,12 @@ public class BlockUtil {
             return true;
         }
         return false;
+    }
+    public static void sendSequencedPacket(SequencedPacketCreator packetCreator) {
+        if (mc.getNetworkHandler() == null || mc.world == null) return;
+        try (PendingUpdateManager pendingUpdateManager = ((IClientWorld) mc.world).invokeGetPendingUpdateManager().incrementSequence()) {
+            int i = pendingUpdateManager.getSequence();
+            mc.getNetworkHandler().sendPacket(packetCreator.predict(i));
+        }
     }
 }

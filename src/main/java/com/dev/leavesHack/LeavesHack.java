@@ -33,6 +33,10 @@ public class LeavesHack extends MeteorAddon {
         BreakManager.INSTANCE.hashCode();
 
         // Modules
+        add(new AutoMine());
+        add(new SprintPlus());
+        add(new Replenish());
+        add(new PushCrystal());
         add(new AutoWeb());
         add(new CrystalAuraPlus());
         add(new BreakESP());
@@ -53,13 +57,11 @@ public class LeavesHack extends MeteorAddon {
         add(new Aura());
         add(new ScaffoldPlus());
         add(new FireworkElytraFly());
-        add(new AutoCity());
         add(new PacketMine());
         add(new GlobalSetting());
         add(new PacketLogger());
         add(new Follower());
         add(new GlassFiller());
-        add(new PistonCrystal());
         add(new AutoLogin());
         add(new NukerPlus());
 //        // Commands

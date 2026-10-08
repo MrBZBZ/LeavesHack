@@ -326,7 +326,6 @@ public class PacketMine extends Module {
         mine(event.blockPos);
     }
     public void mine(BlockPos pos) {
-        if (AutoCity.INSTANCE.isActive() && AutoCity.INSTANCE.delay.get() && !mineTimer.passedMs(mineDelay.get())) return;
         mineTimer.reset();
         maxBreaksCount = 0;
         if (doubleBreak.get()) {

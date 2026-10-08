@@ -37,6 +37,12 @@ public class ScaffoldPlus extends Module {
         .defaultValue(true)
         .build()
     );
+    private final Setting<Boolean> packetPlace = sgGeneral.add(new BoolSetting.Builder()
+        .name("PacketPlace")
+        .description("发包放置")
+        .defaultValue(true)
+        .build()
+    );
     private final Setting<ShapeMode> shapeMode = sgRender.add(
         new EnumSetting.Builder<ShapeMode>()
             .name("Shape Mode")
@@ -48,14 +54,14 @@ public class ScaffoldPlus extends Module {
         new ColorSetting.Builder()
             .name("Line")
             .description("边框颜色")
-            .defaultValue(new SettingColor(140, 142, 255, 255))
+            .defaultValue(new SettingColor(255, 255, 255, 255))
             .build()
     );
     private final Setting<SettingColor> sideColor = sgRender.add(
         new ColorSetting.Builder()
             .name("Side")
             .description("填充颜色")
-            .defaultValue(new SettingColor(140, 142, 255, 50))
+            .defaultValue(new SettingColor(255, 255, 255, 50))
             .build()
     );
     @EventHandler
@@ -115,7 +121,7 @@ public class ScaffoldPlus extends Module {
                 if (side != null) {
                     event.renderer.box(new Box(placePos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
                     InventoryUtil.switchToSlot(block);
-                    BlockUtil.placeSlabBlock(placePos, side, slabSide, rotate.get());
+                    BlockUtil.placeSlabBlock(placePos, side, slabSide, rotate.get(), packetPlace.get());
                     InventoryUtil.switchToSlot(old);
                 }
             }
@@ -151,7 +157,7 @@ public class ScaffoldPlus extends Module {
             if (side != null && !(BlockUtil.getBlock(placePos) instanceof SlabBlock)) {
                 event.renderer.box(new Box(placePos), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
                 InventoryUtil.switchToSlot(block);
-                BlockUtil.placeSlabBlock(placePos, side, Direction.DOWN, rotate.get());
+                BlockUtil.placeSlabBlock(placePos, side, Direction.DOWN, rotate.get(), packetPlace.get());
                 InventoryUtil.switchToSlot(old);
             }
         }
